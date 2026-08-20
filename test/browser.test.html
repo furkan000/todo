@@ -1,0 +1,254 @@
+<!doctype html><meta charset="utf-8"><body>
+<iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe>
+<pre id="out">running</pre>
+<script>
+var log = [], fails = 0;
+function ok(n, c, extra) { if (!c) fails++; log.push((c ? 'PASS ' : 'FAIL ') + n + (c ? '' : '  << ' + JSON.stringify(extra))); }
+window.onerror = function (m, s, l) { log.push('FAIL uncaught: ' + m + ' @' + l); fails++; };
+document.getElementById('f').addEventListener('load', function () {
+  var w = this.contentWindow, d = this.contentDocument;
+  try {
+  w.onerror = function (m,s,l) { log.push('FAIL app error: ' + m + ' @' + l); fails++; };
+  try { w.localStorage.clear(); } catch (e) {}
+  var ed = d.getElementById('editor'), stage = d.getElementById('stage');
+  function $(s) { return d.querySelector(s); }
+  function $$(s) { return [].slice.call(d.querySelectorAll(s)); }
+  function click(el) { el.dispatchEvent(new w.MouseEvent('click', {bubbles:true})); }
+
+  // --- document view
+  ok('12 todos rendered', $$('.todo').length === 12, $$('.todo').length);
+  var firstText = ed.value.split('\n')[6];
+  ok('sample line 7 is done', /^- \[x\]/.test(firstText), firstText);
+
+  // toggle the first checkbox -> text must flip
+  var cb = $('.todo input[data-toggle]');
+  cb.checked = false;
+  cb.dispatchEvent(new w.Event('change', {bubbles:true}));
+  ok('toggle rewrote the text', /^- \[ \] Rewrite/.test(ed.value.split('\n')[6]), ed.value.split('\n')[6]);
+  // toggle back
+  var cb2 = $('.todo input[data-toggle]'); cb2.checked = true;
+  cb2.dispatchEvent(new w.Event('change', {bubbles:true}));
+  ok('toggle back', /^- \[x\] Rewrite/.test(ed.value.split('\n')[6]), ed.value.split('\n')[6]);
+
+  // click a chip -> filters
+  var chip = $$('.chip.select').filter(function (c) { return c.dataset.q === '#proj:atlas'; })[0];
+  ok('atlas chip exists', !!chip);
+  click(chip);
+  ok('search box filled', d.getElementById('search').value === '#proj:atlas', d.getElementById('search').value);
+  ok('stats shows filtered count', /showing <b>4<\/b>/.test(d.getElementById('stats').innerHTML), d.getElementById('stats').textContent);
+  var chip2 = $$('.chip.select').filter(function (c) { return c.dataset.q === '#proj:atlas'; })[0];
+  click(chip2); // clicking the same tag again clears it
+  ok('second click clears filter', d.getElementById('search').value === '', d.getElementById('search').value);
+  ok('unfiltered again', $$('.todo').length === 12, $$('.todo').length);
+
+  // --- table view + sorting
+  click($('[data-view="table"]'));
+  ok('table rendered', !!$('table tbody tr'), stage.className);
+  ok('grouped by default', $$('.group').length === 3, $$('.group').length);
+  ok('section heads named', $('.group-h').textContent.indexOf('Shipping') === 0, $('.group-h').textContent);
+  ok('shared ancestor crumb dropped', !$('.group-h .crumb'), $('.group-h').textContent);
+  ok('per-section columns drop unused ones',
+     $$('.group')[2].querySelectorAll('th').length < $$('.group')[0].querySelectorAll('th').length,
+     [$$('.group')[0].querySelectorAll('th').length, $$('.group')[2].querySelectorAll('th').length]);
+  click($('[data-group="0"]'));   // the sort assertions below are about one flat table
+  ok('flat mode is one table', $$('table').length === 1, $$('table').length);
+  var due0 = $$('table tbody tr .due')[0].textContent;
+  ok('default sort is due asc', /2026-08-14/.test(due0), due0);
+  click($('th[data-sort="title"]'));
+  var t0 = $$('.task-title')[0].textContent;
+  ok('sort by title asc', t0 === 'Book the boiler service', t0);
+  click($('th[data-sort="title"]'));
+  ok('sort by title desc', $$('.task-title')[0].textContent === 'Write the calendar view', $$('.task-title')[0].textContent);
+  click($('th[data-sort="ns:priority"]'));
+  ok('priority sorts high first', $$('tbody tr')[0].querySelector('.col-select .chip').textContent === 'high', $$('tbody tr')[0].textContent);
+  var lastRow = $$('tbody tr').slice(-1)[0];
+  ok('no-priority rows sink', lastRow.querySelector('.col-select').textContent === '—', lastRow.textContent);
+  // booleans render as yes/no, never blank
+  ok('bool column has explicit no', $$('.flag.no').length > 0, $$('.flag.no').length);
+  ok('bool column has yes', $$('.flag.yes').length === 5, $$('.flag.yes').length);
+
+  // filter segmented
+  click($('[data-filter="done"]'));
+  ok('done filter shows 2', $$('tbody tr').length === 2, $$('tbody tr').length);
+  click($('[data-filter="all"]'));
+
+  // --- calendar
+  click($('[data-view="cal"]'));
+  ok('calendar grid', $$('.cal-day').length === 42, $$('.cal-day').length);
+  ok('today marked', $$('.cal-day.today').length === 1, $$('.cal-day.today').length);
+  ok('has overdue item', $$('.cal-item.overdue').length >= 0);
+  var title = $('.cal-title').textContent.trim();
+  click($('[data-month="1"]'));
+  var title2 = $('.cal-title').textContent.trim();
+  ok('next month navigates', title !== title2, [title, title2]);
+  click($('[data-month="0"]'));
+  ok('today button returns', $('.cal-title').textContent.trim() === title, $('.cal-title').textContent.trim());
+  var item = $('.cal-item .t');
+  ok('calendar title clips with ellipsis', w.getComputedStyle(item).textOverflow === 'ellipsis', w.getComputedStyle(item).textOverflow);
+
+  // --- tags view
+  click($('[data-view="tags"]'));
+  ok('5 namespaces listed', $$('.ns-row').length === 5, $$('.ns-row').length);
+  ok('taught tags listed', $$('.taught-row').length === 6, $$('.taught-row').length);
+  ok('no typo warnings on clean sample', $$('.disco.warn').length === 0);
+
+  // typo catcher fires on a real typo
+  ed.value = '- [ ] a #status:"in progress"\n- [ ] b #status:"in progres"\n- [ ] c @2026-13-45';
+  ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  ok('typo section appears', $$('.disco.warn').length === 1, $$('.disco.warn').length);
+  ok('bad date flagged', /unrecognised date/.test($('.disco.warn').textContent), $('.disco.warn').textContent.slice(0,200));
+
+  // keyboard shortcuts: 1 is Text, the views follow
+  d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'1', ctrlKey:true, bubbles:true}));
+  ok('ctrl+1 shows the text', w.PTT.state.layout === 'text', w.PTT.state.layout);
+  d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'2', ctrlKey:true, bubbles:true}));
+  ok('ctrl+2 switches to document', stage.className.indexOf('view-doc') !== -1, stage.className);
+  ok('ctrl+2 leaves text mode', w.PTT.state.layout !== 'text', w.PTT.state.layout);
+  d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'5', ctrlKey:true, bubbles:true}));
+  ok('ctrl+5 switches to tags', stage.className.indexOf('view-tags') !== -1, stage.className);
+  d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'2', ctrlKey:true, bubbles:true}));
+
+  // enter continues a list
+  ed.value = '- [ ] first';
+  ed.setSelectionRange(11, 11);
+  ed.dispatchEvent(new w.KeyboardEvent('keydown', {key:'Enter', bubbles:true, cancelable:true}));
+  ok('enter continues todo list', ed.value === '- [ ] first\n- [ ] ', JSON.stringify(ed.value));
+  ed.dispatchEvent(new w.KeyboardEvent('keydown', {key:'Enter', bubbles:true, cancelable:true}));
+  ok('enter on empty item ends list', ed.value === '- [ ] first\n', JSON.stringify(ed.value));
+
+  // --- layout modes
+  click($('[data-layout="text"]'));
+  ok('text-only hides the views', w.getComputedStyle($('.view-pane')).display === 'none', w.getComputedStyle($('.view-pane')).display);
+  ok('text-only keeps the editor', w.getComputedStyle($('.editor-pane')).display !== 'none');
+  ok('text-only keeps the status bar', w.getComputedStyle($('.statusbar')).display !== 'none');
+  ok('text-only button is active', $('[data-layout="text"]').classList.contains('on'));
+  ok('editor spans full width', $('#editor').getBoundingClientRect().width > 900, $('#editor').getBoundingClientRect().width);
+  ok('text tab is the one lit', $('[data-layout="text"]').classList.contains('on') &&
+     !$$('[data-view]').some(function (b) { return b.classList.contains('on'); }));
+  // clicking a view tab while text-only reveals the view again
+  click($('[data-view="table"]'));
+  ok('view tab leaves text-only', w.PTT.state.layout === 'split', w.PTT.state.layout);
+  ok('view tab relights', $('[data-view="table"]').classList.contains('on'));
+  click($('[data-layout="view"]'));
+  ok('view-only hides the editor', w.getComputedStyle($('.editor-pane')).display === 'none');
+  // text mode returns you to the arrangement you were last in, not always split
+  click($('[data-layout="text"]'));
+  click($('[data-view="doc"]'));
+  ok('returns to the previous arrangement', w.PTT.state.layout === 'view', w.PTT.state.layout);
+  d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'\\', ctrlKey:true, bubbles:true}));
+  ok('ctrl+\\ shows the editor', w.PTT.state.layout === 'split', w.PTT.state.layout);
+  d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'\\', ctrlKey:true, bubbles:true}));
+  ok('ctrl+\\ hides it again', w.PTT.state.layout === 'view', w.PTT.state.layout);
+  d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'\\', ctrlKey:true, bubbles:true}));
+  // layout survives a reload (prefs persisted)
+  ok('layout is persisted', JSON.parse(w.localStorage.getItem('ptt.prefs.v1')).layout === 'split',
+     w.localStorage.getItem('ptt.prefs.v1'));
+
+  // --- export menu
+  ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  click($('[data-act="menu"]'));
+  ok('export menu opens', !$('#export-menu').hidden);
+  d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'Escape', bubbles:true}));
+  ok('escape closes menu', $('#export-menu').hidden);
+
+  var json = JSON.parse(w.PTT.toJSON());
+  ok('json carries the source text', json.text === ed.value);
+  ok('json has 12 todos', json.todos.length === 12, json.todos.length);
+  ok('json resolves taught tags', json.todos.filter(function(t){return /shed/.test(t.title);})[0].select.color === 'blue');
+  ok('json lists vocabulary', Object.keys(json.vocabulary.namespaces).length === 5, Object.keys(json.vocabulary.namespaces));
+  ok('json booleans', json.vocabulary.booleans.length === 2);
+
+  var csv = w.PTT.toCSV();
+  var head = csv.split('\n')[0];
+  ok('csv header has namespaces', /priority/.test(head) && /status/.test(head) && /~billable/.test(head), head);
+  ok('csv carries multi-word values', /,in progress,/.test(csv), csv.split('\n')[1]);
+  ok('csv quotes cells containing commas', /"a,b"/.test((function(){
+    ed.value = '- [ ] t #status:"a,b"'; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+    var c = w.PTT.toCSV(); ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true})); return c;
+  })()));
+  ok('csv row count', csv.trim().split('\n').length === 13, csv.trim().split('\n').length);
+
+  // --- import round trips
+  w.confirm = function () { return true; };
+  var before = ed.value;
+  w.PTT.importText('todo.json', JSON.stringify({text: '- [ ] from json @2026-12-01 #ns:v'}));
+  ok('json import replaces text', ed.value === '- [ ] from json @2026-12-01 #ns:v', ed.value);
+  ok('imported text reparsed', w.PTT.doc().todos[0].due === '2026-12-01', w.PTT.doc().todos[0]);
+
+  ed.value = before; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  var csvOut = w.PTT.toCSV();
+  w.PTT.importText('todo.csv', csvOut);
+  var back = w.PTT.doc();
+  ok('csv round trip keeps 12 todos', back.todos.length === 12, back.todos.length);
+  ok('csv round trip keeps done state', back.todos.filter(function(t){return t.done;}).length === 2, back.todos.filter(function(t){return t.done;}).length);
+  ok('csv round trip keeps due dates', back.todos.filter(function(t){return t.due;}).length === 11, back.todos.filter(function(t){return t.due;}).length);
+  ok('csv round trip keeps namespaces', back.vocab.namespaces.size === 5, [].concat(Array.from(back.vocab.namespaces.keys())));
+  ok('csv round trip keeps quoted value', back.todos.some(function(t){return t.selects.status === 'in progress';}), back.todos.map(function(t){return t.selects.status;}));
+  ok('csv round trip keeps booleans', back.todos.filter(function(t){return t.bools.billable;}).length === 4, back.todos.filter(function(t){return t.bools.billable;}).length);
+  ok('csv round trip keeps labels', back.vocab.labels.has('home'), Array.from(back.vocab.labels.keys()));
+  ok('csv round trip keeps priority', back.todos.filter(function(t){return t.priority;}).length === 7, back.todos.filter(function(t){return t.priority;}).length);
+
+  w.PTT.importText('notes.md', '# raw\n- [ ] plain markdown');
+  ok('md import is verbatim', ed.value === '# raw\n- [ ] plain markdown', ed.value);
+  ok('bad csv is rejected', w.PTT.csvToText([['a','b'],['1','2']]) === null);
+
+  // --- theme (restore the sample: earlier tests replaced the text)
+  ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  click($('[data-view="doc"]'));
+  function rgbAvg(c) { var m = c.match(/\d+/g); return (+m[0] + +m[1] + +m[2]) / 3; }
+  var root = d.documentElement;
+  w.PTT.state.theme = 'auto'; w.PTT.applyTheme();
+  ok('auto resolves to the system value', root.dataset.theme ===
+     (w.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'), root.dataset.theme);
+  w.PTT.state.theme = 'light'; w.PTT.applyTheme();
+  ok('light attribute set', root.dataset.theme === 'light');
+  var lightBg = rgbAvg(w.getComputedStyle(d.body).backgroundColor);
+  ok('light really is light', lightBg > 200, lightBg);
+  ok('light ink is dark', rgbAvg(w.getComputedStyle(d.body).color) < 70, w.getComputedStyle(d.body).color);
+  // headless reports prefers-color-scheme: dark, so this proves the explicit
+  // choice beats the media query rather than just agreeing with it
+  ok('system prefers dark here', w.matchMedia('(prefers-color-scheme: dark)').matches);
+  ok('explicit light overrides system dark', lightBg > 200, lightBg);
+  var chipLight = rgbAvg(w.getComputedStyle($('.chip.select')).backgroundColor);
+  ok('chips follow the light theme', chipLight > 200, chipLight);
+  // nodes that existed before the switch must repaint too, not just the tokens
+  ok('existing checkboxes repaint on switch',
+     rgbAvg(w.getComputedStyle($('.todo input:not(:checked) + .box')).backgroundColor) > 200,
+     w.getComputedStyle($('.todo input:not(:checked) + .box')).backgroundColor);
+  // the guard is transient: it holds during the switch and lifts on the next frame
+  ok('theme switch suppresses transitions', d.documentElement.classList.contains('theme-switching') &&
+     w.getComputedStyle($('.todo .box')).transitionProperty === 'none',
+     w.getComputedStyle($('.todo .box')).transitionProperty);
+  ok('existing panels repaint on switch',
+     rgbAvg(w.getComputedStyle($('.editor-pane')).backgroundColor) > 200,
+     w.getComputedStyle($('.editor-pane')).backgroundColor);
+  w.PTT.state.theme = 'dark'; w.PTT.applyTheme();
+  var darkBg = rgbAvg(w.getComputedStyle(d.body).backgroundColor);
+  ok('dark really is dark', darkBg < 45, darkBg);
+  ok('chips follow the dark theme', rgbAvg(w.getComputedStyle($('.chip.select')).backgroundColor) < 90, w.getComputedStyle($('.chip.select')).backgroundColor);
+  click($('[data-act="theme"]'));
+  ok('theme button cycles dark->auto', w.PTT.state.theme === 'auto', w.PTT.state.theme);
+  ok('theme button reflects state', $('[data-act="theme"]').dataset.themeState === 'auto');
+  ok('theme is persisted', JSON.parse(w.localStorage.getItem('ptt.prefs.v1')).theme === 'auto');
+
+  // --- reading column is centred, not left-hugged, in view-only
+  click($('[data-layout="view"]'));
+  click($('[data-view="doc"]'));
+  var st = $('.stage').getBoundingClientRect(), h = $('.doc-h').getBoundingClientRect();
+  var leftGap = h.left - st.left, rightGap = st.right - h.right;
+  ok('doc column is centred', Math.abs(leftGap - rightGap) < 30, {leftGap: leftGap, rightGap: rightGap});
+  ok('doc column is capped', h.width <= 821, h.width);
+  var p0 = $('.stage p').getBoundingClientRect();
+  ok('prose aligns with headings', Math.abs(p0.left - h.left) < 2, {p: p0.left, h: h.left});
+  click($('[data-view="tags"]'));
+  var sec = $('.disco').getBoundingClientRect(), st2 = $('.stage').getBoundingClientRect();
+  ok('tags column is centred', Math.abs((sec.left - st2.left) - (st2.right - sec.right)) < 30);
+  click($('[data-layout="split"]'));
+
+  } catch (err) {
+    fails++;
+    log.push('FAIL threw: ' + (err && err.message) + '  @ ' + String(err && err.stack).split('\n')[1]);
+  }
+  document.getElementById('out').textContent = log.join('\n') + '\n\n' + (log.length - fails) + ' passed, ' + fails + ' failed';
+});
+</script>

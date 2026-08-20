@@ -1,0 +1,1 @@
+nohup npx serve -p 3111 > /dev/null 2>&1 &

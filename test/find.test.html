@@ -1,0 +1,82 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  function $(s){return d.querySelector(s);}
+  function click(s){$(s).dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  function type(el,v){el.value=v;el.dispatchEvent(new w.Event('input',{bubbles:true}));}
+  function key(el,k,o){o=o||{};o.key=k;o.bubbles=true;o.cancelable=true;el.dispatchEvent(new w.KeyboardEvent('keydown',o));}
+  var ed=d.getElementById('editor'), panel=d.getElementById('find'), q=d.getElementById('find-q'), r=d.getElementById('find-r');
+
+  ok('panel starts hidden', panel.hidden);
+  key(d, 'f', {ctrlKey:true});
+  ok('ctrl+f opens', !panel.hidden);
+
+  ed.value='alpha beta Alpha gamma alpha'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  type(q,'alpha');
+  ok('case-insensitive by default', d.getElementById('find-count').textContent === '1 of 3', d.getElementById('find-count').textContent);
+  ok('selects the first match', [ed.selectionStart,ed.selectionEnd].join()==='0,5', [ed.selectionStart,ed.selectionEnd]);
+  key(q,'Enter');
+  ok('enter goes next', ed.selectionStart===11, ed.selectionStart);
+  key(q,'Enter',{shiftKey:true});
+  ok('shift+enter goes back', ed.selectionStart===0, ed.selectionStart);
+  key(q,'Enter',{shiftKey:true});
+  ok('wraps backwards', ed.selectionStart===23, ed.selectionStart);
+
+  d.getElementById('find-case').checked=true; d.getElementById('find-case').dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('match case narrows', d.getElementById('find-count').textContent.indexOf('of 2')>0, d.getElementById('find-count').textContent);
+  d.getElementById('find-case').checked=false; d.getElementById('find-case').dispatchEvent(new w.Event('change',{bubbles:true}));
+
+  // replace one
+  type(r,'ZZ'); click('[data-find="one"]');
+  ok('replace one', ed.value.indexOf('ZZ')!==-1 && ed.value.split('ZZ').length===2, ed.value);
+  // replace all
+  click('[data-find="all"]');
+  ok('replace all', /^ZZ beta ZZ gamma ZZ$/.test(ed.value) || ed.value.split('ZZ').length===4, ed.value);
+  ok('flash reports the count', /Replaced/.test(d.getElementById('stats').textContent), d.getElementById('stats').textContent);
+
+  // whole word
+  ed.value='cat cats cat'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  type(q,'cat');
+  ok('substring matches all', d.getElementById('find-count').textContent==='1 of 3', d.getElementById('find-count').textContent);
+  d.getElementById('find-word').checked=true; d.getElementById('find-word').dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('whole word excludes cats', d.getElementById('find-count').textContent==='1 of 2', d.getElementById('find-count').textContent);
+  d.getElementById('find-word').checked=false; d.getElementById('find-word').dispatchEvent(new w.Event('change',{bubbles:true}));
+
+  // regex + backreference
+  ed.value='- [ ] a @2026-08-21\n- [ ] b @2026-09-02'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  d.getElementById('find-re').checked=true; d.getElementById('find-re').dispatchEvent(new w.Event('change',{bubbles:true}));
+  type(q,'@(\\d{4})-(\\d{2})-(\\d{2})'); type(r,'@$3/$2/$1');
+  click('[data-find="all"]');
+  ok('regex backreferences expand', ed.value.indexOf('@21/08/2026')!==-1 && ed.value.indexOf('@02/09/2026')!==-1, ed.value);
+
+  // bad pattern is reported, not thrown
+  type(q,'([');
+  ok('bad pattern flagged', d.getElementById('find-count').textContent==='bad pattern', d.getElementById('find-count').textContent);
+  ok('bad pattern marks the field', q.classList.contains('bad'));
+  d.getElementById('find-re').checked=false; d.getElementById('find-re').dispatchEvent(new w.Event('change',{bubbles:true}));
+
+  // literal $ is not treated as a backreference outside regex mode
+  ed.value='price here'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  type(q,'price'); type(r,'$1');
+  click('[data-find="all"]');
+  ok('literal replacement keeps $1', ed.value==='$1 here', ed.value);
+
+  // parse still sees the edits
+  ed.value='- [ ] x @2026-08-21'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  type(q,'2026-08-21'); type(r,'2026-12-25'); click('[data-find="all"]');
+  ok('document reparses after replace', w.PTT.doc().todos[0].due==='2026-12-25', w.PTT.doc().todos[0].due);
+
+  key(q,'Escape');
+  ok('escape closes', panel.hidden);
+  // opening from view-only reveals the editor
+  click('[data-layout="view"]');
+  key(d,'f',{ctrlKey:true});
+  ok('opens editor when hidden', w.PTT.state.layout==='split', w.PTT.state.layout);
+ }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
+ document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

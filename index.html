@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plain Text Todo</title>
+<script>/* resolved before first paint so the theme never flashes */
+try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.theme || 'auto';
+      document.documentElement.dataset.theme = t !== 'auto' ? t
+        : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); } catch (e) {}</script>
+<link rel="stylesheet" href="css/app.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+</head>
+<body>
+<div id="app" class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark">▤</span>
+      <span class="name">Plain&nbsp;Text&nbsp;Todo</span>
+    </div>
+
+    <nav class="tabs" role="tablist">
+      <button data-layout="text" class="tab" title="Text — the source itself (Ctrl+1)">Text</button>
+      <span class="tab-div" aria-hidden="true"></span>
+      <button data-view="doc"   class="tab" title="Document (Ctrl+2)">Document</button>
+      <button data-view="table" class="tab" title="Table (Ctrl+3)">Table</button>
+      <button data-view="cal"   class="tab" title="Calendar (Ctrl+4)">Calendar</button>
+      <button data-view="tags"  class="tab" title="Tags (Ctrl+5)">Tags</button>
+    </nav>
+
+    <div class="spacer-flex"></div>
+
+    <div class="search">
+      <svg viewBox="0 0 16 16" class="icon"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>
+      <input id="search" type="search" placeholder="Search or click a tag…" autocomplete="off" spellcheck="false">
+      <button id="clear-search" data-act="clear-search" class="x" title="Clear" hidden>×</button>
+    </div>
+
+    <div class="segmented" role="group" aria-label="Filter">
+      <button data-filter="all">All</button>
+      <button data-filter="open">Open</button>
+      <button data-filter="done">Done</button>
+    </div>
+
+    <div class="actions">
+      <button data-act="theme" class="icon-btn theme-btn" data-theme-state="auto" title="Theme: following system">
+        <svg class="ico ico-auto" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11a5.5 5.5 0 0 0 0-11z" fill="currentColor" stroke="none"/></svg>
+        <svg class="ico ico-light" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.2"/><path d="M8 .8v1.8M8 13.4v1.8M2.9 2.9l1.3 1.3M11.8 11.8l1.3 1.3M.8 8h1.8M13.4 8h1.8M2.9 13.1l1.3-1.3M11.8 4.2l1.3-1.3"/></svg>
+        <svg class="ico ico-dark" viewBox="0 0 16 16"><path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.9 5.9 0 1 0 7 7z"/></svg>
+      </button>
+      <div class="segmented layout" role="group" aria-label="Layout">
+        <button data-layout="split" title="Split — editor beside the view (Ctrl+\)">
+          <svg viewBox="0 0 16 16"><rect x="1" y="2.5" width="14" height="11" rx="1.5"/><path d="M7 2.5v11"/></svg>
+        </button>
+        <button data-layout="view" title="View only — hide the editor (Ctrl+\)">
+          <svg viewBox="0 0 16 16"><rect x="1" y="2.5" width="14" height="11" rx="1.5"/><path d="M1 6h14M5.5 6v7.5"/></svg>
+        </button>
+      </div>
+      <button data-act="import" class="icon-btn" title="Import a .md, .txt, .json or .csv file">
+        <svg viewBox="0 0 16 16"><path d="M8 10.5v-9M4.5 5 8 1.5 11.5 5M2 13.5h12"/></svg>
+      </button>
+      <div class="menu">
+        <button data-act="menu" class="icon-btn" title="Export" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 16 16"><path d="M8 1.5v9M4.5 7.5 8 11l3.5-3.5M2 13.5h12"/></svg>
+        </button>
+        <div class="menu-pop" id="export-menu" hidden>
+          <div class="menu-label">Export</div>
+          <button data-act="export-md"><b>Markdown</b><span>the text, exactly as written</span></button>
+          <button data-act="export-json"><b>JSON</b><span>resolved todos + discovered vocabulary</span></button>
+          <button data-act="export-csv"><b>CSV</b><span>the table, one column per namespace</span></button>
+          <div class="menu-sep"></div>
+          <button data-act="copy"><b>Copy to clipboard</b><span>the raw text</span></button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="panes" id="panes">
+    <section class="pane editor-pane">
+      <div class="pane-head">
+        <span class="pane-title">text</span>
+        <span class="pane-sub">source of truth</span>
+        <div class="spacer-flex"></div>
+        <button data-act="sample" class="link">Sample</button>
+        <button data-act="new" class="link">Clear</button>
+      </div>
+      <div class="find" id="find" hidden>
+        <div class="find-row">
+          <input id="find-q" type="text" placeholder="Find" spellcheck="false" autocomplete="off">
+          <span class="find-count" id="find-count"></span>
+          <button data-find="prev" class="ico-btn" title="Previous match (Shift+Enter)">↑</button>
+          <button data-find="next" class="ico-btn" title="Next match (Enter)">↓</button>
+          <button data-find="close" class="ico-btn" title="Close (Esc)">×</button>
+        </div>
+        <div class="find-row">
+          <input id="find-r" type="text" placeholder="Replace with" spellcheck="false" autocomplete="off">
+          <button data-find="one" class="find-btn">Replace</button>
+          <button data-find="all" class="find-btn">All</button>
+        </div>
+        <div class="find-opts">
+          <label><input type="checkbox" id="find-case"> match case</label>
+          <label><input type="checkbox" id="find-word"> whole word</label>
+          <label><input type="checkbox" id="find-re"> regex</label>
+        </div>
+      </div>
+
+      <div class="editor-wrap">
+        <div class="find-marks" id="find-marks" aria-hidden="true"></div>
+        <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"
+          placeholder="# My list&#10;&#10;- [ ] something to do @tomorrow !high #proj:atlas ~billable"></textarea>
+      </div>
+      <details class="syntax">
+        <summary>Syntax</summary>
+        <dl>
+          <dt><code>- [ ]</code> <code>- [x]</code></dt><dd>a todo — anything else is just prose</dd>
+          <dt><code>@2026-08-21</code></dt><dd>due date. Also <code>@today</code>, <code>@tomorrow</code>, <code>@fri</code>, <code>@aug-21</code>, <code>@9/1</code></dd>
+          <dt><code>!high</code> <code>#med</code></dt><dd>priority — a built-in select</dd>
+          <dt><code>#ns:value</code></dt><dd>namespaced select → its own column. Quote to use spaces: <code>#status:"in progress"</code></dd>
+          <dt><code>~billable</code></dt><dd>boolean — present is yes, absent is an explicit no</dd>
+          <dt><code>Ctrl+F</code></dt><dd>find &amp; replace, with match case, whole word and regex</dd>
+          <dt><code>#work</code></dt><dd>plain label — until <code>#ns:work</code> appears somewhere, then it resolves there</dd>
+        </dl>
+      </details>
+    </section>
+
+    <div class="resizer" id="resizer" role="separator" aria-orientation="vertical"
+         aria-label="Resize the editor" tabindex="0" title="Drag to resize · double-click to reset"></div>
+
+    <section class="pane view-pane">
+      <div id="stage" class="stage view-doc"></div>
+    </section>
+  </main>
+
+  <footer class="statusbar">
+    <div id="stats"></div>
+    <div id="status-tools"></div>
+  </footer>
+
+  <input type="file" id="file" accept=".md,.txt,.markdown,.json,.csv,text/*" hidden>
+</div>
+
+<script src="js/parse.js"></script>
+<script src="js/views.js"></script>
+<script src="js/find.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
