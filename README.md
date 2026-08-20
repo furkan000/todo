@@ -93,6 +93,14 @@ stays grey will not become a column. Namespaces keep the same hue they have in
 the table, taught bare tags get a dotted underline, dates that cannot be read
 get a red squiggle, and anything inside `` ` `` backticks stays literal.
 
+## Selection echo
+
+Select any text in the editor and every other copy of it is boxed, so you can see
+at a glance where else a tag, a name or a phrase appears. Matching is exact and
+case-sensitive, the selection itself is left alone, and single characters,
+whitespace and multi-line selections are ignored — they would light up half the
+document without telling you anything.
+
 ## Find & replace
 
 `Ctrl+F` opens find & replace over the source text (it takes over the browser's
@@ -135,9 +143,11 @@ js/parse.js     scanner, two-pass resolver, date parsing, typo detection
 js/views.js     document / table / calendar / discovery renderers
 js/overlay.js   pins the editor's layers to its text box
 js/highlight.js syntax colouring, painted from the parse result
+js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/app.js       state, text write-back, import/export
-test/run.sh     parser suite (node) + browser suites (headless chrome)
+test/run.sh     parser suite (node) + browser suites (headless chrome);
+                every test/*.test.html is picked up automatically
 ```
 
 Run the tests with `./test/run.sh`.

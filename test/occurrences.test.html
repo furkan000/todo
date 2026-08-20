@@ -1,0 +1,89 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+function finish(){document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var ed=d.getElementById('editor'), layer=d.getElementById('occ-marks'), O=w.Occurrences;
+  function marks(){return layer.querySelectorAll('mark.occ');}
+  function pick(a,b){ed.focus();ed.setSelectionRange(a,b);O.refresh();}
+
+  ed.value='atlas one\natlas two\nAtlas three\nbeta atlas';
+  ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+
+  // "atlas" at 0..5 — three other exact copies, one of them capitalised and excluded
+  pick(0,5);
+  ok('marks the other occurrences', marks().length===2, marks().length);
+  ok('reports the count', O.state().count===2, O.state());
+  ok('remembers the query', O.state().query==='atlas', O.state());
+  ok('case sensitive: Atlas is not atlas', layer.textContent.indexOf('Atlas')!==-1 &&
+     [].every.call(marks(),function(m){return m.textContent==='atlas';}),
+     [].map.call(marks(),function(m){return m.textContent;}));
+  ok('the selection itself is not marked', layer.innerHTML.indexOf('atlas one')===0,
+     layer.innerHTML.slice(0,60));
+  ok('layer text matches the source', layer.textContent===ed.value+'\n',
+     [layer.textContent.length, ed.value.length+1]);
+
+  // selecting a later copy still finds the rest
+  pick(10,15);
+  ok('works from any occurrence', marks().length===2, marks().length);
+
+  // things that should not trigger an echo
+  pick(3,3);
+  ok('a bare caret clears it', marks().length===0 && O.state().count===0, O.state());
+  pick(0,1);
+  ok('a single character is ignored', marks().length===0, marks().length);
+  pick(5,12);
+  ok('a multi-line selection is ignored', marks().length===0, JSON.stringify(ed.value.slice(5,12)));
+  ed.value='word     word'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  pick(4,9);
+  ok('a whitespace-only selection is ignored', marks().length===0, JSON.stringify(ed.value.slice(4,9)));
+
+  // no match anywhere else
+  ed.value='unique here'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  pick(0,6);
+  ok('a lone word marks nothing', marks().length===0, marks().length);
+  ok('but the layer still mirrors the text', layer.textContent===ed.value+'\n');
+
+  // source html must not become markup
+  ed.value='<b>x</b> and <b>x</b>'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  pick(0,3);
+  ok('source html is escaped', layer.querySelector('b')===null && layer.textContent===ed.value+'\n',
+     layer.innerHTML.slice(0,80));
+
+  // a programmatic rewrite, the way setText does it, with focus still in the editor
+  ed.value='- [ ] tag me #home\n- [ ] and #home'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  pick(13,18);
+  ok('marks across todos', marks().length===1, marks().length);
+  ed.value=ed.value.replace('- [ ] tag me','- [x] tag me');
+  pick(13,18);
+  ok('still aligned after a rewrite', layer.textContent===ed.value+'\n',
+     [layer.textContent.length, ed.value.length+1]);
+  // clicking a checkbox takes focus out of the editor, which ends the echo
+  d.querySelector('.todo input[data-toggle]').click();
+  ok('focus leaving the editor clears it', marks().length===0, marks().length);
+
+  // blur clears
+  ed.value='atlas atlas'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  pick(0,5);
+  ok('marks before blur', marks().length===1, marks().length);
+  ed.blur();
+  ok('blur clears the echo', marks().length===0, marks().length);
+
+  // the event path works, not just the direct call
+  ed.value='beta beta'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  ed.focus(); ed.setSelectionRange(0,4);
+  ed.dispatchEvent(new w.Event('select',{bubbles:true}));
+  w.requestAnimationFrame(function(){
+    w.requestAnimationFrame(function(){
+      ok('a select event repaints on its own', marks().length===1, marks().length);
+      finish();
+    });
+  });
+  return;
+ }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
+ finish();
+});
+</script>

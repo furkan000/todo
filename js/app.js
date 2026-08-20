@@ -46,6 +46,7 @@
     initResizer();
     Highlight.init(els.editor, document.getElementById('syntax-layer'),
                    document.getElementById('editor-wrap'));
+    Occurrences.init(els.editor, document.getElementById('occ-marks'));
     Find.init({
       editor: els.editor,
       setText: setText,
@@ -109,6 +110,7 @@
     els.stage.className = 'stage view-' + state.view;
     els.stage.innerHTML = html;
     Highlight.paint(doc);
+    Occurrences.refresh();
 
     var onText = state.layout === 'text';
     Array.prototype.forEach.call(document.querySelectorAll('[data-view]'), function (b) {

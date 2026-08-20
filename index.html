@@ -106,6 +106,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
       </div>
 
       <div class="editor-wrap" id="editor-wrap">
+        <div class="occ-marks" id="occ-marks" aria-hidden="true"></div>
         <div class="find-marks" id="find-marks" aria-hidden="true"></div>
         <div class="syntax-layer" id="syntax-layer" aria-hidden="true"></div>
         <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"
@@ -145,6 +146,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
 <script src="js/views.js"></script>
 <script src="js/overlay.js"></script>
 <script src="js/highlight.js"></script>
+<script src="js/occurrences.js"></script>
 <script src="js/find.js"></script>
 <script src="js/app.js"></script>
 </body>

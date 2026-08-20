@@ -205,11 +205,17 @@ code { font-family: var(--mono); font-size: .92em; }
    coloured syntax in the middle, and the real textarea on top with its own text
    made transparent so the layer below shows through. */
 .editor-wrap { position: relative; flex: 1; min-height: 0; display: flex; }
-.find-marks, .syntax-layer {
+.occ-marks, .find-marks, .syntax-layer {
   position: absolute; top: 0; left: 0; bottom: 0; overflow: hidden;
   pointer-events: none; white-space: pre-wrap; word-wrap: break-word;
 }
+.occ-marks { color: transparent; z-index: 0; }
 .find-marks { color: transparent; z-index: 0; }
+.occ-marks mark.occ {
+  background: color-mix(in srgb, var(--ink) 13%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 18%, transparent);
+  color: transparent; border-radius: 2px;
+}
 .syntax-layer { color: var(--ink); z-index: 1; }
 .editor-wrap.hl-on #editor { color: transparent; caret-color: var(--ink); }
 
