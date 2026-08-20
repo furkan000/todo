@@ -94,6 +94,34 @@ stays grey will not become a column. Namespaces keep the same hue they have in
 the table, taught bare tags get a dotted underline, dates that cannot be read
 get a red squiggle, and anything inside `` ` `` backticks stays literal.
 
+## Archiving done work
+
+**Archive done (n)** in the editor header moves every finished todo to a `## Done`
+section at the end of the document, grouped into subsections by the heading each
+one came from:
+
+```markdown
+## Shipping
+
+- [ ] Two-pass resolver @2026-08-20
+
+## Done
+
+### Shipping
+
+- [x] Rewrite the tag scanner @2026-08-18 !high
+
+### Client work
+
+- [x] Refund the duplicate charge @2026-08-14 #client:vega
+```
+
+Lines move whole — tags, dates and all — so the table, calendar and Tags view are
+unchanged by it. Running it again does nothing until something new is finished, and
+later archives merge into the subsections already there rather than repeating them.
+Todos already under `Done` are left alone. The rewrite goes through the editor
+itself, so `Ctrl+Z` undoes the whole move.
+
 ## Activity log
 
 Ticking a todo off records the moment — whichever way you ticked it. A checkbox in
@@ -165,6 +193,7 @@ js/views.js     document / table / calendar / discovery renderers
 js/overlay.js   pins the editor's layers to its text box
 js/highlight.js syntax colouring, painted from the parse result
 js/log.js       completion log: watches parses for open -> done
+js/archive.js   moves finished todos into a Done section
 js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/app.js       state, text write-back, import/export

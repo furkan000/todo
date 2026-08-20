@@ -1,0 +1,67 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var ed=d.getElementById('editor'), btn=d.getElementById('archive-btn');
+  function type(v){ed.value=v;ed.dispatchEvent(new w.Event('input',{bubbles:true}));}
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  w.Log.clear();
+
+  var base='# Studio\n\n## Shipping\n\n- [x] Scanner @2026-08-18 !high\n- [ ] Resolver\n\n## Client work\n\n- [x] Refund #client:vega\n- [ ] Kickoff\n';
+  type(base);
+  ok('button offers the count', btn.textContent==='Archive done (2)' && !btn.hidden, btn.textContent);
+
+  click(btn);
+  var out=ed.value;
+  ok('a Done section is created', /\n## Done\n/.test(out), out);
+  ok('the source section becomes a subsection', /### Shipping\n\n- \[x\] Scanner/.test(out), out);
+  ok('the second section too', /### Client work\n\n- \[x\] Refund/.test(out), out);
+  ok('tags and dates come along', /- \[x\] Scanner @2026-08-18 !high/.test(out), out);
+  ok('open todos stay where they were', /## Shipping\n\n- \[ \] Resolver/.test(out), out);
+  ok('done lines leave their old home', out.indexOf('- [ ] Resolver\n- [x]')===-1, out);
+  ok('the button hides when there is nothing left', btn.hidden, btn.textContent);
+  ok('the parse still sees every todo', w.PTT.doc().todos.length===4, w.PTT.doc().todos.length);
+  ok('archiving does not log completions', w.Log.count()===0, w.Log.all());
+
+  // running again is a no-op
+  var before=ed.value;
+  ok('nothing pending', w.Archive.pending(w.PTT.doc()).length===0);
+  ok('apply returns null when idle', w.Archive.apply(w.PTT.doc())===null);
+
+  // finishing more merges into the existing subsections
+  type(before.replace('- [ ] Resolver','- [x] Resolver'));
+  ok('button reappears', btn.textContent==='Archive done (1)', btn.textContent);
+  click(btn);
+  ok('merges into the existing subsection',
+     /### Shipping\n\n- \[x\] Scanner @2026-08-18 !high\n- \[x\] Resolver\n/.test(ed.value), ed.value);
+  ok('and keeps a blank line before the next heading',
+     /- \[x\] Resolver\n\n### Client work/.test(ed.value), ed.value);
+
+  // a brand new section gets its own subsection
+  type(ed.value.replace('# Studio','# Studio\n\n## Errands\n\n- [x] Parcel'));
+  click(btn);
+  ok('new sections are added under Done', /### Errands\n\n- \[x\] Parcel/.test(ed.value), ed.value);
+
+  // todos with no heading at all
+  type('- [x] loose\n- [ ] open');
+  click(btn);
+  ok('sectionless todos sit directly under Done', /## Done\n\n- \[x\] loose\n/.test(ed.value), ed.value);
+
+  // already-archived work is left alone
+  type('## Done\n\n### Shipping\n\n- [x] old one\n');
+  ok('todos already under Done are not pending', w.Archive.pending(w.PTT.doc()).length===0, ed.value);
+  ok('button stays hidden for them', btn.hidden);
+
+  // the text is still the source of truth: the doc view reflects the move
+  type(base);
+  click(btn);
+  click(d.querySelector('[data-view="doc"]'));
+  var heads=[].map.call(d.querySelectorAll('.doc-h'),function(h){return h.textContent.trim();});
+  ok('Done shows up as a heading in the document view', heads.indexOf('Done')!==-1, heads);
+ }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
+ document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

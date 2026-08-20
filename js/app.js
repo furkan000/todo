@@ -136,6 +136,13 @@
         ? ' <span>·</span> <b>' + Views.sectionCount(ctx.visible) + '</b> sections' : '');
     document.getElementById('clear-search').hidden = !state.query;
 
+    var canArchive = Archive.pending(doc).length;
+    var archiveBtn = document.getElementById('archive-btn');
+    archiveBtn.hidden = !canArchive;
+    archiveBtn.textContent = 'Archive done (' + canArchive + ')';
+    archiveBtn.title = 'Move ' + canArchive + ' finished todo' + (canArchive === 1 ? '' : 's') +
+      ' to a Done section at the end, grouped by the section each came from';
+
     // the table's grouping switch lives down here, where it can't compete with the data
     els.statusTools.innerHTML = state.view !== 'table' ? '' :
       '<span class="lbl">Tables</span>' +
@@ -151,6 +158,19 @@
     els.editor.value = next;
     els.editor.selectionStart = els.editor.selectionEnd = Math.min(sel, next.length);
     els.editor.scrollTop = top;
+    queueSave();
+    render();
+  }
+
+  // Rewrite the whole document through the editor itself, so the browser's own
+  // undo stack survives — assigning to value would throw it away.
+  function replaceKeepingUndo(next) {
+    els.editor.focus();
+    els.editor.setSelectionRange(0, els.editor.value.length);
+    var ok = false;
+    try { ok = document.execCommand('insertText', false, next); } catch (e) { ok = false; }
+    if (!ok) return setText(next, 0);
+    els.editor.setSelectionRange(0, 0);
     queueSave();
     render();
   }
@@ -243,6 +263,13 @@
       return render();
     }
     if (name === 'import') return els.file.click();
+    if (name === 'archive') {
+      var moved = Archive.pending(doc).length;
+      var next = Archive.apply(doc);
+      if (!next) return flash('Nothing to archive');
+      replaceKeepingUndo(next);
+      return flash('Archived ' + moved + ' todo' + (moved === 1 ? '' : 's') + ' — undo with Ctrl+Z');
+    }
     if (name === 'clear-search') { state.query = ''; els.search.value = ''; return render(); }
     if (name === 'sample') {
       if (els.editor.value.trim() && !confirm('Replace the current text with the sample document?')) return;
@@ -639,7 +666,7 @@
     toJSON: toJSON, toCSV: toCSV, importText: importText,
     parseCSV: parseCSV, csvToText: csvToText,
     doc: function () { return doc; }, state: state, sample: SAMPLE,
-    applyTheme: applyTheme, resolvedTheme: resolvedTheme,
+    applyTheme: applyTheme, resolvedTheme: resolvedTheme, archive: function () { return action('archive'); },
     showView: showView, setSplit: setSplit
   };
 

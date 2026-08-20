@@ -87,6 +87,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
         <span class="pane-title">text</span>
         <span class="pane-sub">source of truth</span>
         <div class="spacer-flex"></div>
+        <button data-act="archive" class="link" id="archive-btn" hidden>Archive done</button>
         <button data-act="sample" class="link">Sample</button>
         <button data-act="new" class="link">Clear</button>
       </div>
@@ -150,6 +151,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
 <script src="js/parse.js"></script>
 <script src="js/views.js"></script>
 <script src="js/log.js"></script>
+<script src="js/archive.js"></script>
 <script src="js/overlay.js"></script>
 <script src="js/highlight.js"></script>
 <script src="js/occurrences.js"></script>
