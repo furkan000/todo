@@ -28,7 +28,9 @@
       q = '#' + ns + ':' + val;
       cls = 'chip select ns-' + slug(ns);
       if (ns === 'priority') cls += ' prio-' + (TT.canonicalPriority(val) || 'x');
-      body = '<i>' + esc(ns) + '</i>' + esc(val);
+      // priority is built in and its values speak for themselves — "high" needs
+      // no "priority:" in front of it, and the chip is colour-coded besides
+      body = (ns === 'priority' ? '' : '<i>' + esc(ns) + '</i>') + esc(val);
       styleAttr = hueStyle(ns);
       if (t.kind === 'bare') {
         cls += ' taught';
