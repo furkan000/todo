@@ -14,6 +14,10 @@
       bound = true;
       editor.addEventListener('scroll', syncAll);
       window.addEventListener('resize', syncAll);
+      // the textarea also changes width without the window doing anything —
+      // dragging the split, switching layout — and the layers must follow or
+      // the visible text keeps wrapping at the old width
+      if (global.ResizeObserver) new global.ResizeObserver(syncAll).observe(editor);
     }
     sync(pair);
     return pair;

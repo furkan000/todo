@@ -346,6 +346,7 @@
   function applyLayout() {
     els.app.classList.remove('layout-text', 'layout-split', 'layout-view');
     els.app.classList.add('layout-' + state.layout);
+    Overlay.sync();
     Array.prototype.forEach.call(document.querySelectorAll('[data-layout]'), function (b) {
       b.classList.toggle('on', b.dataset.layout === state.layout);
     });
@@ -372,6 +373,7 @@
   function setSplit(pct, persist) {
     state.split = Math.round(clampSplit(pct) * 100) / 100;
     applySplit();
+    Overlay.sync();          // synchronous, so the text rewraps during the drag
     if (persist) savePrefs();
   }
 
