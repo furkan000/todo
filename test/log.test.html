@@ -1,0 +1,96 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  function $(s){return d.querySelector(s);}
+  function $$(s){return [].slice.call(d.querySelectorAll(s));}
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  function type(v){ed.value=v;ed.dispatchEvent(new w.Event('input',{bubbles:true}));}
+  var ed=d.getElementById('editor'), L=w.Log;
+  L.clear();
+
+  // a document that loads with work already done must not log it as done now
+  type('- [x] already finished\n- [ ] open one');
+  ok('pre-done todos are not logged on load', L.count()===0, L.all());
+
+  // ticking the checkbox in the document view
+  click($('[data-view="doc"]'));
+  var box=$$('.todo input[data-toggle]').filter(function(b){return !b.checked;})[0];
+  box.checked=true; box.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('a checkbox tick is logged', L.count()===1, L.all());
+  ok('the entry names the todo', L.all()[0].title==='open one', L.all()[0]);
+  ok('the entry has a date and time', /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(L.all()[0].at), L.all()[0].at);
+  ok('the entry is a completion', L.all()[0].event==='done');
+
+  // typing the x straight into the text counts too
+  type('- [ ] typed by hand');
+  var before=L.count();
+  type('- [x] typed by hand');
+  ok('typing the x is logged', L.count()===before+1, L.all().slice(-1));
+  ok('it kept the right title', L.all().slice(-1)[0].title==='typed by hand', L.all().slice(-1)[0]);
+
+  // reopening is not an event, but finishing again is
+  before=L.count();
+  type('- [ ] typed by hand');
+  ok('unticking logs nothing', L.count()===before, L.all().slice(-1));
+  type('- [x] typed by hand');
+  ok('finishing again logs again', L.count()===before+1, L.count());
+
+  // editing a done line must not re-log it
+  before=L.count();
+  type('- [x] typed by hand with more words');
+  ok('editing a done line logs nothing', L.count()===before, L.all().slice(-1));
+
+  // section is captured
+  L.clear();
+  type('# Week\n\n## Client work\n\n- [ ] invoice');
+  type('# Week\n\n## Client work\n\n- [x] invoice');
+  ok('the entry records its section', L.all()[0].section==='Client work', L.all()[0]);
+
+  // the log view
+  click($('[data-view="log"]'));
+  ok('log tab renders entries', $$('.log-day li').length===1, $$('.log-day li').length);
+  ok('log groups by day', $$('.log-day').length===1);
+  ok('log shows a time', /^\d{2}:\d{2}$/.test($('.log-time').textContent), $('.log-time').textContent);
+  ok('log shows the title', $('.log-title').textContent==='invoice', $('.log-title').textContent);
+
+  // exports
+  ok('markdown export has the task', /invoice/.test(L.toMarkdown()), L.toMarkdown().slice(0,120));
+  ok('markdown export groups by day', /^## \d{4}-\d{2}-\d{2}$/m.test(L.toMarkdown()), L.toMarkdown().slice(0,120));
+  ok('csv export has a header', L.toCSV().split('\n')[0]==='when,event,task,section,due,priority', L.toCSV().split('\n')[0]);
+  ok('csv export has the row', /,done,invoice,Client work,/.test(L.toCSV()), L.toCSV().split('\n')[1]);
+  ok('the log rides inside the main json export', JSON.parse(w.PTT.toJSON()).log.length===1);
+
+  // persistence
+  ok('the log is saved to storage', JSON.parse(w.localStorage.getItem('ptt.log.v1')).length===1);
+
+  // a wholesale replacement is not a burst of completions
+  w.confirm=function(){return true;};
+  before=L.count();
+  w.PTT.importText('other.md','- [x] imported already done\n- [x] and another');
+  ok('importing does not log', L.count()===before, L.all().slice(-2));
+
+  // document view honours the filter now, so finished work can be put away
+  type('- [ ] open one\n- [x] done one\n- [x] done two');
+  click($('[data-view="doc"]'));
+  ok('all filter shows everything', $$('.todo').length===3, $$('.todo').length);
+  click($('[data-filter="open"]'));
+  ok('open filter hides done todos in the text view', $$('.todo').length===1, $$('.todo').length);
+  ok('and says how many are hidden', /2 todos hidden/.test($('.hidden-note').textContent), $('.hidden-note').textContent);
+  click($('[data-filter="done"]'));
+  ok('done filter shows only finished', $$('.todo').length===2, $$('.todo').length);
+  click($('[data-filter="all"]'));
+  ok('no note when nothing is hidden', $('.hidden-note')===null);
+
+  // clearing
+  L.clear();
+  ok('clear empties the log', L.count()===0);
+  click($('[data-view="log"]'));
+  ok('empty state shown', /Nothing logged yet/.test($('.empty').textContent), $('.empty').textContent);
+ }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
+ document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

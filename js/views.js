@@ -81,10 +81,13 @@
   /* ---------- document ---------- */
   function renderDocument(doc, ctx) {
     var html = '', openList = false;
+    var shown = new Set(ctx.visible.map(function (t) { return t.line; }));
+    var hidden = doc.todos.length - ctx.visible.length;
     function closeList() { if (openList) { html += '</ul>'; openList = false; } }
 
     doc.lines.forEach(function (ln) {
       if (ln.kind === 'todo') {
+        if (!shown.has(ln.line)) return;
         if (!openList) { html += '<ul class="todos">'; openList = true; }
         var t = ln.todo;
         html += '<li class="todo' + (t.done ? ' done' : '') + '" style="--indent:' + Math.floor(t.indent / 2) + '">' +
@@ -107,6 +110,10 @@
     });
     closeList();
     if (!doc.lines.some(function (l) { return l.kind !== 'blank'; })) html = empty('Nothing written yet.', 'Type on the left — every line is yours, todos are lines with <code>[ ]</code>.');
+    if (hidden > 0) {
+      html += '<p class="hidden-note">' + hidden + ' todo' + (hidden === 1 ? '' : 's') +
+        ' hidden by the current filter. The text still has them.</p>';
+    }
     return html;
   }
 
@@ -394,6 +401,36 @@
     return html;
   }
 
+  var DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  function renderLog(doc, ctx) {
+    var days = ctx.log;
+    if (!days.length) {
+      return empty('Nothing logged yet.',
+        'Tick a todo off — here, in the table, on the calendar, or by typing the <code>x</code> yourself — and the moment lands here.');
+    }
+    var total = days.reduce(function (n, d) { return n + d.items.length; }, 0);
+    var html = '<div class="log-head"><span>' + total + ' completion' + (total === 1 ? '' : 's') +
+      ' across ' + days.length + ' day' + (days.length === 1 ? '' : 's') + '</span>' +
+      '<button data-act="clear-log" class="link">Clear log</button></div>';
+
+    days.forEach(function (d) {
+      var when = new Date(d.day + 'T00:00:00');
+      var label = isNaN(when) ? d.day : DAY_NAMES[when.getDay()] + ' ' + when.getDate() + ' ' +
+        ['January','February','March','April','May','June','July','August','September','October','November','December'][when.getMonth()];
+      html += '<section class="log-day"><h3>' + esc(label) + '<b>' + d.items.length + '</b></h3><ul>';
+      d.items.forEach(function (e) {
+        html += '<li><span class="log-time">' + esc(e.at.slice(11)) + '</span>' +
+          '<span class="log-title">' + (esc(e.title) || '<i class="muted">(untitled)</i>') + '</span>' +
+          (e.priority ? '<span class="chip select prio-' + (TT.canonicalPriority(e.priority) || 'x') + '">' + esc(e.priority) + '</span>' : '') +
+          (e.section ? '<span class="log-section">' + esc(e.section) + '</span>' : '') +
+          '</li>';
+      });
+      html += '</ul></section>';
+    });
+    return html;
+  }
+
   function hint(h) { return '<p class="hint">' + h + '</p>'; }
   function empty(title, sub) { return '<div class="empty"><b>' + esc(title) + '</b><span>' + sub + '</span></div>'; }
 
@@ -405,6 +442,7 @@
 
   global.Views = {
     document: renderDocument, table: renderTable, calendar: renderCalendar,
-    discovery: renderDiscovery, columns: columns, esc: esc, sectionCount: sectionCount
+    discovery: renderDiscovery, log: renderLog,
+    columns: columns, esc: esc, sectionCount: sectionCount
   };
 })(typeof window !== 'undefined' ? window : globalThis);

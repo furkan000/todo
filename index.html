@@ -27,6 +27,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
       <button data-view="table" class="tab" title="Table (Ctrl+3)">Table</button>
       <button data-view="cal"   class="tab" title="Calendar (Ctrl+4)">Calendar</button>
       <button data-view="tags"  class="tab" title="Tags (Ctrl+5)">Tags</button>
+      <button data-view="log"   class="tab" title="Log (Ctrl+6)">Log</button>
     </nav>
 
     <div class="spacer-flex"></div>
@@ -69,6 +70,10 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
           <button data-act="export-md"><b>Markdown</b><span>the text, exactly as written</span></button>
           <button data-act="export-json"><b>JSON</b><span>resolved todos + discovered vocabulary</span></button>
           <button data-act="export-csv"><b>CSV</b><span>the table, one column per namespace</span></button>
+          <div class="menu-sep"></div>
+          <div class="menu-label">Activity log</div>
+          <button data-act="log-md"><b>Log as Markdown</b><span>grouped by day</span></button>
+          <button data-act="log-csv"><b>Log as CSV</b><span>one row per completion</span></button>
           <div class="menu-sep"></div>
           <button data-act="copy"><b>Copy to clipboard</b><span>the raw text</span></button>
         </div>
@@ -144,6 +149,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
 
 <script src="js/parse.js"></script>
 <script src="js/views.js"></script>
+<script src="js/log.js"></script>
 <script src="js/overlay.js"></script>
 <script src="js/highlight.js"></script>
 <script src="js/occurrences.js"></script>

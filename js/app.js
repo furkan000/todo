@@ -26,6 +26,7 @@
     });
     var saved = null;
     try { saved = localStorage.getItem(STORE); } catch (e) {}
+    Log.init();
     els.editor.value = saved === null ? SAMPLE : saved;
     try {
       var p = JSON.parse(localStorage.getItem(PREFS) || '{}');
@@ -103,9 +104,13 @@
       group: state.group
     };
 
+    Log.observe(doc);          // catches open -> done however it happened
+    ctx.log = Log.byDay();
+
     var html = state.view === 'doc' ? Views.document(doc, ctx)
       : state.view === 'table' ? Views.table(doc, ctx)
       : state.view === 'cal' ? Views.calendar(doc, ctx)
+      : state.view === 'log' ? Views.log(doc, ctx)
       : Views.discovery(doc, ctx);
     els.stage.className = 'stage view-' + state.view;
     els.stage.innerHTML = html;
@@ -230,14 +235,23 @@
     if (name === 'export-md') return closeMenu(), save('todo.md', 'text/markdown', els.editor.value);
     if (name === 'export-json') return closeMenu(), save('todo.json', 'application/json', toJSON());
     if (name === 'export-csv') return closeMenu(), save('todo.csv', 'text/csv', toCSV());
+    if (name === 'log-md') return closeMenu(), save('activity-log.md', 'text/markdown', Log.toMarkdown());
+    if (name === 'log-csv') return closeMenu(), save('activity-log.csv', 'text/csv', Log.toCSV());
+    if (name === 'clear-log') {
+      if (!confirm('Clear the whole activity log? The entries cannot be recovered.')) return;
+      Log.clear();
+      return render();
+    }
     if (name === 'import') return els.file.click();
     if (name === 'clear-search') { state.query = ''; els.search.value = ''; return render(); }
     if (name === 'sample') {
       if (els.editor.value.trim() && !confirm('Replace the current text with the sample document?')) return;
+      Log.suppress();
       return setText(SAMPLE, 0);
     }
     if (name === 'new') {
       if (els.editor.value.trim() && !confirm('Clear all text? This cannot be undone.')) return;
+      Log.suppress();
       return setText('# Untitled\n\n- [ ] first thing @today\n', 0);
     }
   }
@@ -284,7 +298,7 @@
     if (e.key === 'Escape') { closeMenu(); if (Find.isOpen()) Find.close(); return; }
     if ((e.metaKey || e.ctrlKey) && e.key === 'f') { e.preventDefault(); return Find.open(); }
     if (!(e.metaKey || e.ctrlKey)) return;
-    var map = { '2': 'doc', '3': 'table', '4': 'cal', '5': 'tags' };
+    var map = { '2': 'doc', '3': 'table', '4': 'cal', '5': 'tags', '6': 'log' };
     if (e.key === '1') { e.preventDefault(); setLayout('text'); }
     else if (map[e.key]) { e.preventDefault(); showView(map[e.key]); }
     else if (e.key === 'k') { e.preventDefault(); els.search.focus(); els.search.select(); }
@@ -465,6 +479,7 @@
         booleans: Array.from(v.bools.values()).map(function (b) { return { name: b.display, count: b.count }; }),
         labels: Array.from(v.labels.values()).map(function (l) { return { name: l.display, count: l.count }; })
       },
+      log: Log.all(),
       todos: doc.todos.map(function (t) {
         return {
           line: t.line + 1, done: t.done, title: t.title,
@@ -562,6 +577,9 @@
     if (/\.json$/i.test(name)) {
       var data;
       try { data = JSON.parse(raw); } catch (e) { return alert('That JSON file could not be parsed.'); }
+      if (Array.isArray(data.log) && data.log.length && confirm('This file carries an activity log of ' + data.log.length + ' entries. Replace the current log with it?')) {
+        Log.load(data.log);
+      }
       if (typeof data.text === 'string') { text = data.text; note = ' (from JSON source)'; }
       else if (Array.isArray(data.todos)) {
         text = ['# Imported ' + new Date().toISOString().slice(0, 10), ''].concat(data.todos.map(function (t) {
@@ -578,6 +596,7 @@
       note = ' (rebuilt from CSV)';
     }
     if (els.editor.value.trim() && !confirm('Replace the current text with ' + name + '?')) return;
+    Log.suppress();
     setText(text, 0);
     flash('Imported ' + name + note);
   }

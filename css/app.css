@@ -459,6 +459,43 @@ tbody tr.done .task-title { color: var(--ink-3); text-decoration: line-through; 
 .cal-foot b { color: var(--ink); }
 @media (max-width: 700px) { .cal-day { min-height: 70px; } .cal-item { font-size: 10px; } }
 
+/* ---------- log ---------- */
+.stage.view-log > * { max-width: 760px; margin-inline: auto; }
+.log-head {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 16px;
+  font-size: 12px; color: var(--ink-3);
+}
+.log-head button { margin-left: auto; }
+.log-day { margin-bottom: 22px; }
+.log-day h3 {
+  display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px;
+  font-size: 13px; font-weight: 640; letter-spacing: -.005em;
+  padding-bottom: 6px; border-bottom: 1px solid var(--line);
+}
+.log-day h3 b {
+  font-weight: 600; font-size: 10.5px; color: var(--ink-3);
+  background: var(--line-2); border-radius: 20px; padding: 1px 7px;
+}
+.log-day ul { list-style: none; margin: 0; padding: 0; }
+.log-day li {
+  display: flex; align-items: baseline; gap: 10px;
+  padding: 4px 6px; border-radius: 6px;
+}
+.log-day li:hover { background: var(--panel); }
+.log-time {
+  font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
+  font-variant-numeric: tabular-nums; flex: none; width: 42px;
+}
+.log-title { flex: 1; min-width: 0; }
+.log-section {
+  font-size: 11px; color: var(--ink-3); border: 1px solid var(--line);
+  border-radius: 4px; padding: 0 6px; white-space: nowrap;
+}
+.hidden-note {
+  margin-top: 18px; padding-top: 12px; border-top: 1px dashed var(--line);
+  font-size: 12px; color: var(--ink-3);
+}
+
 /* ---------- discovery ---------- */
 .disco { margin-bottom: 26px; }
 .disco h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-3); font-weight: 650; margin: 0 0 10px; }

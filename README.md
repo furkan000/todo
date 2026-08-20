@@ -63,6 +63,7 @@ These are the non-obvious part, and they hold exactly:
 - **Table** — rows are todos; columns auto-generated per namespace and per boolean,
   all sortable, filterable by done/open.
 - **Calendar** — dated todos on a month grid.
+- **Log** — when you finished things. See below.
 - **Tags** — the discovery surface: every namespace, value, boolean and label that
   was found, with counts. It doubles as a typo catcher, flagging near-duplicate
   values (`in progres` vs `in progress`), near-duplicate namespaces, bare labels one
@@ -92,6 +93,26 @@ regexes, so what lights up is exactly what the parser understood: a tag that
 stays grey will not become a column. Namespaces keep the same hue they have in
 the table, taught bare tags get a dotted underline, dates that cannot be read
 get a red squiggle, and anything inside `` ` `` backticks stays literal.
+
+## Activity log
+
+Ticking a todo off records the moment — whichever way you ticked it. A checkbox in
+the document, the table or the calendar, or the letter `x` typed straight into the
+text: the app diffs each parse against the last and catches the open → done
+transition either way.
+
+The log lives beside the document rather than inside it, so finished lines do not
+accumulate stamps. Each entry keeps a snapshot — time, task, section, due date,
+priority — so later edits to the document never rewrite history. Reopening a todo
+is not an event; finishing it again is. Loading or importing a file that already
+contains done todos records nothing, since none of that happened just now.
+
+The **Log** tab shows it grouped by day. Export it as Markdown or CSV from the
+export menu, and it rides inside the main JSON export too, so it round-trips.
+
+If finished work in the text is what distracts you, the **Open** filter now hides
+done todos in the document view as well — the lines stay in your text, they just
+stop competing for attention, and a footnote says how many are hidden.
 
 ## Selection echo
 
@@ -126,7 +147,7 @@ tagged plain text.
 | | |
 | --- | --- |
 | `Ctrl+1` | Text |
-| `Ctrl+2..5` | Document / Table / Calendar / Tags |
+| `Ctrl+2..6` | Document / Table / Calendar / Tags / Log |
 | `Ctrl+K` | search / filter by tag |
 | `Ctrl+F` | find & replace in the text |
 | `Ctrl+\` | show/hide the editor |
@@ -143,6 +164,7 @@ js/parse.js     scanner, two-pass resolver, date parsing, typo detection
 js/views.js     document / table / calendar / discovery renderers
 js/overlay.js   pins the editor's layers to its text box
 js/highlight.js syntax colouring, painted from the parse result
+js/log.js       completion log: watches parses for open -> done
 js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/app.js       state, text write-back, import/export
