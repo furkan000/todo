@@ -105,8 +105,9 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
         </div>
       </div>
 
-      <div class="editor-wrap">
+      <div class="editor-wrap" id="editor-wrap">
         <div class="find-marks" id="find-marks" aria-hidden="true"></div>
+        <div class="syntax-layer" id="syntax-layer" aria-hidden="true"></div>
         <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"
           placeholder="# My list&#10;&#10;- [ ] something to do @tomorrow !high #proj:atlas ~billable"></textarea>
       </div>
@@ -116,7 +117,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
           <dt><code>- [ ]</code> <code>- [x]</code></dt><dd>a todo — anything else is just prose</dd>
           <dt><code>@2026-08-21</code></dt><dd>due date. Also <code>@today</code>, <code>@tomorrow</code>, <code>@fri</code>, <code>@aug-21</code>, <code>@9/1</code></dd>
           <dt><code>!high</code> <code>#med</code></dt><dd>priority — a built-in select</dd>
-          <dt><code>#ns:value</code></dt><dd>namespaced select → its own column. Quote to use spaces: <code>#status:"in progress"</code></dd>
+          <dt><code>#ns:value</code></dt><dd>namespaced select → its own column. Quote to use spaces: <code>#person:"Max Weber"</code>. Repeat it on one todo for several values: <code>#person:Max #person:Anna</code></dd>
           <dt><code>~billable</code></dt><dd>boolean — present is yes, absent is an explicit no</dd>
           <dt><code>Ctrl+F</code></dt><dd>find &amp; replace, with match case, whole word and regex</dd>
           <dt><code>#work</code></dt><dd>plain label — until <code>#ns:work</code> appears somewhere, then it resolves there</dd>
@@ -142,6 +143,8 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
 
 <script src="js/parse.js"></script>
 <script src="js/views.js"></script>
+<script src="js/overlay.js"></script>
+<script src="js/highlight.js"></script>
 <script src="js/find.js"></script>
 <script src="js/app.js"></script>
 </body>

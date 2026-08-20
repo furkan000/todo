@@ -201,13 +201,46 @@ code { font-family: var(--mono); font-size: .92em; }
 /* the match stays visible while focus sits in the find box */
 #editor::selection { background: color-mix(in srgb, var(--accent) 38%, transparent); }
 
-/* the overlay paints match highlights behind the (transparent) textarea */
+/* Three stacked layers share one text box: find highlights at the bottom, the
+   coloured syntax in the middle, and the real textarea on top with its own text
+   made transparent so the layer below shows through. */
 .editor-wrap { position: relative; flex: 1; min-height: 0; display: flex; }
-.find-marks {
+.find-marks, .syntax-layer {
   position: absolute; top: 0; left: 0; bottom: 0; overflow: hidden;
   pointer-events: none; white-space: pre-wrap; word-wrap: break-word;
-  color: transparent; z-index: 0;
 }
+.find-marks { color: transparent; z-index: 0; }
+.syntax-layer { color: var(--ink); z-index: 1; }
+.editor-wrap.hl-on #editor { color: transparent; caret-color: var(--ink); }
+
+/* syntax colours — the same hues the chips use, so a namespace reads the same
+   in the text as it does in the table */
+.hl-hash, .hl-mark { color: var(--ink-3); }
+.hl-mark.done { color: var(--accent); }
+.hl-head { color: var(--ink); font-weight: 650; }
+.hl-done { color: var(--ink-3); }
+.hl-code { color: var(--ink-3); }
+.hl-date { color: hsl(var(--h) 45% 40%); }
+.hl-date.bad { color: var(--bad); text-decoration: underline wavy; text-underline-offset: 3px; }
+.hl-bool { color: var(--good); }
+.hl-label { color: var(--ink-2); }
+.hl-sel { color: hsl(var(--hl) 48% 36%); }
+.hl-sel.taught { text-decoration: underline dotted; text-underline-offset: 3px; }
+.hl-sel.ns-h-212 { --hl: 212; }
+.hl-sel.ns-h-268 { --hl: 268; }
+.hl-sel.ns-h-158 { --hl: 158; }
+.hl-sel.ns-h-24 { --hl: 24; }
+.hl-sel.ns-h-340 { --hl: 340; }
+.hl-sel.ns-h-190 { --hl: 190; }
+.hl-sel.ns-h-48 { --hl: 48; }
+.hl-sel.ns-h-120 { --hl: 120; }
+.hl-prio { font-weight: 600; }
+.hl-prio.prio-high { color: var(--bad); }
+.hl-prio.prio-med { color: hsl(30 68% 38%); }
+.hl-prio.prio-low { color: var(--ink-3); }
+:root[data-theme="dark"] .hl-date { color: hsl(var(--h) 55% 64%); }
+:root[data-theme="dark"] .hl-sel { color: hsl(var(--hl) 62% 70%); }
+:root[data-theme="dark"] .hl-prio.prio-med { color: hsl(38 72% 62%); }
 .find-marks mark {
   background: color-mix(in srgb, var(--accent) 20%, transparent);
   color: transparent; border-radius: 2px;
@@ -360,7 +393,7 @@ tbody tr.done .task-title { color: var(--ink-3); text-decoration: line-through; 
 .flag { font-family: var(--mono); font-size: 11.5px; padding: 1px 6px; border-radius: 4px; }
 .flag.yes { color: var(--good); background: color-mix(in srgb, var(--good) 12%, transparent); cursor: pointer; }
 .flag.no { color: var(--ink-3); opacity: .5; }
-.col-labels .chip { margin-right: 3px; }
+.col-labels .chip, .col-select .chip { margin-right: 3px; }
 
 /* per-section tables */
 .group { margin-bottom: 26px; }

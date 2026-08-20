@@ -29,7 +29,7 @@ A todo is any line with a checkbox. Everything else is just prose.
 | --- | --- | --- |
 | **Date** | `@2026-08-21`, `@today`, `@fri`, `@aug-21`, `@9/1` | a due date — sortable `Due` column, and the calendar |
 | **Priority** | `!high`, `#med`, `#priority:low` | a built-in select |
-| **Namespaced select** | `#color:blue`, `#status:"in progress"` | single-choice category; each namespace is one table column |
+| **Namespaced select** | `#color:blue`, `#person:"Max Weber"` | a category; each namespace is one table column |
 | **Boolean** | `~billable` | yes/no. Present is true, **absent is an explicit false**, so it sorts cleanly |
 | **Plain label** | `#work` | free-form and multi-value; casual tags coexist with typed columns |
 
@@ -47,6 +47,12 @@ These are the non-obvious part, and they hold exactly:
   wins for bare tags; the explicit `#ns:value` form always overrides.
 - **Priority is pre-seeded.** `high` / `med` / `low` belong to `priority` from the
   start, so `#high` works on line one without being taught.
+- **Quote to include spaces.** `#person:"Max Weber"` is one value, not two.
+- **Repeat means multi.** A namespace is single-choice until some todo carries two
+  of them — `#person:Max #person:Anna` — and from then on that namespace holds
+  several values per todo, document-wide, its column showing every one. The arity
+  is discovered from what you type, like the columns themselves. Repeating the same
+  value collapses, and `priority` is exempt: a task has one priority.
 - **Code is literal.** Tags inside `` `backticks` `` are examples, not vocabulary —
   writing docs about the syntax never defines a column.
 
@@ -79,6 +85,14 @@ Both themes are built to be quiet: warm off-white paper or warm near-black, mute
 ink, one calm accent, and tag colours derived from the namespace name so a column
 keeps its hue.
 
+## Syntax highlighting
+
+The editor colours the source from the parse result rather than from its own
+regexes, so what lights up is exactly what the parser understood: a tag that
+stays grey will not become a column. Namespaces keep the same hue they have in
+the table, taught bare tags get a dotted underline, dates that cannot be read
+get a red squiggle, and anything inside `` ` `` backticks stays literal.
+
 ## Find & replace
 
 `Ctrl+F` opens find & replace over the source text (it takes over the browser's
@@ -94,7 +108,8 @@ malformed pattern is reported in the panel rather than throwing.
 
 Export as **Markdown** (the text verbatim), **JSON** (resolved todos plus the
 discovered vocabulary, with the source text embedded so it round-trips exactly),
-or **CSV** (the table, one column per namespace). Import accepts `.md`, `.txt`,
+or **CSV** (the table, one column per namespace; multi-valued cells separate their
+values with `; `). Import accepts `.md`, `.txt`,
 `.json` and `.csv` — a CSV with a `task` or `title` header is rebuilt back into
 tagged plain text.
 
@@ -118,6 +133,8 @@ index.html      shell and toolbar
 css/app.css     all styling, light and dark
 js/parse.js     scanner, two-pass resolver, date parsing, typo detection
 js/views.js     document / table / calendar / discovery renderers
+js/overlay.js   pins the editor's layers to its text box
+js/highlight.js syntax colouring, painted from the parse result
 js/find.js      find & replace over the source text (self-contained)
 js/app.js       state, text write-back, import/export
 test/run.sh     parser suite (node) + browser suites (headless chrome)

@@ -85,5 +85,31 @@ ok('date in code ignored', d.todos[0].due === '2026-09-01', d.todos[0].due);
 d = TT.parseDocument("- [ ] unclosed ` backtick #work", today);
 ok('unclosed backtick is harmless', d.vocab.labels.has('work'), [...d.vocab.labels.keys()]);
 
+// multi-value: a namespace repeated on one todo is multi for the whole document
+d = TT.parseDocument(`- [ ] sync #person:Max #person:"Anna Roth"\n- [ ] solo #person:Max`, today);
+ok('repeat collects both values', d.todos[0].values.person.join('|') === 'Max|Anna Roth', d.todos[0].values);
+ok('multi is document-wide', d.vocab.multi.has('person'));
+ok('single-value todo unaffected', d.todos[1].values.person.join('|') === 'Max', d.todos[1].values);
+ok('selects still holds the first', d.todos[0].selects.person === 'Max', d.todos[0].selects);
+
+d = TT.parseDocument(`- [ ] a #person:Max\n- [ ] b #person:Anna`, today);
+ok('one per todo stays single', !d.vocab.multi.has('person'), [...d.vocab.multi]);
+
+d = TT.parseDocument(`- [ ] a #person:Max #person:max #person:MAX`, today);
+ok('duplicates collapse', d.todos[0].values.person.length === 1, d.todos[0].values);
+ok('duplicates do not make it multi', !d.vocab.multi.has('person'));
+
+d = TT.parseDocument(`- [ ] a !high #priority:low`, today);
+ok('priority is exempt from multi', !d.vocab.multi.has('priority'), [...d.vocab.multi]);
+ok('priority keeps first-wins', d.todos[0].selects.priority === 'high', d.todos[0].selects);
+
+// a taught bare tag counts toward multi just like the explicit form
+d = TT.parseDocument(`- [ ] a #person:Max #anna\n- [ ] b #person:Anna`, today);
+ok('taught bare joins the same namespace', d.todos[0].values.person.join('|') === 'Max|Anna', d.todos[0].values);
+ok('mixed forms trigger multi', d.vocab.multi.has('person'));
+
+d = TT.parseDocument(`- [ ] a #person:"Max Weber" #person:"Anna Roth"`, today);
+ok('quoted multi-word values coexist', d.todos[0].values.person.join('|') === 'Max Weber|Anna Roth', d.todos[0].values);
+
 console.log(pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

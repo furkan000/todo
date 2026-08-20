@@ -28,10 +28,8 @@
     els.q.addEventListener('keydown', function (e) { onFieldKey(e, 'find'); });
     els.r.addEventListener('keydown', function (e) { onFieldKey(e, 'replace'); });
 
-    // keep the overlay aligned with whatever the textarea is doing
-    cfg.editor.addEventListener('scroll', syncMarks);
+    global.Overlay.register(cfg.editor, els.marks);
     cfg.editor.addEventListener('input', function () { if (isOpen()) refresh(false); });
-    window.addEventListener('resize', function () { if (isOpen()) syncMarks(); });
 
     els.panel.addEventListener('click', function (e) {
       var b = e.target.closest('[data-find]');
@@ -171,19 +169,7 @@
     syncMarks();
   }
 
-  // mirror the textarea's box exactly, whatever the layout is doing to it
-  function syncMarks() {
-    if (!isOpen()) return;
-    var ed = cfg.editor, m = els.marks, cs = getComputedStyle(ed);
-    m.style.fontFamily = cs.fontFamily;
-    m.style.fontSize = cs.fontSize;
-    m.style.lineHeight = cs.lineHeight;
-    m.style.letterSpacing = cs.letterSpacing;
-    m.style.tabSize = cs.tabSize;
-    m.style.padding = cs.padding;
-    m.style.width = ed.clientWidth + 'px';
-    m.scrollTop = ed.scrollTop;
-  }
+  function syncMarks() { global.Overlay.sync(); }
 
   /* ---------- replacing ---------- */
   // $1 style backreferences only make sense in regex mode; elsewhere it is literal

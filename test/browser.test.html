@@ -245,6 +245,66 @@ document.getElementById('f').addEventListener('load', function () {
   ok('tags column is centred', Math.abs((sec.left - st2.left) - (st2.right - sec.right)) < 30);
   click($('[data-layout="split"]'));
 
+  // --- multi-value namespaces
+  ed.value = '# People\n\n- [ ] sync #person:Max #person:"Anna Roth" @2026-09-01\n- [ ] 1:1 #person:Max';
+  ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  click($('[data-view="table"]'));
+  click($('[data-group="0"]'));
+  var personCells = $$('tbody tr .col-select');
+  ok('multi column renders every value', personCells[0].querySelectorAll('.chip').length === 2,
+     personCells[0].textContent);
+  ok('single-value row renders one', personCells[1].querySelectorAll('.chip').length === 1,
+     personCells[1].textContent);
+  ok('each value is separately clickable', personCells[0].querySelectorAll('.chip')[1].dataset.q === '#person:Anna Roth',
+     personCells[0].querySelectorAll('.chip')[1].dataset.q);
+  click($('[data-view="tags"]'));
+  ok('tags view marks it multi', /multi/.test($('.ns-row').textContent), $('.ns-row').textContent);
+
+  // exports carry both people, and importing gets them back
+  var mjson = JSON.parse(w.PTT.toJSON());
+  ok('json gives multi values as an array', Array.isArray(mjson.todos[0].select.person) &&
+     mjson.todos[0].select.person.length === 2, mjson.todos[0].select);
+  ok('json records the arity', mjson.vocabulary.namespaces.person.multi === true, mjson.vocabulary.namespaces.person);
+  var mcsv = w.PTT.toCSV();
+  ok('csv keeps both in one cell', /Max; Anna Roth/.test(mcsv), mcsv.split('\n')[1]);
+  w.confirm = function () { return true; };
+  w.PTT.importText('people.csv', mcsv);
+  var rt = w.PTT.doc();
+  ok('csv round trip keeps both people', rt.todos[0].values.person.join('|') === 'Max|Anna Roth',
+     rt.todos[0].values);
+  ok('csv round trip keeps it multi', rt.vocab.multi.has('person'));
+  ok('csv round trip quotes the two-word name', ed.value.indexOf('#person:"Anna Roth"') !== -1, ed.value);
+  ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  click($('[data-view="table"]'));      // the grouping control only exists in table view
+  click($('[data-group="1"]'));
+
+  // --- syntax highlighting
+  var wrap = d.getElementById('editor-wrap'), sl = d.getElementById('syntax-layer');
+  ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  ok('highlighting is on', wrap.classList.contains('hl-on'));
+  // the invariant that keeps the layer aligned: same characters, nothing added or lost
+  ok('layer text matches the source exactly', sl.textContent === ed.value + '\n',
+     [sl.textContent.length, ed.value.length + 1]);
+  ok('the caret stays visible', w.getComputedStyle(ed).caretColor !== 'rgba(0, 0, 0, 0)',
+     w.getComputedStyle(ed).caretColor);
+  ok('layer mirrors the editor font', w.getComputedStyle(sl).fontFamily === w.getComputedStyle(ed).fontFamily);
+  ok('layer mirrors the editor padding', w.getComputedStyle(sl).paddingLeft === w.getComputedStyle(ed).paddingLeft,
+     [w.getComputedStyle(sl).paddingLeft, w.getComputedStyle(ed).paddingLeft]);
+  ok('tags are coloured', sl.querySelectorAll('.hl-sel').length > 0, sl.querySelectorAll('.hl-sel').length);
+  ok('booleans are coloured', sl.querySelectorAll('.hl-bool').length === 5, sl.querySelectorAll('.hl-bool').length);
+  ok('taught tags are marked', sl.querySelectorAll('.hl-sel.taught').length > 0);
+  ok('backticked tags stay literal', sl.querySelectorAll('.hl-code').length > 0 &&
+     sl.querySelectorAll('.hl-code .hl-sel').length === 0);
+  ed.value = '- [ ] x @notadate'; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  ok('unparsable dates are flagged', sl.querySelectorAll('.hl-date.bad').length === 1,
+     sl.innerHTML.slice(0, 160));
+  ok('layer still matches after edits', sl.textContent === ed.value + '\n');
+  // html in the source must not become markup in the layer
+  ed.value = '- [ ] <script>x</scr' + 'ipt> & <b>'; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  ok('source html is escaped', sl.querySelector('b') === null && sl.textContent === ed.value + '\n',
+     sl.innerHTML.slice(0, 120));
+  ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+
   } catch (err) {
     fails++;
     log.push('FAIL threw: ' + (err && err.message) + '  @ ' + String(err && err.stack).split('\n')[1]);

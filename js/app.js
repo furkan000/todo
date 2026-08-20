@@ -44,6 +44,8 @@
     watchSystemTheme();
     applySplit();
     initResizer();
+    Highlight.init(els.editor, document.getElementById('syntax-layer'),
+                   document.getElementById('editor-wrap'));
     Find.init({
       editor: els.editor,
       setText: setText,
@@ -106,6 +108,7 @@
       : Views.discovery(doc, ctx);
     els.stage.className = 'stage view-' + state.view;
     els.stage.innerHTML = html;
+    Highlight.paint(doc);
 
     var onText = state.layout === 'text';
     Array.prototype.forEach.call(document.querySelectorAll('[data-view]'), function (b) {
@@ -442,9 +445,12 @@
   function toJSON() {
     var v = doc.vocab, ns = {};
     v.namespaces.forEach(function (vals, name) {
-      ns[name] = Array.from(vals.keys()).map(function (k) {
-        return { value: vals.get(k).display, count: vals.get(k).count };
-      });
+      ns[name] = {
+        multi: v.multi.has(name),
+        values: Array.from(vals.keys()).map(function (k) {
+          return { value: vals.get(k).display, count: vals.get(k).count };
+        })
+      };
     });
     return JSON.stringify({
       format: 'plain-text-todo', version: 1,
@@ -459,7 +465,10 @@
         return {
           line: t.line + 1, done: t.done, title: t.title,
           due: t.due, priority: t.priority,
-          select: t.selects, boolean: t.bools, labels: t.labels,
+          select: Object.keys(t.values).reduce(function (o, k) {
+            o[k] = v.multi.has(k) ? t.values[k].slice() : t.selects[k];
+            return o;
+          }, {}), boolean: t.bools, labels: t.labels,
           source: t.text
         };
       })
@@ -481,7 +490,8 @@
           case 'done': return csvCell(t.done ? 'x' : '');
           case 'title': return csvCell(t.title);
           case 'due': return csvCell(t.due || '');
-          case 'select': return csvCell(t.selects[c.ns] || '');
+          case 'select':
+            return csvCell(c.multi ? (t.values[c.ns] || []).join('; ') : (t.selects[c.ns] || ''));
           case 'bool': return csvCell(t.bools[c.name] ? 'yes' : 'no');
           case 'labels': return csvCell(t.labels.map(function (l) { return '#' + l; }).join(' '));
         }
@@ -529,7 +539,11 @@
         if (!val || i === ti || i === di || i === ui || i === li) return;
         if (h.charAt(0) === '~') { if (/^(yes|true|x|1)$/i.test(val)) line += ' ~' + h.slice(1); }
         else if (h === 'priority') line += ' !' + val;
-        else line += ' ' + tagValue(h, val);
+        else {
+          val.split(';').forEach(function (one) {
+            if (one.trim()) line += ' ' + tagValue(h, one);
+          });
+        }
       });
       if (li >= 0 && (r[li] || '').trim()) {
         line += ' ' + r[li].trim().split(/\s+/).map(function (l) { return l.charAt(0) === '#' ? l : '#' + l; }).join(' ');

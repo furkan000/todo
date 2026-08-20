@@ -124,7 +124,9 @@
       if (b === 'priority') return 1;
       return a.localeCompare(b);
     });
-    nsNames.forEach(function (ns) { cols.push({ id: 'ns:' + ns, label: ns, kind: 'select', ns: ns }); });
+    nsNames.forEach(function (ns) {
+      cols.push({ id: 'ns:' + ns, label: ns, kind: 'select', ns: ns, multi: doc.vocab.multi.has(ns) });
+    });
     Array.from(doc.vocab.bools.keys()).sort().filter(function (b) {
       return todos.some(function (t) { return t.bools[b]; });
     }).forEach(function (b) {
@@ -141,7 +143,10 @@
       case 'done': return todo.done ? 1 : 0;
       case 'title': return todo.title.toLowerCase();
       case 'due': return todo.due || '';
-      case 'select': return col.ns === 'priority' ? todo.priorityRank : (todo.selects[col.ns] || '').toLowerCase();
+      case 'select':
+        if (col.ns === 'priority') return todo.priorityRank;
+        if (col.multi) return (todo.values[col.ns] || []).join(' ').toLowerCase();
+        return (todo.selects[col.ns] || '').toLowerCase();
       case 'bool': return todo.bools[col.name] ? 1 : 0;
       case 'labels': return todo.labels.join(' ').toLowerCase();
     }
@@ -236,10 +241,12 @@
         var over = !t.done && t.due < ctx.todayISO;
         return '<span class="due' + (over ? ' overdue' : '') + '" data-q="' + attr(t.dueRaw) + '">' + esc(t.due) + relative(t.due, ctx) + '</span>';
       case 'select':
-        var v = t.selects[c.ns];
-        if (!v) return '<span class="muted">—</span>';
-        var cls = 'chip select ns-' + slug(c.ns) + (c.ns === 'priority' ? ' prio-' + (TT.canonicalPriority(v) || 'x') : '');
-        return '<span class="' + cls + '"' + hueStyle(c.ns) + ' data-q="#' + attr(c.ns + ':' + v) + '">' + esc(v) + '</span>';
+        var vals = c.multi ? (t.values[c.ns] || []) : (t.selects[c.ns] ? [t.selects[c.ns]] : []);
+        if (!vals.length) return '<span class="muted">—</span>';
+        return vals.map(function (v) {
+          var cls = 'chip select ns-' + slug(c.ns) + (c.ns === 'priority' ? ' prio-' + (TT.canonicalPriority(v) || 'x') : '');
+          return '<span class="' + cls + '"' + hueStyle(c.ns) + ' data-q="#' + attr(c.ns + ':' + v) + '">' + esc(v) + '</span>';
+        }).join('');
       case 'bool':
         return t.bools[c.name]
           ? '<span class="flag yes" data-q="~' + attr(c.name) + '">yes</span>'
@@ -335,7 +342,8 @@
     if (!v.namespaces.size) html += hint('No namespaced tags yet. Write <code>#status:blocked</code> to create a column.');
     Array.from(v.namespaces.keys()).sort().forEach(function (ns) {
       var vals = v.namespaces.get(ns);
-      html += '<div class="ns-row"' + hueStyle(ns) + '><div class="ns-name">#' + esc(ns) + ':' + (ns === 'priority' ? '<em>built-in</em>' : '') + '</div><div class="ns-vals">';
+      var tag = ns === 'priority' ? '<em>built-in</em>' : v.multi.has(ns) ? '<em>multi</em>' : '';
+      html += '<div class="ns-row"' + hueStyle(ns) + '><div class="ns-name">#' + esc(ns) + ':' + tag + '</div><div class="ns-vals">';
       var keys = Array.from(vals.keys());
       if (ns === 'priority') keys.sort(function (a, b) { return TT.priorityRank(a) - TT.priorityRank(b); });
       else keys.sort();

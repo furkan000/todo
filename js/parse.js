@@ -244,7 +244,7 @@
         id: 't' + ln.line, line: ln.line, done: ln.done, indent: ln.indent,
         text: ln.text, tokens: ln.tokens, title: stripTokens(ln.text, ln.tokens),
         due: null, dueRaw: null, priority: null,
-        selects: {}, bools: {}, labels: [],
+        selects: {}, values: {}, bools: {}, labels: [],
         section: section
       };
       ln.tokens.forEach(function (t) {
@@ -267,6 +267,16 @@
       ln.todo = todo;
     });
 
+    // A namespace that carries two values on any one todo is multi-valued for the
+    // whole document — the arity is discovered from what you typed, like the
+    // columns themselves. Priority stays single: a task has one priority.
+    var multi = new Set();
+    todos.forEach(function (t) {
+      Object.keys(t.values).forEach(function (ns) {
+        if (ns !== 'priority' && t.values[ns].length > 1) multi.add(ns);
+      });
+    });
+
     // Absence of a boolean is an explicit false, not a blank — so it sorts.
     var boolNames = Array.from(bools.keys());
     todos.forEach(function (t) {
@@ -277,13 +287,18 @@
       text: text, lines: lines, todos: todos,
       vocab: {
         namespaces: namespaces, bools: bools, labels: labels,
-        valueIndex: valueIndex, badDates: badDates
+        valueIndex: valueIndex, badDates: badDates, multi: multi
       }
     };
   }
 
-  // Explicit #ns:value always overrides; a select is single-choice, first wins.
+  // Every value is kept in order (duplicates collapsed); selects[ns] stays the
+  // first one, so a namespace used once behaves exactly as it always did.
   function setSelect(todo, ns, value) {
+    var arr = todo.values[ns] || (todo.values[ns] = []);
+    var k = key(value);
+    for (var i = 0; i < arr.length; i++) if (key(arr[i]) === k) return;
+    arr.push(value);
     if (!(ns in todo.selects)) todo.selects[ns] = value;
   }
 
