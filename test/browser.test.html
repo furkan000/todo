@@ -134,8 +134,8 @@ document.getElementById('f').addEventListener('load', function () {
   click($('[data-view="table"]'));
   ok('view tab leaves text-only', w.PTT.state.layout === 'split', w.PTT.state.layout);
   ok('view tab relights', $('[data-view="table"]').classList.contains('on'));
-  click($('[data-layout="view"]'));
-  ok('view-only hides the editor', w.getComputedStyle($('.editor-pane')).display === 'none');
+  click($('[data-act="sidebar"]'));
+  ok('the sidebar toggle hides the editor', w.getComputedStyle($('.editor-pane')).display === 'none');
   // text mode returns you to the arrangement you were last in, not always split
   click($('[data-layout="text"]'));
   click($('[data-view="doc"]'));
@@ -233,11 +233,20 @@ document.getElementById('f').addEventListener('load', function () {
   ok('chips follow the dark theme', rgbAvg(w.getComputedStyle($('.chip.select')).backgroundColor) < 90, w.getComputedStyle($('.chip.select')).backgroundColor);
   click($('[data-act="theme"]'));
   ok('theme button cycles dark->auto', w.PTT.state.theme === 'auto', w.PTT.state.theme);
+  w.PTT.setLayout('split');
+  ok('the sidebar toggle reads as open', $('[data-act="sidebar"]').classList.contains('on'), '');
+  click($('[data-act="sidebar"]'));
+  ok('clicking it closes the sidebar', w.PTT.state.layout === 'view', w.PTT.state.layout);
+  ok('and it reads as closed', !$('[data-act="sidebar"]').classList.contains('on'), '');
+  click($('[data-act="sidebar"]'));
+  ok('clicking again opens it', w.PTT.state.layout === 'split', w.PTT.state.layout);
+  ok('it sits at the far left of the toolbar',
+     $('.topbar').firstElementChild === $('[data-act="sidebar"]'), $('.topbar').firstElementChild.className);
   ok('theme button reflects state', $('[data-act="theme"]').dataset.themeState === 'auto');
   ok('theme is persisted', JSON.parse(w.localStorage.getItem('ptt.prefs.v1')).theme === 'auto');
 
   // --- reading column is centred, not left-hugged, in view-only
-  click($('[data-layout="view"]'));
+  w.PTT.setLayout('view');
   click($('[data-view="doc"]'));
   var st = $('.stage').getBoundingClientRect(), h = $('.doc-h').getBoundingClientRect();
   var leftGap = h.left - st.left, rightGap = st.right - h.right;
@@ -248,7 +257,7 @@ document.getElementById('f').addEventListener('load', function () {
   click($('[data-view="tags"]'));
   var sec = $('.disco').getBoundingClientRect(), st2 = $('.stage').getBoundingClientRect();
   ok('tags column is centred', Math.abs((sec.left - st2.left) - (st2.right - sec.right)) < 30);
-  click($('[data-layout="split"]'));
+  w.PTT.setLayout('split');
 
   // --- multi-value namespaces
   ed.value = '# People\n\n- [ ] sync #person:Max #person:"Anna Roth" @2026-09-01\n- [ ] 1:1 #person:Max';

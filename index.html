@@ -15,6 +15,9 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
 <div id="app" class="app">
 
   <header class="topbar">
+    <button data-act="sidebar" class="icon-btn sidebar-btn" title="Hide the editor (Ctrl+\)" aria-pressed="true">
+      <svg viewBox="0 0 16 16"><rect x="1" y="2.5" width="14" height="11" rx="1.5"/><path d="M6 2.5v11"/><path class="fill" d="M1.6 3.2h4v9.6h-4z"/></svg>
+    </button>
     <div class="brand">
       <span class="mark">▤</span>
       <span class="name">Plain&nbsp;Text&nbsp;Todo</span>
@@ -51,14 +54,6 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
         <svg class="ico ico-light" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3.2"/><path d="M8 .8v1.8M8 13.4v1.8M2.9 2.9l1.3 1.3M11.8 11.8l1.3 1.3M.8 8h1.8M13.4 8h1.8M2.9 13.1l1.3-1.3M11.8 4.2l1.3-1.3"/></svg>
         <svg class="ico ico-dark" viewBox="0 0 16 16"><path d="M13.4 9.6A5.8 5.8 0 0 1 6.4 2.6a5.9 5.9 0 1 0 7 7z"/></svg>
       </button>
-      <div class="segmented layout" role="group" aria-label="Layout">
-        <button data-layout="split" title="Split — editor beside the view (Ctrl+\)">
-          <svg viewBox="0 0 16 16"><rect x="1" y="2.5" width="14" height="11" rx="1.5"/><path d="M7 2.5v11"/></svg>
-        </button>
-        <button data-layout="view" title="View only — hide the editor (Ctrl+\)">
-          <svg viewBox="0 0 16 16"><rect x="1" y="2.5" width="14" height="11" rx="1.5"/><path d="M1 6h14M5.5 6v7.5"/></svg>
-        </button>
-      </div>
       <button data-act="import" class="icon-btn" title="Import a .md, .txt, .json or .csv file">
         <svg viewBox="0 0 16 16"><path d="M8 10.5v-9M4.5 5 8 1.5 11.5 5M2 13.5h12"/></svg>
       </button>

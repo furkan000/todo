@@ -286,6 +286,7 @@
       savePrefs();
       return;
     }
+    if (name === 'sidebar') return setLayout(state.layout === 'view' ? 'split' : 'view');
     if (name === 'menu') return toggleMenu();
     if (name === 'copy') {
       closeMenu();
@@ -483,6 +484,13 @@
     Array.prototype.forEach.call(document.querySelectorAll('[data-layout]'), function (b) {
       b.classList.toggle('on', b.dataset.layout === state.layout);
     });
+    var side = document.querySelector('[data-act="sidebar"]');
+    if (side) {
+      var open = state.layout !== 'view';
+      side.classList.toggle('on', open);
+      side.setAttribute('aria-pressed', String(open));
+      side.title = (open ? 'Hide' : 'Show') + ' the editor (Ctrl+\\)';
+    }
   }
 
   /* ---------- split resizing ---------- */
@@ -769,7 +777,7 @@
     parseCSV: parseCSV, csvToText: csvToText,
     doc: function () { return doc; }, state: state, sample: SAMPLE,
     applyTheme: applyTheme, resolvedTheme: resolvedTheme, archive: function () { return action('archive'); },
-    showView: showView, setSplit: setSplit
+    showView: showView, setLayout: setLayout, setSplit: setSplit
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

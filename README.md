@@ -173,9 +173,10 @@ Click any tag to filter; click it again to clear.
 
 ## Layout and theme
 
-**Text** is a tab like the rest. The control at top right decides whether the
-editor sits beside the view (**split**) or gets out of the way (**view only**);
-`Ctrl+\` toggles it, and leaving Text returns you to whichever you were last in.
+**Text** is a tab like the rest. The button at the far left opens and closes the
+editor — it is that pane's own toggle, so it sits on the side it opens — and
+`Ctrl+\` does the same. Leaving Text returns you to whichever arrangement you
+were last in.
 The reading column stays centred in every mode. In split, drag the divider to
 resize; double-click it to reset, or focus it and use the arrow keys (`Shift`
 for bigger steps). Neither side can be squeezed below 260px, and the width sticks.
@@ -287,7 +288,7 @@ tagged plain text.
 | `Ctrl+2..6` | Document / Table / Calendar / Tags / Log |
 | `Ctrl+K` | search / filter by tag |
 | `Ctrl+F` | find & replace in the text |
-| `Ctrl+\` | show/hide the editor |
+| `Ctrl+\` | open/close the editor |
 | `Esc` | close the export menu |
 | `Enter` | continue the list; again on an empty item to end it |
 | `Tab` / `Shift+Tab` | indent a todo into a subtask, or promote it back out |

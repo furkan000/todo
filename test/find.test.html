@@ -73,7 +73,7 @@ document.getElementById('f').addEventListener('load',function(){
   key(q,'Escape');
   ok('escape closes', panel.hidden);
   // opening from view-only reveals the editor
-  click('[data-layout="view"]');
+  w.PTT.setLayout('view');
   key(d,'f',{ctrlKey:true});
   ok('opens editor when hidden', w.PTT.state.layout==='split', w.PTT.state.layout);
  }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
