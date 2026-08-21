@@ -1,0 +1,106 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var ed=d.getElementById('editor'), btn=d.getElementById('archive-btn');
+  function type(v){ed.value=v;ed.dispatchEvent(new w.Event('input',{bubbles:true}));}
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  function tick(line){var b=d.querySelector('[data-toggle="'+line+'"]');b.checked=!b.checked;b.dispatchEvent(new w.Event('change',{bubbles:true}));}
+  function todos(){return w.PTT.doc().todos;}
+  w.Log.clear();
+  click(d.querySelector('[data-view="doc"]'));
+
+  /* ---- the tree ---- */
+  type('# L\n\n- [ ] Parent\n  - [ ] One\n  - [ ] Two\n    - [ ] Deep\n- [ ] Loner\n');
+  var t=todos();
+  ok('indent makes a child', t[1].parent===t[0] && t[2].parent===t[0], t.map(function(x){return x.depth;}));
+  ok('nesting goes deeper than one level', t[3].parent===t[2] && t[3].depth===2, t[3].depth);
+  ok('an unindented todo is nobody\'s child', t[4].parent===null && t[4].depth===0, t[4].depth);
+  ok('progress counts every descendant, not just direct ones', t[0].subTotal===3 && t[0].subDone===0, [t[0].subTotal,t[0].subDone]);
+  ok('a leaf has no progress', t[4].subTotal===0, t[4].subTotal);
+
+  /* ---- ticking down ---- */
+  tick(2);
+  ok('ticking a parent finishes the whole subtree',
+     (ed.value.match(/\[x\]/g)||[]).length===4, ed.value);
+  ok('and leaves a todo outside it alone', /- \[ \] Loner/.test(ed.value), ed.value);
+  tick(2);
+  ok('un-ticking it reopens them all', (ed.value.match(/\[x\]/g)||[]).length===0, ed.value);
+
+  /* ---- ticking up ---- */
+  type('# L\n\n- [ ] Parent\n  - [ ] One\n  - [ ] Two\n');
+  tick(3);
+  ok('one child done leaves the parent open', /- \[ \] Parent\n  - \[x\] One\n  - \[ \] Two/.test(ed.value), ed.value);
+  ok('and the parent reads as partial', todos()[0].partial===true && todos()[0].subDone===1, todos()[0]);
+  tick(4);
+  ok('the last child finishes the parent', /- \[x\] Parent\n  - \[x\] One\n  - \[x\] Two/.test(ed.value), ed.value);
+  tick(3);
+  ok('reopening a child reopens the parent', /- \[ \] Parent\n  - \[ \] One\n  - \[x\] Two/.test(ed.value), ed.value);
+
+  // and up more than one level
+  type('# L\n\n- [ ] A\n  - [ ] B\n    - [ ] C\n');
+  tick(4);
+  ok('finishing the deepest child rolls all the way up',
+     /- \[x\] A\n  - \[x\] B\n    - \[x\] C/.test(ed.value), ed.value);
+
+  /* ---- the document view ---- */
+  type('# L\n\n- [ ] Parent\n  - [x] One\n  - [ ] Two\n');
+  var pill=d.querySelector('.todo.parent .sub-count');
+  ok('the parent shows its progress', pill && pill.textContent==='1/2', pill&&pill.textContent);
+  ok('the parent is marked partial', !!d.querySelector('.todo.partial'), d.querySelector('.todo').className);
+  ok('the child is marked as nested', !!d.querySelector('.todo.sub'), '');
+
+  /* ---- the table ---- */
+  click(d.querySelector('[data-view="table"]'));
+  var heads=[].map.call(d.querySelectorAll('thead th span'),function(s){return s.textContent;});
+  ok('the table grows a Sub column', heads.indexOf('Sub')!==-1, heads);
+  ok('a subtask row names its parent', /Parent/.test(d.querySelector('.parent-of').textContent), '');
+  type('# L\n\n- [ ] flat one\n- [ ] flat two\n');
+  heads=[].map.call(d.querySelectorAll('thead th span'),function(s){return s.textContent;});
+  ok('and drops it again when nothing is nested', heads.indexOf('Sub')===-1, heads);
+  click(d.querySelector('[data-view="doc"]'));
+
+  /* ---- archiving ---- */
+  type('# L\n\n## Ship\n\n- [x] Parent\n  - [x] One\n  - [x] Two\n- [ ] Open one\n');
+  ok('a finished item counts once, not once per line', btn.textContent==='Archive done (1)', btn.textContent);
+  click(btn);
+  ok('the subtasks travel with it',
+     /### Ship\n\n- \[x\] Parent\n  - \[x\] One\n  - \[x\] Two/.test(ed.value), ed.value);
+  ok('and leave their old home', /## Ship\n\n- \[ \] Open one/.test(ed.value), ed.value);
+
+  type('# L\n\n- [ ] Parent\n  - [x] Done child\n');
+  ok('a done subtask of open work is not archivable on its own',
+     w.Archive.pending(w.PTT.doc()).length===0 && btn.hidden, ed.value);
+
+  type('# L\n\n- [x] Parent\n  - [ ] Still open\n');
+  ok('a parent with open work under it is not archivable either',
+     w.Archive.pending(w.PTT.doc()).length===0, ed.value);
+
+  /* ---- Tab authoring ---- */
+  type('# L\n\n- [ ] first\n- [ ] second\n');
+  ed.focus();
+  var at=ed.value.indexOf('- [ ] second')+3;
+  ed.setSelectionRange(at,at);
+  ed.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true}));
+  ok('Tab on a todo indents the whole line', /- \[ \] first\n  - \[ \] second/.test(ed.value), ed.value);
+  ok('which makes it a subtask', todos()[1].parent===todos()[0], '');
+  ed.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true,cancelable:true}));
+  ok('Shift+Tab promotes it back out', /- \[ \] first\n- \[ \] second/.test(ed.value), ed.value);
+  ok('and it is nobody\'s child again', todos()[1].parent===null, '');
+
+  /* ---- the log ---- */
+  w.Log.clear();
+  type('# L\n\n- [ ] Parent\n  - [ ] One\n');
+  tick(3);
+  var e=w.Log.all();
+  var child=e.filter(function(x){return x.title==='One';})[0];
+  ok('finishing a subtask logs it', !!child, e);
+  ok('and the entry remembers whose it was', child && child.parent==='Parent', child);
+  ok('the parent it completed is logged too, on its own', e.some(function(x){return x.title==='Parent'&&!x.parent;}), e);
+ }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
+ document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

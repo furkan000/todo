@@ -69,6 +69,7 @@
         at: stamp(new Date()),
         event: 'done',
         title: t.title,
+        parent: t.parent ? t.parent.title : '',
         section: t.section ? t.section.title : '',
         due: t.due || '',
         priority: t.priority || ''
@@ -114,7 +115,8 @@
     byDay().forEach(function (d) {
       out.push('## ' + d.day, '');
       d.items.forEach(function (e) {
-        out.push('- ' + e.at.slice(11) + ' — ' + e.title + (e.section ? '  *(' + e.section + ')*' : ''));
+        out.push('- ' + e.at.slice(11) + ' — ' + (e.parent ? e.parent + ' › ' : '') + e.title +
+          (e.section ? '  *(' + e.section + ')*' : ''));
       });
       out.push('');
     });
@@ -128,9 +130,9 @@
   }
 
   function toCSV() {
-    var rows = ['when,event,task,section,due,priority'];
+    var rows = ['when,event,task,parent,section,due,priority'];
     all().forEach(function (e) {
-      rows.push([e.at, e.event, e.title, e.section, e.due, e.priority].map(cell).join(','));
+      rows.push([e.at, e.event, e.title, e.parent || '', e.section, e.due, e.priority].map(cell).join(','));
     });
     return rows.join('\n') + '\n';
   }

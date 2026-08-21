@@ -16,7 +16,7 @@ document.getElementById('f').addEventListener('load', function () {
   function click(el) { el.dispatchEvent(new w.MouseEvent('click', {bubbles:true})); }
 
   // --- document view
-  ok('12 todos rendered', $$('.todo').length === 12, $$('.todo').length);
+  ok('15 todos rendered', $$('.todo').length === 15, $$('.todo').length);
   var firstText = ed.value.split('\n')[6];
   ok('sample line 7 is done', /^- \[x\]/.test(firstText), firstText);
 
@@ -39,7 +39,7 @@ document.getElementById('f').addEventListener('load', function () {
   var chip2 = $$('.chip.select').filter(function (c) { return c.dataset.q === '#proj:atlas'; })[0];
   click(chip2); // clicking the same tag again clears it
   ok('second click clears filter', d.getElementById('search').value === '', d.getElementById('search').value);
-  ok('unfiltered again', $$('.todo').length === 12, $$('.todo').length);
+  ok('unfiltered again', $$('.todo').length === 15, $$('.todo').length);
 
   // --- table view + sorting
   click($('[data-view="table"]'));
@@ -69,7 +69,7 @@ document.getElementById('f').addEventListener('load', function () {
 
   // filter segmented
   click($('[data-filter="done"]'));
-  ok('done filter shows 2', $$('tbody tr').length === 2, $$('tbody tr').length);
+  ok('done filter shows 4', $$('tbody tr').length === 4, $$('tbody tr').length);
   click($('[data-filter="all"]'));
 
   // --- calendar
@@ -153,7 +153,7 @@ document.getElementById('f').addEventListener('load', function () {
 
   var json = JSON.parse(w.PTT.toJSON());
   ok('json carries the source text', json.text === ed.value);
-  ok('json has 12 todos', json.todos.length === 12, json.todos.length);
+  ok('json has 15 todos', json.todos.length === 15, json.todos.length);
   ok('json resolves taught tags', json.todos.filter(function(t){return /shed/.test(t.title);})[0].select.color === 'blue');
   ok('json lists vocabulary', Object.keys(json.vocabulary.namespaces).length === 5, Object.keys(json.vocabulary.namespaces));
   ok('json booleans', json.vocabulary.booleans.length === 2);
@@ -166,7 +166,7 @@ document.getElementById('f').addEventListener('load', function () {
     ed.value = '- [ ] t #status:"a,b"'; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
     var c = w.PTT.toCSV(); ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true})); return c;
   })()));
-  ok('csv row count', csv.trim().split('\n').length === 13, csv.trim().split('\n').length);
+  ok('csv row count', csv.trim().split('\n').length === 16, csv.trim().split('\n').length);
 
   // --- import round trips
   w.confirm = function () { return true; };
@@ -179,8 +179,8 @@ document.getElementById('f').addEventListener('load', function () {
   var csvOut = w.PTT.toCSV();
   w.PTT.importText('todo.csv', csvOut);
   var back = w.PTT.doc();
-  ok('csv round trip keeps 12 todos', back.todos.length === 12, back.todos.length);
-  ok('csv round trip keeps done state', back.todos.filter(function(t){return t.done;}).length === 2, back.todos.filter(function(t){return t.done;}).length);
+  ok('csv round trip keeps 15 todos', back.todos.length === 15, back.todos.length);
+  ok('csv round trip keeps done state', back.todos.filter(function(t){return t.done;}).length === 4, back.todos.filter(function(t){return t.done;}).length);
   ok('csv round trip keeps due dates', back.todos.filter(function(t){return t.due;}).length === 11, back.todos.filter(function(t){return t.due;}).length);
   ok('csv round trip keeps namespaces', back.vocab.namespaces.size === 5, [].concat(Array.from(back.vocab.namespaces.keys())));
   ok('csv round trip keeps quoted value', back.todos.some(function(t){return t.selects.status === 'in progress';}), back.todos.map(function(t){return t.selects.status;}));

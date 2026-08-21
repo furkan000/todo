@@ -356,6 +356,48 @@ ul.todos { list-style: none; margin: 6px 0; padding: 0; }
 .todo.done .body { color: var(--ink-3); }
 .todo.done .body > code, .todo.done .body { text-decoration: none; }
 .todo.done .body::first-line { text-decoration: none; }
+/* ---------- subtasks ---------- */
+/* a hairline down the left edge of anything nested, so depth reads at a glance */
+.todo.sub > label { border-left: 1px solid var(--line); padding-left: 10px; }
+.todo.sub > label:hover { border-left-color: var(--accent); }
+/* a parent with some of its work done: a dash rather than a tick */
+.todo.partial .box {
+  border-color: var(--accent);
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-size: 8px 2px; background-position: center; background-repeat: no-repeat;
+}
+.todo.parent > label > .body { font-weight: 500; }
+
+.sub-count {
+  flex: none; position: relative; align-self: center; display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+  padding: 1px 7px 1px 6px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--panel-2); overflow: hidden; white-space: nowrap;
+}
+/* the fill sits behind the count, so the pill is its own progress bar */
+.sub-count b {
+  position: absolute; inset: 0 auto 0 0; width: var(--p, 0%);
+  background: var(--accent-soft); border-radius: 999px;
+}
+.sub-count i { position: relative; font-style: normal; }
+.sub-count.full { color: var(--good); border-color: color-mix(in srgb, var(--good) 30%, var(--line)); }
+.sub-count.full b { background: color-mix(in srgb, var(--good) 14%, transparent); }
+.todo .sub-count { margin-left: 8px; opacity: .8; }
+.todo label:hover .sub-count { opacity: 1; }
+
+/* in the table, document order is gone — a subtask has to name its parent.
+   It goes on a quiet second line: inline it wraps and doubles the row height. */
+.sub-of { color: var(--ink-3); margin-right: 4px; }
+.parent-of {
+  display: block; font-size: 11px; color: var(--ink-3); margin-left: 15px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30ch;
+}
+.parent-of::before { content: "in "; opacity: .7; }
+.col-title .task-title { white-space: normal; }
+.cal-item .sub-of { margin-right: 2px; opacity: .7; }
+.log-title .sub-of { margin-right: 3px; }
+.col-sub .sub-count { font-size: 10.5px; }
+
 .bullet { display: flex; gap: 9px; padding: 2px 6px 2px 4px; color: var(--ink-2); }
 .bullet::before { content: "•"; color: var(--ink-3); flex: none; }
 
@@ -566,3 +608,6 @@ tbody tr.done .task-title { color: var(--ink-3); text-decoration: line-through; 
   .topbar { flex-wrap: wrap; }
   .segmented, .search { order: 3; }
 }
+
+:root[data-theme="dark"] .sub-count { background: #2a2a26; }
+:root[data-theme="dark"] .sub-count b { background: hsl(212 40% 24%); }

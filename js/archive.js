@@ -20,8 +20,25 @@
     return todo.section.path.indexOf(HEADING) !== -1;
   }
 
+  // Subtasks are archived as part of the thing they belong to, never on their
+  // own: a finished step of ongoing work is not finished work. So only a
+  // top-level todo is ever pending, and only once nothing under it is open.
   function pending(doc) {
-    return doc.todos.filter(function (t) { return t.done && !isArchived(t); });
+    if (global.Subtasks) global.Subtasks.build(doc);
+    return doc.todos.filter(function (t) {
+      if (!t.done || t.parent || isArchived(t)) return false;
+      return !global.Subtasks || !global.Subtasks.descendants(t).some(function (c) { return !c.done; });
+    });
+  }
+
+  // The lines one item occupies: itself, its subtasks, and whatever was written
+  // between them. Taken as a contiguous range so notes travel with their task.
+  function blockOf(lines, t) {
+    var end = global.Subtasks ? global.Subtasks.blockEnd(t) : t.line;
+    // a heading has no business inside one item's block; stop short of it
+    for (var i = t.line + 1; i <= end; i++) if (heading(lines[i])) { end = i - 1; break; }
+    while (end > t.line && !lines[end].trim()) end--;
+    return { from: t.line, to: end, lines: lines.slice(t.line, end + 1) };
   }
 
   // Returns the new document text, or null when there is nothing to move.
@@ -31,14 +48,15 @@
 
     var lines = doc.text.split('\n');
     var remove = {};
-    items.forEach(function (t) { remove[t.line] = true; });
 
     // group in document order, keyed by the heading each todo lived under
     var groups = [], index = {};
     items.forEach(function (t) {
+      var block = blockOf(lines, t);
+      for (var i = block.from; i <= block.to; i++) remove[i] = true;
       var name = t.section ? t.section.title : '';
       if (!(name in index)) { index[name] = { name: name, lines: [] }; groups.push(index[name]); }
-      index[name].lines.push(lines[t.line]);
+      index[name].lines.push.apply(index[name].lines, block.lines);
     });
 
     var kept = lines.filter(function (_, i) { return !remove[i]; });

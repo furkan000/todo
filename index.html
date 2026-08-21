@@ -122,6 +122,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
         <summary>Syntax</summary>
         <dl>
           <dt><code>- [ ]</code> <code>- [x]</code></dt><dd>a todo — anything else is just prose</dd>
+          <dt><code>Tab</code> on a todo</dt><dd>indents it into a subtask of the one above; <code>Shift+Tab</code> promotes it back. Ticking a task ticks its subtasks; finishing the last subtask finishes the task</dd>
           <dt><code>@2026-08-21</code></dt><dd>due date. Also <code>@today</code>, <code>@tomorrow</code>, <code>@fri</code>, <code>@aug-21</code>, <code>@9/1</code></dd>
           <dt><code>!high</code> <code>#med</code></dt><dd>priority — a built-in select</dd>
           <dt><code>#ns:value</code></dt><dd>namespaced select → its own column. Quote to use spaces: <code>#person:"Max Weber"</code>. Repeat it on one todo for several values: <code>#person:Max #person:Anna</code></dd>
@@ -152,6 +153,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
 <script src="js/views.js"></script>
 <script src="js/log.js"></script>
 <script src="js/archive.js"></script>
+<script src="js/subtasks.js"></script>
 <script src="js/overlay.js"></script>
 <script src="js/highlight.js"></script>
 <script src="js/occurrences.js"></script>

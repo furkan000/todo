@@ -97,7 +97,7 @@
   /* ---------- render ---------- */
   function render() {
     var now = new Date();
-    doc = TT.parseDocument(els.editor.value, now);
+    doc = Subtasks.build(TT.parseDocument(els.editor.value, now));
     var ctx = {
       today: now, todayISO: TT.isoOf(now), sort: state.sort,
       month: state.month, visible: visibleTodos(), query: state.query,
@@ -140,8 +140,8 @@
     var archiveBtn = document.getElementById('archive-btn');
     archiveBtn.hidden = !canArchive;
     archiveBtn.textContent = 'Archive done (' + canArchive + ')';
-    archiveBtn.title = 'Move ' + canArchive + ' finished todo' + (canArchive === 1 ? '' : 's') +
-      ' to a Done section at the end, grouped by the section each came from';
+    archiveBtn.title = 'Move ' + canArchive + ' finished item' + (canArchive === 1 ? '' : 's') +
+      ' — with their subtasks — to a Done section at the end, grouped by the section each came from';
 
     // the table's grouping switch lives down here, where it can't compete with the data
     els.statusTools.innerHTML = state.view !== 'table' ? '' :
@@ -175,7 +175,11 @@
     render();
   }
 
+  // Ticking is a statement about a whole subtree, not one line: finishing a task
+  // finishes its subtasks, and finishing the last subtask finishes the task.
   function toggleLine(lineNo) {
+    var cascaded = Subtasks.toggle(doc, lineNo);
+    if (cascaded !== null) return setText(cascaded);
     var lines = els.editor.value.split('\n');
     var raw = lines[lineNo];
     if (raw === undefined) return;
@@ -292,15 +296,35 @@
     e.target.value = '';
   }
 
+  // Shift whole lines when the caret sits on a list item or several lines are
+  // selected; anywhere else a Tab is still just two spaces.
+  function indent(out) {
+    var v = els.editor.value, s = els.editor.selectionStart, en = els.editor.selectionEnd;
+    var from = v.lastIndexOf('\n', s - 1) + 1;
+    var lineNo = v.slice(0, from).split('\n').length - 1;
+    var lastNo = v.slice(0, en).split('\n').length - 1;
+    var eol = v.indexOf('\n', from);
+    var onList = /^\s*(?:[-*+]\s|\[[ xX]\])/.test(v.slice(from, eol === -1 ? v.length : eol));
+
+    if (!out && s === en && !onList) {
+      return setText(v.slice(0, s) + '  ' + v.slice(en), s + 2);
+    }
+    var r = Subtasks.shiftLines(v, lineNo, lastNo, out);
+    if (!r.delta) return;
+    if (s === en) return setText(r.text, Math.max(from, s + r.firstDelta));
+    els.editor.value = r.text;
+    els.editor.setSelectionRange(Math.max(from, s + r.firstDelta), en + r.delta);
+    queueSave();
+    render();
+  }
+
   function onEditorKey(e) {
-    // Tab indents instead of leaving the field
+    // Tab indents instead of leaving the field. On a list line it shifts the
+    // whole line, which is how a todo becomes a subtask of the one above it;
+    // Shift+Tab promotes it back out.
     if (e.key === 'Tab') {
       e.preventDefault();
-      var s = els.editor.selectionStart, en = els.editor.selectionEnd, v = els.editor.value;
-      els.editor.value = v.slice(0, s) + '  ' + v.slice(en);
-      els.editor.selectionStart = els.editor.selectionEnd = s + 2;
-      queueSave(); render();
-      return;
+      return indent(e.shiftKey);
     }
     // Enter continues a todo/bullet list
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -510,6 +534,8 @@
       todos: doc.todos.map(function (t) {
         return {
           line: t.line + 1, done: t.done, title: t.title,
+          depth: t.depth, parentLine: t.parent ? t.parent.line + 1 : null,
+          subtasks: t.subTotal ? { done: t.subDone, total: t.subTotal } : null,
           due: t.due, priority: t.priority,
           select: Object.keys(t.values).reduce(function (o, k) {
             o[k] = v.multi.has(k) ? t.values[k].slice() : t.selects[k];
@@ -535,6 +561,7 @@
         switch (c.kind) {
           case 'done': return csvCell(t.done ? 'x' : '');
           case 'title': return csvCell(t.title);
+          case 'sub': return csvCell(t.subTotal ? t.subDone + '/' + t.subTotal : '');
           case 'due': return csvCell(t.due || '');
           case 'select':
             return csvCell(c.multi ? (t.values[c.ns] || []).join('; ') : (t.selects[c.ns] || ''));
@@ -576,13 +603,14 @@
     var ti = head.indexOf('task'); if (ti < 0) ti = head.indexOf('title');
     if (ti < 0) return null;
     var di = head.indexOf('done'), ui = head.indexOf('due'), li = head.indexOf('labels');
+    var si = head.indexOf('sub');            // progress is a readout, not a tag to rebuild
     var out = ['# Imported ' + new Date().toISOString().slice(0, 10), ''];
     rows.slice(1).forEach(function (r) {
       var line = '- [' + (di >= 0 && /^(x|yes|true|done)$/i.test((r[di] || '').trim()) ? 'x' : ' ') + '] ' + (r[ti] || '').trim();
       if (ui >= 0 && (r[ui] || '').trim()) line += ' @' + r[ui].trim();
       head.forEach(function (h, i) {
         var val = (r[i] || '').trim();
-        if (!val || i === ti || i === di || i === ui || i === li) return;
+        if (!val || i === ti || i === di || i === ui || i === li || i === si) return;
         if (h.charAt(0) === '~') { if (/^(yes|true|x|1)$/i.test(val)) line += ' ~' + h.slice(1); }
         else if (h === 'priority') line += ' !' + val;
         else {
@@ -638,6 +666,9 @@
     '',
     '- [x] Rewrite the tag scanner @2026-08-18 !high #status:"in progress" #proj:atlas ~billable',
     '- [ ] Two-pass resolver: learn, then resolve @2026-08-20 !high #status:review #atlas ~billable',
+    '  - [x] Scan the whole document first',
+    '  - [x] Index every namespaced value',
+    '  - [ ] Resolve bare tags against the index',
     '- [ ] Write the calendar view @2026-08-21 #med #status:todo #proj:atlas',
     '- [ ] Sweep the copy for typos @fri #low #status:todo #atlas #writing',
     '',
@@ -654,6 +685,9 @@
     '- [ ] Pick up two litres of #color:blue emulsion @sat #home',
     '- [ ] Book the boiler service @2026-09-02 #med #home',
     '- [ ] Renew car insurance @2026-09-15 #home',
+    '',
+    'Indent a todo under another one and it becomes a subtask: tick the parent and',
+    'the whole group is done, tick the last child and the parent finishes itself.',
     '',
     'Notes: `#blue` on the shed line resolves to *color:blue* even though the paint',
     'line that taught it comes later — vocabulary is learned across the whole document',

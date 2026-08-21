@@ -78,6 +78,16 @@
     return out + inline(text.slice(at));
   }
 
+  /* ---------- subtask progress ---------- */
+  // Only a todo with something under it earns a counter.
+  function progressHTML(t) {
+    if (!t.subTotal) return '';
+    var pct = Math.round((t.subDone / t.subTotal) * 100);
+    return '<span class="sub-count' + (t.subDone === t.subTotal ? ' full' : '') + '" style="--p:' + pct + '%" ' +
+      'title="' + t.subDone + ' of ' + t.subTotal + ' subtask' + (t.subTotal === 1 ? '' : 's') + ' done">' +
+      '<b></b><i>' + t.subDone + '/' + t.subTotal + '</i></span>';
+  }
+
   /* ---------- document ---------- */
   function renderDocument(doc, ctx) {
     var html = '', openList = false;
@@ -90,9 +100,13 @@
         if (!shown.has(ln.line)) return;
         if (!openList) { html += '<ul class="todos">'; openList = true; }
         var t = ln.todo;
-        html += '<li class="todo' + (t.done ? ' done' : '') + '" style="--indent:' + Math.floor(t.indent / 2) + '">' +
+        var kids = t.children || [];
+        var cls = 'todo' + (t.done ? ' done' : '') + (kids.length ? ' parent' : '') +
+          (t.partial ? ' partial' : '') + (t.parent ? ' sub' : '');
+        html += '<li class="' + cls + '" style="--indent:' + Math.floor(t.indent / 2) + '">' +
           '<label><input type="checkbox" data-toggle="' + t.line + '"' + (t.done ? ' checked' : '') + '>' +
-          '<span class="box"></span><span class="body">' + textWithChips(ln.text, ln.tokens, ctx) + '</span></label></li>';
+          '<span class="box"></span><span class="body">' + textWithChips(ln.text, ln.tokens, ctx) + '</span>' +
+          progressHTML(t) + '</label></li>';
       } else if (ln.kind === 'bullet') {
         if (!openList) { html += '<ul class="todos">'; openList = true; }
         html += '<li class="bullet" style="--indent:' + Math.floor(ln.indent / 2) + '">' +
@@ -125,6 +139,10 @@
       { id: 'title', label: 'Task', kind: 'title' },
       { id: 'due', label: 'Due', kind: 'due' }
     ];
+    // the column only exists once something in view actually has subtasks
+    if (todos.some(function (t) { return t.subTotal; })) {
+      cols.splice(2, 0, { id: 'sub', label: 'Sub', kind: 'sub', width: '86px' });
+    }
     var nsNames = Array.from(doc.vocab.namespaces.keys()).filter(function (ns) {
       return todos.some(function (t) { return t.selects[ns]; });
     });
@@ -151,6 +169,7 @@
     switch (col.kind) {
       case 'done': return todo.done ? 1 : 0;
       case 'title': return todo.title.toLowerCase();
+      case 'sub': return todo.subTotal ? todo.subDone / todo.subTotal : '';
       case 'due': return todo.due || '';
       case 'select':
         if (col.ns === 'priority') return todo.priorityRank;
@@ -244,7 +263,17 @@
       case 'done':
         return '<label class="cbx"><input type="checkbox" data-toggle="' + t.line + '"' + (t.done ? ' checked' : '') + '><span class="box"></span></label>';
       case 'title':
-        return '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' + (esc(t.title) || '<i class="muted">(untitled)</i>') + '</span>';
+        // sorting scatters the document order, so a subtask has to say whose it
+        // is rather than rely on sitting under it
+        var under = t.parent
+          ? '<span class="sub-of" title="subtask of ' + attr(t.parent.title) + '">↳</span>'
+          : '';
+        return under + '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' +
+          (esc(t.title) || '<i class="muted">(untitled)</i>') + '</span>' +
+          (t.parent ? '<span class="parent-of" title="' + attr(t.parent.title) + '">' + esc(t.parent.title) + '</span>' : '');
+      case 'sub':
+        if (!t.subTotal) return '<span class="muted">—</span>';
+        return progressHTML(t);
       case 'due':
         if (!t.due) return '<span class="muted">—</span>';
         var over = !t.done && t.due < ctx.todayISO;
@@ -315,8 +344,9 @@
         var over = !t.done && iso < ctx.todayISO;
         html += '<div class="cal-item' + (t.done ? ' done' : '') + (over ? ' overdue' : '') +
           (t.priority ? ' prio-' + (TT.canonicalPriority(t.priority) || 'x') : '') +
-          '" data-goto="' + t.line + '" title="' + attr(t.title) + '">' +
-          '<span class="dot" data-toggle="' + t.line + '"></span><span class="t">' + esc(t.title || '(untitled)') + '</span></div>';
+          '" data-goto="' + t.line + '" title="' + attr(t.parent ? t.title + ' — subtask of ' + t.parent.title : t.title) + '">' +
+          '<span class="dot" data-toggle="' + t.line + '"></span><span class="t">' +
+          (t.parent ? '<span class="sub-of">↳</span>' : '') + esc(t.title || '(untitled)') + '</span></div>';
       });
       if (items.length > 4) html += '<div class="cal-more">+' + (items.length - 4) + ' more</div>';
       html += '</div>';
@@ -421,7 +451,9 @@
       html += '<section class="log-day"><h3>' + esc(label) + '<b>' + d.items.length + '</b></h3><ul>';
       d.items.forEach(function (e) {
         html += '<li><span class="log-time">' + esc(e.at.slice(11)) + '</span>' +
-          '<span class="log-title">' + (esc(e.title) || '<i class="muted">(untitled)</i>') + '</span>' +
+          '<span class="log-title">' + (e.parent ? '<span class="sub-of" title="subtask of ' + attr(e.parent) + '">↳</span>' : '') +
+          (esc(e.title) || '<i class="muted">(untitled)</i>') +
+          (e.parent ? '<span class="parent-of muted"> · ' + esc(e.parent) + '</span>' : '') + '</span>' +
           (e.priority ? '<span class="chip select prio-' + (TT.canonicalPriority(e.priority) || 'x') + '">' + esc(e.priority) + '</span>' : '') +
           (e.section ? '<span class="log-section">' + esc(e.section) + '</span>' : '') +
           '</li>';

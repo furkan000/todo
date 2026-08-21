@@ -56,6 +56,40 @@ A todo is any line with a checkbox. Everything else is just prose.
 - [ ] Pick up two litres of #color:blue emulsion @sat #home
 ```
 
+## Subtasks
+
+Indent a todo under another one and it becomes a subtask of it. That is all the
+syntax there is — indenting a list already means this in plain text, so nothing
+new had to be invented:
+
+```markdown
+- [ ] Two-pass resolver @2026-08-20 !high #proj:atlas
+  - [x] Scan the whole document first
+  - [x] Index every namespaced value
+  - [ ] Resolve bare tags against the index
+```
+
+`Tab` on a todo line indents it into a subtask of the one above; `Shift+Tab`
+promotes it back out. Both work over a multi-line selection.
+
+Ticking follows the tree, in both directions:
+
+- **Down** — finishing a task finishes everything under it, and reopening it
+  reopens them. A task is not done while its parts are outstanding.
+- **Up** — finishing the last open subtask finishes its parent, and its parent's
+  parent if that was the last one there too. Reopening any subtask reopens
+  everything it belongs to.
+
+A parent carries a progress pill (`2/5`), counting every descendant rather than
+just its direct children, and its checkbox shows a dash while the work is part
+done. Subtasks nest as deep as you indent them.
+
+Every other view understands the tree. The table grows a **Sub** column and
+labels each subtask row with the task it belongs to — sorting scatters document
+order, so a subtask has to say whose it is. Archiving moves a finished task
+together with its subtasks, and refuses to touch a task with open work still
+under it. The log records subtask completions with the parent alongside.
+
 ## The four tag types
 
 | Type | Looks like | Becomes |
@@ -92,7 +126,7 @@ These are the non-obvious part, and they hold exactly:
 ## Views
 
 - **Text** — the source itself, full width. The other four are projections of it.
-- **Document** — readable text; todos are interactive checkboxes.
+- **Document** — readable text; todos are interactive checkboxes, nested by indent.
 - **Table** — rows are todos; columns auto-generated per namespace and per boolean,
   all sortable, filterable by done/open.
 - **Calendar** — dated todos on a month grid.
@@ -214,7 +248,7 @@ tagged plain text.
 | `Ctrl+\` | show/hide the editor |
 | `Esc` | close the export menu |
 | `Enter` | continue the list; again on an empty item to end it |
-| `Tab` | indent |
+| `Tab` / `Shift+Tab` | indent a todo into a subtask, or promote it back out |
 
 ## Layout of the code
 
@@ -227,6 +261,7 @@ js/overlay.js   pins the editor's layers to its text box
 js/highlight.js syntax colouring, painted from the parse result
 js/log.js       completion log: watches parses for open -> done
 js/archive.js   moves finished todos into a Done section
+js/subtasks.js  the indent tree, ticking that follows it, and Tab authoring
 js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/app.js       state, text write-back, import/export
