@@ -200,25 +200,30 @@ get a red squiggle, and anything inside `` ` `` backticks stays literal.
 
 ## Archiving done work
 
-**Archive done (n)** in the editor header moves every finished todo to a `## Done`
-section at the end of the document, grouped into subsections by the heading each
-one came from:
+**Archive done (n)** in the editor header moves every finished todo to a `# Done`
+section at the end of the document, grouped by the heading each one came from.
+Each section keeps the rank it was written at, so the shape of the document
+survives the move:
 
 ```markdown
 ## Shipping
 
 - [ ] Two-pass resolver @2026-08-20
 
-## Done
+# Done
 
-### Shipping
+## Shipping
 
 - [x] Rewrite the tag scanner @2026-08-18 !high
 
-### Client work
+## Client work
 
 - [x] Refund the duplicate charge @2026-08-14 #client:vega
 ```
+
+The one thing a section cannot keep is a rank that would outrank `Done` itself —
+a sibling heading would end the Done section rather than sit inside it — so a
+top-level `#` section is written one step under it.
 
 Lines move whole — tags, dates and all — so the table, calendar and Tags view are
 unchanged by it. Running it again does nothing until something new is finished, and

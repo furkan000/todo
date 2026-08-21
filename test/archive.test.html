@@ -16,9 +16,9 @@ document.getElementById('f').addEventListener('load',function(){
 
   click(btn);
   var out=ed.value;
-  ok('a Done section is created', /\n## Done\n/.test(out), out);
-  ok('the source section becomes a subsection', /### Shipping\n\n- \[x\] Scanner/.test(out), out);
-  ok('the second section too', /### Client work\n\n- \[x\] Refund/.test(out), out);
+  ok('a Done section is created at the top level', /\n# Done\n/.test(out), out);
+  ok('the source section keeps the rank it had', /## Shipping\n\n- \[x\] Scanner/.test(out), out);
+  ok('the second section too', /## Client work\n\n- \[x\] Refund/.test(out), out);
   ok('tags and dates come along', /- \[x\] Scanner @2026-08-18 !high/.test(out), out);
   ok('open todos stay where they were', /## Shipping\n\n- \[ \] Resolver/.test(out), out);
   ok('done lines leave their old home', out.indexOf('- [ ] Resolver\n- [x]')===-1, out);
@@ -36,19 +36,19 @@ document.getElementById('f').addEventListener('load',function(){
   ok('button reappears', btn.textContent==='Archive done (1)', btn.textContent);
   click(btn);
   ok('merges into the existing subsection',
-     /### Shipping\n\n- \[x\] Scanner @2026-08-18 !high\n- \[x\] Resolver\n/.test(ed.value), ed.value);
+     /## Shipping\n\n- \[x\] Scanner @2026-08-18 !high\n- \[x\] Resolver\n/.test(ed.value), ed.value);
   ok('and keeps a blank line before the next heading',
-     /- \[x\] Resolver\n\n### Client work/.test(ed.value), ed.value);
+     /- \[x\] Resolver\n\n## Client work/.test(ed.value), ed.value);
 
   // a brand new section gets its own subsection
   type(ed.value.replace('# Studio','# Studio\n\n## Errands\n\n- [x] Parcel'));
   click(btn);
-  ok('new sections are added under Done', /### Errands\n\n- \[x\] Parcel/.test(ed.value), ed.value);
+  ok('new sections are added under Done', /## Errands\n\n- \[x\] Parcel/.test(ed.value), ed.value);
 
   // todos with no heading at all
   type('- [x] loose\n- [ ] open');
   click(btn);
-  ok('sectionless todos sit directly under Done', /## Done\n\n- \[x\] loose\n/.test(ed.value), ed.value);
+  ok('sectionless todos sit directly under Done', /# Done\n\n- \[x\] loose\n/.test(ed.value), ed.value);
 
   // already-archived work is left alone
   type('## Done\n\n### Shipping\n\n- [x] old one\n');

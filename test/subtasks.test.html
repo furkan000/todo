@@ -68,7 +68,7 @@ document.getElementById('f').addEventListener('load',function(){
   ok('a finished item counts once, not once per line', btn.textContent==='Archive done (1)', btn.textContent);
   click(btn);
   ok('the subtasks travel with it',
-     /### Ship\n\n- \[x\] Parent\n  - \[x\] One\n  - \[x\] Two/.test(ed.value), ed.value);
+     /## Ship\n\n- \[x\] Parent\n  - \[x\] One\n  - \[x\] Two/.test(ed.value), ed.value);
   ok('and leave their old home', /## Ship\n\n- \[ \] Open one/.test(ed.value), ed.value);
 
   type('# L\n\n- [ ] Parent\n  - [x] Done child\n');

@@ -6,6 +6,7 @@
   'use strict';
 
   var HEADING = 'Done';
+  var DONE_LEVEL = 1;          // Done is a top-level heading of its own
   var HEAD_RE = /^(#{1,6})\s+(.*?)\s*$/;
 
   function heading(line) {
@@ -55,7 +56,10 @@
       var block = blockOf(lines, t);
       for (var i = block.from; i <= block.to; i++) remove[i] = true;
       var name = t.section ? t.section.title : '';
-      if (!(name in index)) { index[name] = { name: name, lines: [] }; groups.push(index[name]); }
+      if (!(name in index)) {
+        index[name] = { name: name, level: t.section ? t.section.level : 0, lines: [] };
+        groups.push(index[name]);
+      }
       index[name].lines.push.apply(index[name].lines, block.lines);
     });
 
@@ -91,7 +95,7 @@
         var end = at.end;
         var add = [];
         if (lines[end - 1] && lines[end - 1].trim()) add.push('');
-        if (g.name) { add.push('#'.repeat(at.level + 1) + ' ' + g.name, ''); }
+        if (g.name) { add.push(hashes(g, at.level) + ' ' + g.name, ''); }
         lines.splice.apply(lines, [end, 0].concat(add, block));
         at.end += add.length + block.length;
       } else {
@@ -104,13 +108,21 @@
     return lines;
   }
 
+  // An archived section keeps the rank it was written at, so the shape of the
+  // document survives the move. The one thing it cannot do is outrank Done
+  // itself — a sibling heading would end the Done section rather than sit in
+  // it — so a section at or above Done's level is pushed one step under it.
+  function hashes(g, doneLevel) {
+    return '#'.repeat(Math.max(g.level || 0, doneLevel + 1));
+  }
+
   function append(lines, groups) {
     var out = lines.slice();
     while (out.length && !out[out.length - 1].trim()) out.pop();
-    out.push('', '## ' + HEADING, '');
+    out.push('', '#'.repeat(DONE_LEVEL) + ' ' + HEADING, '');
     groups.forEach(function (g, i) {
       if (i) out.push('');
-      if (g.name) out.push('### ' + g.name, '');
+      if (g.name) out.push(hashes(g, DONE_LEVEL) + ' ' + g.name, '');
       out.push.apply(out, g.lines);
     });
     return out;
