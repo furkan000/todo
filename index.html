@@ -141,7 +141,11 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
 
   <footer class="statusbar">
     <div id="stats"></div>
+    <div class="spacer-flex"></div>
     <div id="status-tools"></div>
+    <!-- the timer is mounted here: the status bar is on screen in every view and
+         every layout, and it is already the quiet part of the window -->
+    <div id="pomo-slot"></div>
   </footer>
 
   <input type="file" id="file" accept=".md,.txt,.markdown,.json,.csv,text/*" hidden>
@@ -155,6 +159,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
 <script src="js/focus.js"></script>
 <script src="js/lines.js"></script>
 <script src="js/scrollbars.js"></script>
+<script src="js/pomodoro.js"></script>
 <script src="js/overlay.js"></script>
 <script src="js/highlight.js"></script>
 <script src="js/occurrences.js"></script>

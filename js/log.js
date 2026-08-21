@@ -84,6 +84,22 @@
   // Wholesale replacements (import, sample, clear) are not acts of completing work
   function suppress() { skip = true; }
 
+  // Anything else worth remembering the moment of — a finished focus session,
+  // say. The log is a history of what happened, not only of what got ticked.
+  function record(entry) {
+    if (!entry || !entry.event) return null;
+    var d = new Date();
+    var e = {
+      ts: d.getTime(), at: stamp(d), event: entry.event,
+      title: entry.title || '', parent: entry.parent || '', section: entry.section || '',
+      due: entry.due || '', priority: entry.priority || ''
+    };
+    if (entry.minutes) e.minutes = entry.minutes;
+    entries.push(e);
+    save();
+    return e;
+  }
+
   function all() { return entries.slice(); }
   function count() { return entries.length; }
 
@@ -115,7 +131,9 @@
     byDay().forEach(function (d) {
       out.push('## ' + d.day, '');
       d.items.forEach(function (e) {
-        out.push('- ' + e.at.slice(11) + ' — ' + (e.parent ? e.parent + ' › ' : '') + e.title +
+        out.push('- ' + e.at.slice(11) + ' — ' + (e.event === 'done' ? '' : e.event + ': ') +
+          (e.parent ? e.parent + ' › ' : '') + e.title +
+          (e.minutes ? '  (' + e.minutes + ' min)' : '') +
           (e.section ? '  *(' + e.section + ')*' : ''));
       });
       out.push('');
@@ -130,9 +148,9 @@
   }
 
   function toCSV() {
-    var rows = ['when,event,task,parent,section,due,priority'];
+    var rows = ['when,event,task,parent,section,due,priority,minutes'];
     all().forEach(function (e) {
-      rows.push([e.at, e.event, e.title, e.parent || '', e.section, e.due, e.priority].map(cell).join(','));
+      rows.push([e.at, e.event, e.title, e.parent || '', e.section, e.due, e.priority, e.minutes || ''].map(cell).join(','));
     });
     return rows.join('\n') + '\n';
   }
@@ -142,7 +160,7 @@
   }
 
   global.Log = {
-    init: init, observe: observe, suppress: suppress,
+    init: init, observe: observe, suppress: suppress, record: record,
     all: all, count: count, clear: clear, load: load, byDay: byDay,
     toMarkdown: toMarkdown, toCSV: toCSV, toJSON: toJSON, stamp: stamp
   };

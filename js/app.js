@@ -58,6 +58,21 @@
       flash: flash,
       ensureVisible: function () { if (state.layout === 'view') setLayout('split'); }
     });
+    Pomodoro.init({
+      mount: document.querySelector('.statusbar'),
+      before: document.getElementById('pomo-slot'),
+      // whatever you have marked as in flight is what the session is spent on
+      taskOf: function () {
+        var q = doc ? Focus.queue(doc.todos) : [];
+        return q.length ? q[0].title : '';
+      },
+      onFinish: function (phase, s) {
+        flash(phase === 'work'
+          ? 'Focus session done' + (s.task ? ' — ' + s.task : '') + ' · take ' + s.cfg[s.phase] + ' min'
+          : 'Break over — back to it');
+        render();
+      }
+    });
     render();
   }
 
@@ -424,6 +439,7 @@
     if (e.key === '1') { e.preventDefault(); setLayout('text'); }
     else if (map[e.key]) { e.preventDefault(); showView(map[e.key]); }
     else if (e.key === 'k') { e.preventDefault(); els.search.focus(); els.search.select(); }
+    else if (e.key === ';') { e.preventDefault(); Pomodoro.act('toggle'); }
     else if (e.key === '\\') {
       e.preventDefault();
       setLayout(state.layout === 'view' ? 'split' : 'view');

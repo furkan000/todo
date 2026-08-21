@@ -1,0 +1,157 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var P=w.Pomodoro, MIN=60000;
+  function $(s){return d.querySelector(s);}
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+
+  // ---- the clock, driven by a fake now so nothing depends on real time
+  var s=P.make({work:25,short:5,long:15,rounds:4});
+  var t0=1700000000000;
+  ok('starts on a full focus interval', P.remaining(s,t0)===25*MIN, P.remaining(s,t0));
+  ok('and is not running until told', s.running===false);
+  ok('formats as minutes and seconds', P.format(25*MIN)==='25:00' && P.format(61000)==='1:01', P.format(61000));
+  ok('rounds a part-second up so it never shows 0:00 early', P.format(1)==='0:01', P.format(1));
+
+  P.start(s,t0);
+  ok('running after start', s.running===true && s.endsAt===t0+25*MIN, s.endsAt-t0);
+  ok('counts down against the wall clock', P.remaining(s,t0+60000)===24*MIN, P.remaining(s,t0+60000));
+  ok('progress tracks the same', Math.abs(P.progress(s,t0+60000)-0.04)<1e-9, P.progress(s,t0+60000));
+
+  P.pause(s,t0+60000);
+  ok('pausing banks what is left', s.running===false && s.left===24*MIN, s.left);
+  ok('a paused clock does not drift', P.remaining(s,t0+999999)===24*MIN, P.remaining(s,t0+999999));
+  P.start(s,t0+999999);
+  ok('resuming picks up from the bank', P.remaining(s,t0+999999)===24*MIN, P.remaining(s,t0+999999));
+
+  // a tab that was asleep past the end still lands on the right interval
+  ok('nothing finishes early', P.tick(s,t0+1000000)===null);
+  var over=P.tick(s,t0+999999+24*MIN);
+  ok('the focus interval finishes', over==='work', over);
+  ok('it becomes a short break', s.phase==='short', s.phase);
+  ok('and counts as a session done', s.done===1, s.done);
+  ok('breaks start themselves by default', s.running===true);
+
+  // four focus sessions to the long break
+  var q=P.make({work:1,short:1,long:1,rounds:3});
+  ok('round 1 leads to a short break', P.nextPhase(q).phase==='short');
+  q.round=3;
+  ok('the last round leads to the long one', P.nextPhase(q).phase==='long', P.nextPhase(q).phase);
+  q.phase='long';
+  ok('and the long break starts the set over', P.nextPhase(q).round===1, P.nextPhase(q).round);
+  q.phase='short'; q.round=2;
+  ok('a short break moves to the next round', P.nextPhase(q).round===3, P.nextPhase(q).round);
+
+  // skipping counts the interval as taken but not as work done
+  var k=P.make({rounds:4}); P.start(k,t0);
+  P.skip(k,t0);
+  ok('skip moves on', k.phase==='short', k.phase);
+  ok('skip does not inflate the session count', k.done===0, k.done);
+
+  // reset returns to the top of the interval you are in
+  var r=P.make({work:10}); P.start(r,t0); P.pause(r,t0+5*MIN);
+  P.reset(r);
+  ok('reset refills the interval', P.remaining(r,t0)===10*MIN && !r.running, P.remaining(r,t0));
+
+  // ---- configuration is clamped, never trusted
+  var c=P.normalize({work:'999',short:0,long:1.6,rounds:-2,chime:'yes'});
+  ok('a huge focus length is clamped', c.work===P.LIMITS.work[1], c.work);
+  ok('a zero break is clamped up', c.short===1, c.short);
+  ok('fractions round', c.long===2, c.long);
+  ok('rounds are clamped', c.rounds===1, c.rounds);
+  ok('flags become booleans', c.chime===true);
+  var junk=P.normalize({work:'abc'});
+  ok('garbage falls back to the default', junk.work===P.DEFAULTS.work, junk.work);
+  ok('an empty config is the default config', JSON.stringify(P.normalize(null))===JSON.stringify(P.normalize({})));
+  ok('there are presets to pick from', P.PRESETS.length>=3 && P.PRESETS[0].work===25, P.PRESETS[0]);
+
+  // ---- the chip
+  var chip=$('.pomo');
+  ok('the timer lives in the status bar', !!chip && chip.closest('.statusbar')!==null);
+  ok('at the far end of it', chip.nextElementSibling.id==='pomo-slot' &&
+     chip.parentNode.lastElementChild===chip.nextElementSibling, chip.parentNode.innerHTML.slice(0,80));
+  ok('and the toolbar is left alone', d.querySelector('.topbar .pomo')===null);
+  ok('the settings panel opens upward, away from the edge',
+     w.getComputedStyle($('.pomo-pop')).bottom!=='auto', w.getComputedStyle($('.pomo-pop')).bottom);
+  ok('it reads as idle to begin with', chip.classList.contains('idle'), chip.className);
+  ok('it shows the configured focus length', $('.pomo-time').textContent===P.state().cfg.work+':00', $('.pomo-time').textContent);
+  ok('the controls take no width at rest',
+     w.getComputedStyle($('.pomo-tools')).maxWidth==='0px', w.getComputedStyle($('.pomo-tools')).maxWidth);
+  ok('one dot per round', $('.pomo-dots').children.length===P.state().cfg.rounds, $('.pomo-dots').children.length);
+
+  var baseTitle=d.title;
+  click($('[data-pomo="toggle"]'));
+  ok('clicking starts it', P.state().running===true);
+  ok('and it stops reading as idle', !chip.classList.contains('idle') && chip.classList.contains('running'), chip.className);
+  ok('the phase is on the element', chip.dataset.phase==='work', chip.dataset.phase);
+  ok('a running timer binds the task you are on', typeof P.state().task==='string');
+  P.step();
+  ok('the countdown reaches the browser tab', /·/.test(d.title) && d.title!==baseTitle, d.title);
+
+  click($('[data-pomo="toggle"]'));
+  ok('clicking again pauses', P.state().running===false && P.state().left!==null);
+  ok('a paused timer gives the tab its title back', d.title===baseTitle, d.title);
+
+  click($('[data-pomo="reset"]'));
+  ok('reset empties the bank', P.state().left===null && chip.classList.contains('idle'));
+
+  // settings
+  ok('the panel is closed', $('.pomo-pop').hidden);
+  click($('[data-pomo="config"]'));
+  ok('the gear opens it', !$('.pomo-pop').hidden && chip.classList.contains('open'));
+  var workInput=$('.pomo-pop [data-cfg="work"]');
+  ok('the panel shows the current values', +workInput.value===P.state().cfg.work, workInput.value);
+  workInput.value='40';
+  workInput.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('editing a length takes effect', P.state().cfg.work===40, P.state().cfg.work);
+  ok('an unstarted interval picks up the new length', $('.pomo-time').textContent==='40:00', $('.pomo-time').textContent);
+  workInput.value='9999';
+  workInput.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('an out-of-range length is clamped in the field too', +workInput.value===P.LIMITS.work[1], workInput.value);
+
+  var chimeBox=$('.pomo-pop [data-cfg="chime"]');
+  chimeBox.checked=false;
+  chimeBox.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('a checkbox writes through', P.state().cfg.chime===false);
+
+  click($('.pomo-presets button[data-preset="1"]'));
+  ok('a preset sets every length at once',
+     P.state().cfg.work===50 && P.state().cfg.short===10 && P.state().cfg.long===30, P.state().cfg);
+  ok('the fields follow the preset', +$('.pomo-pop [data-cfg="work"]').value===50, $('.pomo-pop [data-cfg="work"]').value);
+
+  click($('[data-pomo="defaults"]'));
+  ok('restore puts everything back', P.state().cfg.work===P.DEFAULTS.work && P.state().cfg.chime===true, P.state().cfg);
+
+  click(d.body);
+  ok('clicking away closes the panel', $('.pomo-pop').hidden);
+
+  // it remembers itself
+  ok('the state is persisted', JSON.parse(w.localStorage.getItem(P.KEY)).cfg.work===P.DEFAULTS.work);
+  var revived=P.read();
+  ok('and comes back on load', revived.cfg.work===P.DEFAULTS.work && revived.phase==='work', revived);
+
+  // ---- a finished focus session lands in the log
+  w.Log.clear();
+  var st=P.state();
+  st.cfg.log=true; st.task='Ship the parser';
+  P.start(st,Date.now()-st.cfg.work*MIN-1000);
+  P.step();
+  var entries=w.Log.all();
+  ok('the session is recorded', entries.length===1 && entries[0].event==='focus', entries);
+  ok('with the task it was spent on', entries[0].title==='Ship the parser', entries[0]);
+  ok('and how long it ran', entries[0].minutes===P.DEFAULTS.work, entries[0].minutes);
+  ok('the csv carries the minutes', /,focus,Ship the parser,.*,25$/m.test(w.Log.toCSV()), w.Log.toCSV());
+  ok('the markdown names the event', /focus: Ship the parser/.test(w.Log.toMarkdown()), w.Log.toMarkdown());
+
+  click($('[data-view="log"]'));
+  ok('the log view marks it as a session', d.querySelectorAll('li.log-focus').length===1, d.querySelectorAll('li.log-focus').length);
+  ok('and counts sessions apart from completions', /focus session/.test($('.log-head').textContent), $('.log-head').textContent);
+  w.Log.clear();
+ }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
+ document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

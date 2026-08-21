@@ -492,14 +492,25 @@
 
   var DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+  // a focus session is not a completion, so it does not wear the same tick
+  var TOMATO = '<svg class="log-pomo" viewBox="0 0 16 16" aria-hidden="true">' +
+    '<circle cx="8" cy="9.4" r="5.2"/><path d="M8 4.2V2.6M8 2.6c-1.3-.9-2.6-.6-3.2-.1M8 2.6c1.3-.9 2.6-.6 3.2-.1"/></svg>';
+
   function renderLog(doc, ctx) {
     var days = ctx.log;
     if (!days.length) {
       return empty('Nothing logged yet.',
         'Tick a todo off — here, in the table, on the calendar, or by typing the <code>x</code> yourself — and the moment lands here.');
     }
-    var total = days.reduce(function (n, d) { return n + d.items.length; }, 0);
+    var total = 0, sessions = 0, minutes = 0;
+    days.forEach(function (d) {
+      d.items.forEach(function (e) {
+        if (e.event === 'focus') { sessions++; minutes += e.minutes || 0; } else total++;
+      });
+    });
     var html = '<div class="log-head"><span>' + total + ' completion' + (total === 1 ? '' : 's') +
+      (sessions ? ' <span>·</span> ' + sessions + ' focus session' + (sessions === 1 ? '' : 's') +
+        (minutes ? ' <span>·</span> ' + minutes + ' min' : '') : '') +
       ' across ' + days.length + ' day' + (days.length === 1 ? '' : 's') + '</span>' +
       '<button data-act="clear-log" class="link">Clear log</button></div>';
 
@@ -509,6 +520,12 @@
         ['January','February','March','April','May','June','July','August','September','October','November','December'][when.getMonth()];
       html += '<section class="log-day"><h3>' + esc(label) + '<b>' + d.items.length + '</b></h3><ul>';
       d.items.forEach(function (e) {
+        if (e.event === 'focus') {
+          html += '<li class="log-focus"><span class="log-time">' + esc(e.at.slice(11)) + '</span>' +
+            '<span class="log-title">' + TOMATO + (esc(e.title) || '<i class="muted">(untitled)</i>') + '</span>' +
+            (e.minutes ? '<span class="log-mins">' + e.minutes + ' min</span>' : '') + '</li>';
+          return;
+        }
         html += '<li><span class="log-time">' + esc(e.at.slice(11)) + '</span>' +
           '<span class="log-title">' + (e.parent ? '<span class="sub-mark" title="subtask of ' + attr(e.parent) + '">' + BRANCH + '</span>' : '') +
           (esc(e.title) || '<i class="muted">(untitled)</i>') +

@@ -252,6 +252,37 @@ If finished work in the text is what distracts you, the **Open** filter now hide
 done todos in the document view as well — the lines stay in your text, they just
 stop competing for attention, and a footnote says how many are hidden.
 
+## Focus timer
+
+A pomodoro clock sits at the right-hand end of the status bar. It is there in
+every view and every layout, because a timer you have to go and open is a timer
+you stop using — and it is quiet when it is not running: a hollow ring and a
+duration, no box, at the same weight as the counts beside it.
+
+Click it to start. Running, it takes a colour: focus borrows the same orange the
+in-flight markers use, breaks borrow the accent blue, and the ring drains as the
+interval does. The dots beside it say which session of the set you are on. The
+count also goes into the browser tab, so it is legible from another window.
+`Ctrl+;` starts and pauses it without reaching for the mouse.
+
+Nothing about it blinks or interrupts. The skip, restart and settings controls
+take up no width at all until you put the pointer on the chip.
+
+It counts by subtraction, not by ticking: the moment the interval ends is stored
+as a wall-clock time and the display is the difference. A tab that was throttled,
+asleep or reloaded comes back showing the truth, and a session running when you
+close the page is still running when you open it.
+
+Everything is adjustable from the gear — focus, short break and long break
+lengths, how many focus sessions come before the long one, whether breaks and
+sessions start themselves, the chime, the browser-tab countdown, and whether
+finished sessions are logged. Three presets cover the common arguments (25/5,
+50/10, 15/3) and **Restore defaults** puts it all back.
+
+Starting a focus session pins whatever you have marked as in flight, so the log
+entry can say what the time went to rather than only that it went. Finished
+sessions appear in the **Log** beside your completions, counted separately.
+
 ## Selection echo
 
 Select any text in the editor and every other copy of it is boxed, so you can see
@@ -293,6 +324,7 @@ tagged plain text.
 | `Enter` | continue the list; again on an empty item to end it |
 | `Tab` / `Shift+Tab` | indent a todo into a subtask, or promote it back out |
 | `Ctrl+.` | mark the current line as what you are working on |
+| `Ctrl+;` | start / pause the pomodoro timer |
 | `Alt+↑` / `Alt+↓` | move the line, or the selected lines, up and down |
 | `Ctrl+X` | with nothing selected, cut the whole line |
 
@@ -305,12 +337,13 @@ js/parse.js     scanner, two-pass resolver, date parsing, typo detection
 js/views.js     document / table / calendar / discovery renderers
 js/overlay.js   pins the editor's layers to its text box
 js/highlight.js syntax colouring, painted from the parse result
-js/log.js       completion log: watches parses for open -> done
+js/log.js       activity log: watches parses for open -> done, records sessions
 js/archive.js   moves finished todos into a Done section
 js/subtasks.js  the indent tree, ticking that follows it, and Tab authoring
 js/focus.js     the [>] "working on it" state
 js/lines.js     moving lines, and cutting one whole
 js/scrollbars.js  shows a scrollbar only while it is in use
+js/pomodoro.js  the focus timer: a wall-clock state machine + its status-bar chip
 js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/app.js       state, text write-back, import/export

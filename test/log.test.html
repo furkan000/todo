@@ -60,7 +60,7 @@ document.getElementById('f').addEventListener('load',function(){
   // exports
   ok('markdown export has the task', /invoice/.test(L.toMarkdown()), L.toMarkdown().slice(0,120));
   ok('markdown export groups by day', /^## \d{4}-\d{2}-\d{2}$/m.test(L.toMarkdown()), L.toMarkdown().slice(0,120));
-  ok('csv export has a header', L.toCSV().split('\n')[0]==='when,event,task,parent,section,due,priority', L.toCSV().split('\n')[0]);
+  ok('csv export has a header', L.toCSV().split('\n')[0]==='when,event,task,parent,section,due,priority,minutes', L.toCSV().split('\n')[0]);
   ok('csv export has the row', /,done,invoice,,Client work,/.test(L.toCSV()), L.toCSV().split('\n')[1]);
   ok('the log rides inside the main json export', JSON.parse(w.PTT.toJSON()).log.length===1);
 

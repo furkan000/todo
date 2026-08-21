@@ -158,6 +158,90 @@ code { font-family: var(--mono); font-size: .92em; }
 .menu-pop button:hover b { color: var(--accent); }
 .menu-sep { height: 1px; background: var(--line); margin: 5px 4px; }
 
+/* ---------- pomodoro ---------- */
+/* It lives in the status bar, which is on screen in every view and every
+   layout and is already the quiet part of the window. Idle it is a ring and a
+   duration with no box, at the same weight as the counts beside it. Running it
+   takes the colour of the phase — focus borrows the same orange the in-flight
+   markers use, a break borrows the accent — and the ring drains. Tabular
+   figures fix the width, so a ticking clock never nudges anything. */
+.pomo { position: relative; display: flex; align-items: center; gap: 5px; margin: -3px 0; }
+.pomo-face {
+  display: flex; align-items: center; gap: 6px;
+  border: 1px solid transparent; border-radius: 7px; background: transparent;
+  padding: 3px 7px 3px 5px; color: var(--ink-3);
+  transition: background .12s, border-color .12s, color .12s;
+}
+.pomo-time { font-size: 12px; font-weight: 640; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.pomo-ring { width: 14px; height: 14px; flex: none; transform: rotate(-90deg); }
+.pomo-ring circle { fill: none; stroke-width: 3; }
+.pomo-ring .track { stroke: var(--line); }
+.pomo-ring .fill {
+  stroke: currentColor; stroke-linecap: round;
+  stroke-dasharray: 60; stroke-dashoffset: 60; transition: stroke-dashoffset .25s linear;
+}
+.pomo.idle .pomo-ring .fill { stroke-dashoffset: 60; }
+.pomo.idle .pomo-face { opacity: .55; }
+.pomo:hover .pomo-face { opacity: 1; color: var(--ink-2); border-color: var(--line); background: var(--panel-2); }
+
+.pomo.running .pomo-face { color: var(--now); border-color: var(--now-line); background: var(--now-soft); }
+.pomo.running[data-phase="short"] .pomo-face,
+.pomo.running[data-phase="long"] .pomo-face { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+/* paused: it has a time banked but is not counting */
+.pomo:not(.running):not(.idle) .pomo-face { color: var(--ink-2); border-color: var(--line); background: var(--panel-2); }
+.pomo:not(.running):not(.idle) .pomo-ring .fill { stroke: var(--ink-3); }
+
+.pomo-dots { display: flex; align-items: center; gap: 3px; }
+.pomo-dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--line); }
+.pomo-dots i.past { background: var(--ink-3); }
+.pomo-dots i.at { background: var(--now); }
+.pomo[data-phase="short"] .pomo-dots i.at, .pomo[data-phase="long"] .pomo-dots i.at { background: var(--accent); }
+
+/* The controls cost nothing until you go looking for them: they take no width
+   at rest, so an idle timer is exactly as wide as the time it is showing. */
+.pomo-tools { display: flex; align-items: center; overflow: hidden; max-width: 0; opacity: 0; transition: max-width .16s, opacity .16s; }
+.pomo:hover .pomo-tools, .pomo.open .pomo-tools, .pomo:focus-within .pomo-tools { max-width: 84px; opacity: 1; }
+.pomo-mini {
+  border: 0; background: none; color: var(--ink-3); padding: 3px; border-radius: 5px;
+  display: flex; align-items: center;
+}
+.pomo-mini svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.pomo-mini svg path[d^="M4 3.5v9l6"] { fill: currentColor; }
+.pomo-mini:hover { color: var(--ink); background: var(--line-2); }
+
+/* the bar is at the bottom of the window, so the panel opens upward */
+.pomo-pop {
+  position: absolute; right: 0; bottom: calc(100% + 8px); z-index: 30;
+  width: 276px; padding: 5px; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow);
+  font-size: 13px; color: var(--ink);
+}
+.pomo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 6px 6px; }
+.pomo-field { display: flex; flex-direction: column; gap: 3px; font-size: 11px; color: var(--ink-3); }
+.pomo-field input {
+  font: inherit; font-size: 13px; padding: 4px 6px; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 6px; background: var(--panel-2);
+}
+.pomo-field input:focus { outline: none; border-color: var(--accent); background: var(--panel); }
+.pomo-presets { display: flex; gap: 5px; padding: 0 6px 4px; }
+.pomo-presets button {
+  flex: 1; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink-2);
+  border-radius: 6px; padding: 4px 2px; font-size: 11.5px; line-height: 1.25;
+}
+.pomo-presets button i { display: block; font-style: normal; font-size: 10px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+.pomo-presets button:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.pomo-check { display: flex; gap: 8px; align-items: flex-start; padding: 5px 9px; border-radius: 6px; }
+.pomo-check:hover { background: var(--accent-soft); }
+.pomo-check input { margin-top: 2px; accent-color: var(--accent); }
+.pomo-check b { display: block; font-size: 12.5px; font-weight: 500; }
+.pomo-check i { display: block; font-style: normal; font-size: 11px; color: var(--ink-3); }
+.pomo-restore { width: 100%; border: 0; background: none; color: var(--ink-3); font-size: 12px; padding: 5px; border-radius: 6px; text-align: left; }
+.pomo-restore:hover { color: var(--accent); background: var(--accent-soft); }
+
+.log-pomo { width: 12px; height: 12px; flex: none; fill: none; stroke: var(--now); stroke-width: 1.4; margin-right: 6px; vertical-align: -1px; }
+.log-focus .log-title { color: var(--ink-2); }
+.log-mins { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
 /* ---------- panes ---------- */
 .panes { flex: 1; display: grid; grid-template-columns: var(--split, 40%) 1px 1fr; min-height: 0; }
 .app.layout-view .panes, .app.layout-text .panes { grid-template-columns: 1fr; }
@@ -313,6 +397,8 @@ code { font-family: var(--mono); font-size: .92em; }
   font-size: 11.5px; color: var(--ink-3); background: var(--panel);
 }
 .statusbar b { color: var(--ink-2); font-weight: 640; }
+.statusbar .pomo-pop b { color: var(--ink); font-weight: 500; }
+.statusbar .pomo-pop span, .statusbar .pomo-check span { opacity: 1; margin: 0; }
 .statusbar b.bad { color: var(--bad); }
 .statusbar span { opacity: .5; margin: 0 2px; }
 
