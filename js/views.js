@@ -319,7 +319,8 @@
         var under = t.parent
           ? '<span class="sub-of" title="subtask of ' + attr(t.parent.title) + '">└</span>'
           : '';
-        return under + nowHTML(t) + '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' +
+        // rank first, then the nesting stem: the number is the thing you scan for
+        return nowHTML(t) + under + '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' +
           (esc(t.title) || '<i class="muted">(untitled)</i>') + '</span>' +
           (t.parent ? '<span class="parent-of" title="' + attr(t.parent.title) + '">' + esc(t.parent.title) + '</span>' : '');
       case 'sub':
