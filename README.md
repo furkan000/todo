@@ -180,6 +180,11 @@ The reading column stays centred in every mode. In split, drag the divider to
 resize; double-click it to reset, or focus it and use the arrow keys (`Shift`
 for bigger steps). Neither side can be squeezed below 260px, and the width sticks.
 
+Scrollbars stay out of the way: the thumb is invisible until you scroll, and
+fades again about a second after you stop. Reaching for the edge of a pane brings
+it back too, since a thumb you cannot see is a thumb you cannot grab. Only the
+colour comes and goes — the gutter is reserved either way, so nothing reflows.
+
 The theme button cycles **follow system → light → dark**, and the choice sticks.
 Both themes are built to be quiet: warm off-white paper or warm near-black, muted
 ink, one calm accent, and tag colours derived from the namespace name so a column
@@ -299,6 +304,7 @@ js/archive.js   moves finished todos into a Done section
 js/subtasks.js  the indent tree, ticking that follows it, and Tab authoring
 js/focus.js     the [>] "working on it" state
 js/lines.js     moving lines, and cutting one whole
+js/scrollbars.js  shows a scrollbar only while it is in use
 js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/app.js       state, text write-back, import/export

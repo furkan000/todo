@@ -35,22 +35,31 @@
 }
 
 /* ---------- scrollbars ---------- */
-* { scrollbar-width: thin; scrollbar-color: var(--scroll) transparent; }
+/* Idle scrollbars are invisible, not absent: the gutter stays reserved, only
+   the thumb's colour comes and goes, so nothing reflows when it appears.
+   js/scrollbars.js adds .sb-show while you scroll or reach for the edge. */
+* { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.sb-show { scrollbar-color: var(--scroll) transparent; }
 ::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-button { display: none; }
 ::-webkit-scrollbar-corner { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background-color: var(--scroll);
+  background-color: transparent;
   border-radius: 10px;
   /* transparent border + padding-box clip = an inset pill with breathing room */
   border: 3px solid transparent;
   background-clip: padding-box;
-  transition: background-color .15s;
+  transition: background-color .25s ease;
 }
-::-webkit-scrollbar-thumb:hover { background-color: var(--scroll-hover); }
-::-webkit-scrollbar-thumb:active { background-color: var(--ink-3); }
-/* always visible, just quiet — a hidden bar reads as broken, not subtle */
+.sb-show::-webkit-scrollbar-thumb { background-color: var(--scroll); }
+.sb-show::-webkit-scrollbar-thumb:hover { background-color: var(--scroll-hover); }
+.sb-show::-webkit-scrollbar-thumb:active { background-color: var(--ink-3); }
+/* someone who cannot bear things appearing and disappearing keeps them all */
+@media (prefers-reduced-motion: reduce) {
+  * { scrollbar-color: var(--scroll) transparent; }
+  ::-webkit-scrollbar-thumb { background-color: var(--scroll); transition: none; }
+}
 /* reserve the gutter so content never shifts when the bar appears */
 .stage, #editor { scrollbar-gutter: stable; }
 html, body { height: 100%; }

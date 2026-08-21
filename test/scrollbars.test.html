@@ -1,0 +1,37 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:900px;height:600px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+function done(){document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var ed=d.getElementById('editor');
+  ed.value=w.PTT.sample; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  var SB='sb-show';
+
+  ok('the module is loaded', typeof w.Scrollbars==='object', typeof w.Scrollbars);
+  ok('an idle editor shows no thumb', !ed.classList.contains(SB), ed.className);
+  ok('an idle view shows no thumb', !d.getElementById('stage').classList.contains(SB), '');
+  ok('the gutter is still reserved, so nothing reflows',
+     w.getComputedStyle(ed).scrollbarGutter==='stable', w.getComputedStyle(ed).scrollbarGutter);
+
+  ed.scrollTop=40; ed.dispatchEvent(new w.Event('scroll'));
+  setTimeout(function(){
+   ok('scrolling brings it back', ed.classList.contains(SB), ed.className);
+   setTimeout(function(){
+    ok('and it fades once you stop', !ed.classList.contains(SB), ed.className);
+    var r=ed.getBoundingClientRect();
+    ed.dispatchEvent(new w.PointerEvent('pointermove',{bubbles:true,clientX:r.right-4,clientY:r.top+50}));
+    ok('reaching for the edge brings it back, so it can still be grabbed',
+       ed.classList.contains(SB), ed.className);
+    ed.dispatchEvent(new w.PointerEvent('pointermove',{bubbles:true,clientX:r.left+50,clientY:r.top+50}));
+    setTimeout(function(){
+     ok('moving away lets it go again', !ed.classList.contains(SB), ed.className);
+     done();
+    },900);
+   },900);
+  },40);
+ }catch(e){fails++;log.push('FAIL threw: '+e.message);done();}
+});
+</script>
