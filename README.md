@@ -81,8 +81,8 @@ match, and the status bar counts what is in flight.
 
 The **Now** filter turns the document into a queue rather than a document: one
 flat list, numbered work first in its own order, then the rest in the order the
-text has it, each item carrying the section it came from. The table grows a
-sortable **Now** column with the same ranking.
+text has it, each item carrying the section it came from. In the table the
+marker rides with the task itself rather than taking a column of its own.
 
 Finishing an in-flight task simply overwrites the marker with a tick, so nothing
 else — the subtask cascade, archiving, the log — needed a special case for it.

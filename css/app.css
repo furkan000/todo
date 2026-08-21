@@ -408,13 +408,13 @@ ul.todos { list-style: none; margin: 6px 0; padding: 0; }
   display: inline-block; min-width: 13px; text-align: center; margin-right: 3px;
   background: var(--now); color: #fff; border-radius: 3px; font-size: 9.5px; font-weight: 700;
 }
-.col-now { text-align: left; white-space: nowrap; }
-.col-now .now-btn, .col-now .rank-btn { margin-left: 0; margin-right: 2px; }
 
 tbody tr.active { background: var(--now-soft); box-shadow: inset 2px 0 0 var(--now-line); }
 tbody tr.active:hover { background: var(--now-soft); }
 tbody tr.active .task-title { font-weight: 600; }
-.col-title .now-btn { margin-left: 0; margin-right: 2px; }
+/* the marker sits with the task rather than in a column of its own */
+.col-title .now-btn, .col-title .rank-btn { margin-left: 0; margin-right: 3px; vertical-align: middle; }
+.col-title .rank-btn { margin-left: 0; }
 
 .cal-item.active { border-left-color: var(--now-line); background: var(--now-soft); color: var(--now); }
 .statusbar b.now { color: var(--now); }

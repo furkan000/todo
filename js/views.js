@@ -189,10 +189,6 @@
     if (todos.some(function (t) { return t.subTotal; })) {
       cols.splice(2, 0, { id: 'sub', label: 'Sub', kind: 'sub', width: '86px' });
     }
-    // likewise for the queue: no in-flight work in view, no column
-    if (todos.some(function (t) { return t.active; })) {
-      cols.splice(1, 0, { id: 'now', label: 'Now', kind: 'now', width: '58px' });
-    }
     var nsNames = Array.from(doc.vocab.namespaces.keys()).filter(function (ns) {
       return todos.some(function (t) { return t.selects[ns]; });
     });
@@ -220,8 +216,6 @@
       case 'done': return todo.done ? 1 : 0;
       case 'title': return todo.title.toLowerCase();
       case 'sub': return todo.subTotal ? todo.subDone / todo.subTotal : '';
-      // numbered work first, then the rest of what is in flight, then everything else
-      case 'now': return todo.order || (todo.active ? global.Focus.MAX_RANK + 1 : '');
       case 'due': return todo.due || '';
       case 'select':
         if (col.ns === 'priority') return todo.priorityRank;
@@ -325,15 +319,12 @@
         var under = t.parent
           ? '<span class="sub-of" title="subtask of ' + attr(t.parent.title) + '">↳</span>'
           : '';
-        return under + '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' +
+        return under + nowHTML(t) + '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' +
           (esc(t.title) || '<i class="muted">(untitled)</i>') + '</span>' +
           (t.parent ? '<span class="parent-of" title="' + attr(t.parent.title) + '">' + esc(t.parent.title) + '</span>' : '');
       case 'sub':
         if (!t.subTotal) return '<span class="muted">—</span>';
         return progressHTML(t);
-      case 'now':
-        if (!t.active) return '<span class="muted">—</span>';
-        return nowHTML(t);
       case 'due':
         if (!t.due) return '<span class="muted">—</span>';
         var over = !t.done && t.due < ctx.todayISO;
