@@ -7,12 +7,11 @@
      asleep, throttled or reloaded comes back with the right number, because the
      number was never being accumulated in the first place.
 
-   - a chip in the middle of the toolbar. It is always there, because a timer
-     you have to go and look at is a timer you forget. Idle, it is a muted
-     glyph and a duration with no box around it — the same treatment the search
-     field gets. Running, it fills a ring and takes the colour of the phase, and
-     the count also goes into the browser tab so it is legible from another
-     window. Nothing about it blinks, moves, or interrupts. */
+   - a chip at the end of the status bar. It is always there, because a timer
+     you have to go and look at is a timer you forget. Idle, it is a hollow ring
+     and a duration with no box around it. Running, it fills the ring and takes
+     the colour of the phase, and the count also goes into the browser tab so it
+     is legible from another window. Nothing about it blinks or interrupts. */
 (function (global) {
   'use strict';
 
@@ -203,7 +202,7 @@
         '<button class="pomo-mini" data-pomo="reset" tabindex="-1" title="Back to the start of this interval">' +
           '<svg viewBox="0 0 16 16"><path d="M13 8a5 5 0 1 1-1.6-3.7M12.8 2.2v2.9h-2.9"/></svg></button>' +
         '<button class="pomo-mini" data-pomo="config" tabindex="-1" title="Timer settings" aria-haspopup="true" aria-expanded="false">' +
-          '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.2"/><path d="M8 1.4v1.8M8 12.8v1.8M2.4 8h1.8M11.8 8h1.8M4 4l1.3 1.3M10.7 10.7 12 12M12 4l-1.3 1.3M5.3 10.7 4 12"/></svg></button>' +
+          '<svg class="cog" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>' +
       '</span>' +
       '<div class="pomo-pop" hidden>' +
         '<div class="menu-label">Intervals</div>' +

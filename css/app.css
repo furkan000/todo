@@ -96,28 +96,38 @@ code { font-family: var(--mono); font-size: .92em; }
 .tab-div { width: 1px; align-self: stretch; background: var(--line); margin: 2px 4px; }
 .tab.on { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); font-weight: 600; }
 
-/* Idle search is just an icon and a hint — no box, no border. It only draws a
-   field around itself once you reach for it or leave something in it, so an
-   empty search stops competing with the controls either side of it. The width
-   never changes, so nothing in the toolbar moves when it wakes up. */
-.search { position: relative; display: flex; align-items: center; }
-.search .icon {
-  width: 14px; height: 14px; position: absolute; left: 9px; fill: none;
-  stroke: var(--ink-3); stroke-width: 1.6; opacity: .55; transition: opacity .12s;
-}
-.search:hover .icon, .search:focus-within .icon, .search.has-q .icon { opacity: 1; }
-.search input {
-  width: 230px; padding: 6px 26px 6px 28px; font: inherit; font-size: 13px; color: var(--ink);
+/* A search is a question you ask occasionally, so at rest it is only the icon
+   you would reach for anyway. The field has no width of its own; it grows out
+   of the icon when focused, and stays out while it holds a query, because a
+   filter you cannot see is a filter you forget you set. The flexible gap to its
+   left absorbs the growth, so nothing to the right of it moves. */
+.search {
+  display: flex; align-items: center;
   border: 1px solid transparent; border-radius: 7px; background: transparent;
   transition: background .12s, border-color .12s;
 }
+.search-icon {
+  border: 0; background: none; padding: 6px; border-radius: 6px;
+  display: grid; place-items: center; color: var(--ink-3);
+  opacity: .6; transition: opacity .12s, color .12s;
+}
+.search-icon svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.search:hover .search-icon, .search:focus-within .search-icon, .search.has-q .search-icon { opacity: 1; color: var(--ink-2); }
+.search-icon:hover { color: var(--ink); }
+.search input {
+  width: 0; min-width: 0; padding: 6px 0; font: inherit; font-size: 13px; color: var(--ink);
+  border: 0; background: transparent;
+  transition: width .16s ease, padding .16s ease;
+}
 .search input::placeholder { color: var(--ink-3); opacity: .75; }
-.search:hover input, .search.has-q input { border-color: var(--line); background: var(--panel-2); }
-.search input:focus { outline: none; border-color: var(--accent); background: var(--panel); }
 .search input::-webkit-search-cancel-button { display: none; }
-.search .x { position: absolute; right: 5px; border: 0; background: none; color: var(--ink-3); font-size: 16px; line-height: 1; padding: 2px 4px; border-radius: 4px; }
+.search input:focus { outline: none; }
+.search:focus-within input, .search.has-q input { width: 210px; padding-right: 4px; }
+.search:focus-within, .search.has-q { border-color: var(--line); background: var(--panel-2); }
+.search:focus-within { border-color: var(--accent); background: var(--panel); }
+.search .x { border: 0; background: none; color: var(--ink-3); font-size: 16px; line-height: 1; padding: 2px 5px; margin-right: 3px; border-radius: 4px; }
 .search .x:hover { color: var(--ink); background: var(--line-2); }
-@media (max-width: 900px) { .search input { width: 140px; } }
+@media (max-width: 900px) { .search:focus-within input, .search.has-q input { width: 140px; } }
 
 .segmented { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
 .segmented button { border: 0; background: var(--panel-2); color: var(--ink-2); padding: 5px 10px; font-size: 12.5px; border-right: 1px solid var(--line); }
@@ -128,18 +138,20 @@ code { font-family: var(--mono); font-size: .92em; }
 .segmented button.on { background: var(--sel); color: var(--sel-ink); font-weight: 600; }
 
 .actions { display: flex; gap: 4px; }
+.menu.actions { display: block; }
 .icon-btn {
   border: 1px solid transparent; background: none; padding: 5px; border-radius: 6px;
   display: grid; place-items: center; color: var(--ink-3);
 }
+/* the 24-unit gear needs a heavier stroke to weigh the same as the 16-unit icons */
+.icon-btn svg.cog, .pomo-mini svg.cog { stroke-width: 2; }
 .icon-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .icon-btn:hover { background: var(--line-2); color: var(--ink); }
 .icon-btn.on { color: var(--sel-ink); background: var(--sel); }
 
-.theme-btn .ico { display: none; }
-.theme-btn[data-theme-state="auto"] .ico-auto,
-.theme-btn[data-theme-state="light"] .ico-light,
-.theme-btn[data-theme-state="dark"] .ico-dark { display: block; }
+.menu-row { padding: 2px 9px 6px; }
+.menu-row .segmented { width: 100%; }
+.menu-row .segmented button { flex: 1; text-align: center; padding: 5px 4px; }
 
 .menu { position: relative; }
 .menu-pop {
@@ -474,12 +486,11 @@ ul.todos { list-style: none; margin: 6px 0; padding: 0; }
 .todo.done .body > code, .todo.done .body { text-decoration: none; }
 .todo.done .body::first-line { text-decoration: none; }
 /* ---------- working on it ---------- */
-/* the row you are on: a warm bar down its edge and a tint, loud enough to find
-   by scrolling and quiet enough to leave switched on */
-.todo.active > label {
-  background: var(--now-soft);
-  box-shadow: inset 2px 0 0 var(--now-line);
-}
+/* the row you are on: a warm tint and nothing else. A rule down the left edge
+   too was one marker more than the row needed — loud enough to find by
+   scrolling is already what the wash does. The table and the Now queue keep
+   their edge because there the tint alone reads as a table stripe. */
+.todo.active > label { background: var(--now-soft); }
 .todo.active > label:hover { background: var(--now-soft); filter: brightness(.985); }
 .todo.active .body { color: var(--ink); font-weight: 500; }
 

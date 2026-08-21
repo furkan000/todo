@@ -36,15 +36,26 @@ document.getElementById('f').addEventListener('load', function () {
   click(chip);
   ok('search box filled', d.getElementById('search').value === '#proj:atlas', d.getElementById('search').value);
   ok('a search in use draws its box', $('.search').classList.contains('has-q') &&
-     w.getComputedStyle(d.getElementById('search')).borderTopColor !== 'rgba(0, 0, 0, 0)',
-     w.getComputedStyle(d.getElementById('search')).borderTopColor);
+     w.getComputedStyle($('.search')).borderTopColor !== 'rgba(0, 0, 0, 0)',
+     w.getComputedStyle($('.search')).borderTopColor);
+  ok('and the field is open', w.getComputedStyle(d.getElementById('search')).width !== '0px',
+     w.getComputedStyle(d.getElementById('search')).width);
   ok('stats shows filtered count', /showing <b>4<\/b>/.test(d.getElementById('stats').innerHTML), d.getElementById('stats').textContent);
   var chip2 = $$('.chip.select').filter(function (c) { return c.dataset.q === '#proj:atlas'; })[0];
   click(chip2); // clicking the same tag again clears it
   ok('second click clears filter', d.getElementById('search').value === '', d.getElementById('search').value);
   ok('an idle search has no box', !$('.search').classList.contains('has-q') &&
-     w.getComputedStyle(d.getElementById('search')).borderTopColor === 'rgba(0, 0, 0, 0)',
-     w.getComputedStyle(d.getElementById('search')).borderTopColor);
+     w.getComputedStyle($('.search')).borderTopColor === 'rgba(0, 0, 0, 0)',
+     w.getComputedStyle($('.search')).borderTopColor);
+  ok('and collapses back to the icon', w.getComputedStyle(d.getElementById('search')).width === '0px',
+     w.getComputedStyle(d.getElementById('search')).width);
+  click($('.search-icon'));
+  ok('clicking the magnifier opens the field', d.activeElement === d.getElementById('search'), d.activeElement.tagName);
+  ok('which is what gives it width', w.getComputedStyle(d.getElementById('search')).width !== '0px',
+     w.getComputedStyle(d.getElementById('search')).width);
+  d.getElementById('search').blur();
+  ok('and it closes again when left empty', w.getComputedStyle(d.getElementById('search')).width === '0px',
+     w.getComputedStyle(d.getElementById('search')).width);
   ok('unfiltered again', $$('.todo').length === 15, $$('.todo').length);
 
   // --- table view + sorting
@@ -158,9 +169,21 @@ document.getElementById('f').addEventListener('load', function () {
   // --- export menu
   ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
   click($('[data-act="menu"]'));
-  ok('export menu opens', !$('#export-menu').hidden);
+  ok('the cog opens the settings menu', !$('#settings-menu').hidden);
+  ok('it is the only thing left in the toolbar actions', $$('.actions > .icon-btn').length === 1,
+     $$('.actions > .icon-btn').length);
+  ok('theme, import and export all live inside it',
+     $$('#settings-menu [data-theme-set]').length === 3 &&
+     !!$('#settings-menu [data-act="import"]') && !!$('#settings-menu [data-act="export-md"]'),
+     $$('#settings-menu [data-theme-set]').length);
+  ok('the current theme is marked', $('#settings-menu [data-theme-set="auto"]').classList.contains('on'));
+  click($('#settings-menu [data-theme-set="dark"]'));
+  ok('picking one applies it', d.documentElement.dataset.theme === 'dark', d.documentElement.dataset.theme);
+  ok('and moves the mark', $('#settings-menu [data-theme-set="dark"]').classList.contains('on') &&
+     !$('#settings-menu [data-theme-set="auto"]').classList.contains('on'));
+  click($('#settings-menu [data-theme-set="auto"]'));
   d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'Escape', bubbles:true}));
-  ok('escape closes menu', $('#export-menu').hidden);
+  ok('escape closes menu', $('#settings-menu').hidden);
 
   var json = JSON.parse(w.PTT.toJSON());
   ok('json carries the source text', json.text === ed.value);
@@ -237,8 +260,8 @@ document.getElementById('f').addEventListener('load', function () {
   var darkBg = rgbAvg(w.getComputedStyle(d.body).backgroundColor);
   ok('dark really is dark', darkBg < 45, darkBg);
   ok('chips follow the dark theme', rgbAvg(w.getComputedStyle($('.chip.select')).backgroundColor) < 90, w.getComputedStyle($('.chip.select')).backgroundColor);
-  click($('[data-act="theme"]'));
-  ok('theme button cycles dark->auto', w.PTT.state.theme === 'auto', w.PTT.state.theme);
+  click($('[data-theme-set="auto"]'));
+  ok('the theme control sets it back to auto', w.PTT.state.theme === 'auto', w.PTT.state.theme);
   w.PTT.setLayout('split');
   ok('the sidebar toggle reads as open', $('[data-act="sidebar"]').classList.contains('on'), '');
   click($('[data-act="sidebar"]'));
@@ -253,7 +276,18 @@ document.getElementById('f').addEventListener('load', function () {
      $('[data-act="sidebar"]').nextElementSibling === $('.tabs'),
      $('[data-act="sidebar"]').nextElementSibling.className);
   ok('the toolbar carries controls only, no wordmark', $('.brand') === null);
-  ok('theme button reflects state', $('[data-act="theme"]').dataset.themeState === 'auto');
+  ok('the theme control reflects state', $('[data-theme-set="auto"]').classList.contains('on'));
+  ok('the document tab is abbreviated', $('[data-view="doc"]').textContent === 'Doc', $('[data-view="doc"]').textContent);
+
+  // an in-flight row is a wash and nothing else — no rule down its left edge
+  click($('[data-view="doc"]'));
+  ed.value = '- [>] on this one\n- [ ] not this one\n';
+  ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  var row = $('.todo.active > label');
+  ok('the in-flight row is tinted', !!row &&
+     w.getComputedStyle(row).backgroundColor !== 'rgba(0, 0, 0, 0)', row && w.getComputedStyle(row).backgroundColor);
+  ok('but carries no left border accent', w.getComputedStyle(row).boxShadow === 'none', w.getComputedStyle(row).boxShadow);
+  ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
   ok('theme is persisted', JSON.parse(w.localStorage.getItem('ptt.prefs.v1')).theme === 'auto');
 
   // --- reading column is centred, not left-hugged, in view-only

@@ -259,14 +259,15 @@
   }
 
   function onClick(e) {
-    var pop = document.getElementById('export-menu');
+    var pop = document.getElementById('settings-menu');
     if (pop && !pop.hidden && !e.target.closest('.menu')) closeMenu();
-    var el = e.target.closest ? e.target.closest('[data-view],[data-layout],[data-filter],[data-group],[data-sort],[data-q],[data-month],[data-goto],[data-act],[data-now],[data-rank],.dot[data-toggle]') : null;
+    var el = e.target.closest ? e.target.closest('[data-view],[data-layout],[data-filter],[data-group],[data-sort],[data-q],[data-month],[data-goto],[data-act],[data-now],[data-rank],[data-theme-set],.dot[data-toggle]') : null;
     if (!el) return;
 
     if (el.dataset.now !== undefined) { e.preventDefault(); e.stopPropagation(); return markNow(+el.dataset.now); }
     if (el.dataset.rank !== undefined) { e.preventDefault(); e.stopPropagation(); return bumpRank(+el.dataset.rank); }
     if (el.matches('.dot[data-toggle]')) { e.stopPropagation(); return toggleLine(+el.dataset.toggle); }
+    if (el.dataset.themeSet) { state.theme = el.dataset.themeSet; applyTheme(); return savePrefs(); }
     if (el.dataset.view) return showView(el.dataset.view);
     if (el.dataset.layout) return setLayout(el.dataset.layout);
     if (el.dataset.group) { state.group = el.dataset.group === '1'; savePrefs(); return render(); }
@@ -296,13 +297,7 @@
   }
 
   function action(name) {
-    if (name === 'theme') {
-      var order = ['auto', 'light', 'dark'];
-      state.theme = order[(order.indexOf(state.theme) + 1) % order.length];
-      applyTheme();
-      savePrefs();
-      return;
-    }
+    if (name === 'search') { els.search.focus(); return els.search.select(); }
     if (name === 'sidebar') return setLayout(state.layout === 'view' ? 'split' : 'view');
     if (name === 'menu') return toggleMenu();
     if (name === 'copy') {
@@ -322,7 +317,7 @@
       Log.clear();
       return render();
     }
-    if (name === 'import') return els.file.click();
+    if (name === 'import') return closeMenu(), els.file.click();
     if (name === 'archive') {
       var moved = Archive.pending(doc).length;
       var next = Archive.apply(doc);
@@ -480,11 +475,9 @@
     root.dataset.theme = resolvedTheme();
     void root.offsetHeight;                       // commit the new palette un-animated
     requestAnimationFrame(function () { root.classList.remove('theme-switching'); });
-    var b = document.querySelector('[data-act="theme"]');
-    if (b) {
-      b.dataset.themeState = state.theme;
-      b.title = 'Theme: ' + (state.theme === 'auto' ? 'following system' : state.theme) + ' — click to change';
-    }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-theme-set]'), function (b) {
+      b.classList.toggle('on', b.dataset.themeSet === state.theme);
+    });
   }
 
   function watchSystemTheme() {
@@ -575,12 +568,12 @@
 
   /* ---------- menu ---------- */
   function toggleMenu() {
-    var pop = document.getElementById('export-menu');
+    var pop = document.getElementById('settings-menu');
     pop.hidden = !pop.hidden;
     document.querySelector('[data-act="menu"]').setAttribute('aria-expanded', String(!pop.hidden));
   }
   function closeMenu() {
-    var pop = document.getElementById('export-menu');
+    var pop = document.getElementById('settings-menu');
     if (pop) pop.hidden = true;
     var b = document.querySelector('[data-act="menu"]');
     if (b) b.setAttribute('aria-expanded', 'false');

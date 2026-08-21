@@ -36,7 +36,7 @@ scripts/autostart-uninstall.sh
 
 Note that `localStorage` is per-origin, so `http://127.0.0.1:3111` and a file you
 opened directly keep **separate** documents. Pick one and stay with it, or move
-your text across with the export/import menu.
+your text across with the settings menu's import/export.
 
 Serving on `0.0.0.0` puts your todos on the local network with no password. Only
 use `--lan` on a network you trust.
@@ -186,8 +186,8 @@ fades again about a second after you stop. Reaching for the edge of a pane bring
 it back too, since a thumb you cannot see is a thumb you cannot grab. Only the
 colour comes and goes — the gutter is reserved either way, so nothing reflows.
 
-The theme button cycles **follow system → light → dark**, and the choice sticks.
-Both themes are built to be quiet: warm off-white paper or warm near-black, muted
+The theme is a three-way switch — **Auto / Light / Dark** — under the cog, and the
+choice sticks. Both themes are built to be quiet: warm off-white paper or warm near-black, muted
 ink, one calm accent, and tag colours derived from the namespace name so a column
 keeps its hue.
 
@@ -302,6 +302,20 @@ Options for **match case**, **whole word** and **regex**. In regex mode `$1`
 style backreferences work in the replacement; outside it, `$1` is literal. A
 malformed pattern is reported in the panel rather than throwing.
 
+## The cog
+
+Everything you set once and then forget lives behind one gear at the right-hand
+end of the toolbar: the theme switch, importing a file, copying the raw text, and
+every export. None of it is worth a permanent button in a bar you read all day,
+and folding the three icons into one left the toolbar with exactly the controls
+that change what you are looking at.
+
+The search is the same bargain. At rest it is only the magnifier you would reach
+for anyway; the field has no width of its own and grows out of the icon when you
+focus it — by clicking, or with `Ctrl+K`. It stays open while it holds a query,
+because a filter you cannot see is a filter you forget you set, and the flexible
+gap to its left absorbs the growth so nothing else on the bar moves.
+
 ## Import / export
 
 Export as **Markdown** (the text verbatim), **JSON** (resolved todos plus the
@@ -320,7 +334,7 @@ tagged plain text.
 | `Ctrl+K` | search / filter by tag |
 | `Ctrl+F` | find & replace in the text |
 | `Ctrl+\` | open/close the editor |
-| `Esc` | close the export menu |
+| `Esc` | close the settings menu |
 | `Enter` | continue the list; again on an empty item to end it |
 | `Tab` / `Shift+Tab` | indent a todo into a subtask, or promote it back out |
 | `Ctrl+.` | mark the current line as what you are working on |
