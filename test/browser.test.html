@@ -240,8 +240,14 @@ document.getElementById('f').addEventListener('load', function () {
   ok('and it reads as closed', !$('[data-act="sidebar"]').classList.contains('on'), '');
   click($('[data-act="sidebar"]'));
   ok('clicking again opens it', w.PTT.state.layout === 'split', w.PTT.state.layout);
-  ok('it sits at the far left of the toolbar',
-     $('.topbar').firstElementChild === $('[data-act="sidebar"]'), $('.topbar').firstElementChild.className);
+  ok('the sidebar toggle sits at the very left of the toolbar',
+     $('.topbar').firstElementChild === $('[data-act="sidebar"]'),
+     $('.topbar').firstElementChild.className);
+  ok('and the tabs follow it directly, with no title in between',
+     $('[data-act="sidebar"]').nextElementSibling === $('.tabs'),
+     $('[data-act="sidebar"]').nextElementSibling.className);
+  ok('the app name sits in the toolbar, out of the flow', $('.topbar .brand') !== null &&
+     w.getComputedStyle($('.topbar .brand')).position === 'absolute');
   ok('theme button reflects state', $('[data-act="theme"]').dataset.themeState === 'auto');
   ok('theme is persisted', JSON.parse(w.localStorage.getItem('ptt.prefs.v1')).theme === 'auto');
 
