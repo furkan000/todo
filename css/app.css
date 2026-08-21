@@ -455,14 +455,19 @@ tbody tr.active .task-title { font-weight: 600; }
 
 /* in the table, document order is gone — a subtask has to name its parent.
    It goes on a quiet second line: inline it wraps and doubles the row height. */
-.sub-of { color: var(--ink-3); margin-right: 4px; }
+/* a box-drawing stem, the plain-text idiom for "nested under". Set in mono,
+   which is the metric it was drawn for — in a proportional face it sits wrong. */
+.sub-of {
+  font-family: var(--mono); font-size: 12px; color: var(--ink-3);
+  margin-right: 4px; position: relative; top: -1px;
+}
 .parent-of {
   display: block; font-size: 11px; color: var(--ink-3); margin-left: 15px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 30ch;
 }
 .parent-of::before { content: "in "; opacity: .7; }
 .col-title .task-title { white-space: normal; }
-.cal-item .sub-of { margin-right: 2px; opacity: .7; }
+.cal-item .sub-of { margin-right: 2px; opacity: .7; font-size: 11px; }
 .log-title .sub-of { margin-right: 3px; }
 .col-sub .sub-count { font-size: 10.5px; }
 

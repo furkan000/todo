@@ -317,7 +317,7 @@
         // sorting scatters the document order, so a subtask has to say whose it
         // is rather than rely on sitting under it
         var under = t.parent
-          ? '<span class="sub-of" title="subtask of ' + attr(t.parent.title) + '">↳</span>'
+          ? '<span class="sub-of" title="subtask of ' + attr(t.parent.title) + '">└</span>'
           : '';
         return under + nowHTML(t) + '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' +
           (esc(t.title) || '<i class="muted">(untitled)</i>') + '</span>' +
@@ -398,7 +398,7 @@
           (t.priority ? ' prio-' + (TT.canonicalPriority(t.priority) || 'x') : '') +
           '" data-goto="' + t.line + '" title="' + attr(t.parent ? t.title + ' — subtask of ' + t.parent.title : t.title) + '">' +
           '<span class="dot" data-toggle="' + t.line + '"></span><span class="t">' + rankTag +
-          (t.parent ? '<span class="sub-of">↳</span>' : '') + esc(t.title || '(untitled)') + '</span></div>';
+          (t.parent ? '<span class="sub-of">└</span>' : '') + esc(t.title || '(untitled)') + '</span></div>';
       });
       if (items.length > 4) html += '<div class="cal-more">+' + (items.length - 4) + ' more</div>';
       html += '</div>';
@@ -503,7 +503,7 @@
       html += '<section class="log-day"><h3>' + esc(label) + '<b>' + d.items.length + '</b></h3><ul>';
       d.items.forEach(function (e) {
         html += '<li><span class="log-time">' + esc(e.at.slice(11)) + '</span>' +
-          '<span class="log-title">' + (e.parent ? '<span class="sub-of" title="subtask of ' + attr(e.parent) + '">↳</span>' : '') +
+          '<span class="log-title">' + (e.parent ? '<span class="sub-of" title="subtask of ' + attr(e.parent) + '">└</span>' : '') +
           (esc(e.title) || '<i class="muted">(untitled)</i>') +
           (e.parent ? '<span class="parent-of muted"> · ' + esc(e.parent) + '</span>' : '') + '</span>' +
           (e.priority ? '<span class="chip select prio-' + (TT.canonicalPriority(e.priority) || 'x') + '">' + esc(e.priority) + '</span>' : '') +
