@@ -24,6 +24,9 @@
   --h: 212;
   --scroll: #cdc8bf;
   --scroll-hover: #a39f96;
+  /* the "this one is selected" pair — deliberately without a hue of its own */
+  --sel: #e4e0d7;
+  --sel-ink: #2b2925;
 }
 
 * { box-sizing: border-box; }
@@ -110,7 +113,10 @@ code { font-family: var(--mono); font-size: .92em; }
 .segmented { display: flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
 .segmented button { border: 0; background: var(--panel-2); color: var(--ink-2); padding: 5px 10px; font-size: 12.5px; border-right: 1px solid var(--line); }
 .segmented button:last-child { border-right: 0; }
-.segmented button.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+/* A selected control reads by contrast, not by hue: blue is the accent for
+   links and sorting, amber means in-flight, red means overdue. Borrowing any of
+   those for "this button is on" made the toolbar shout over the document. */
+.segmented button.on { background: var(--sel); color: var(--sel-ink); font-weight: 600; }
 
 .actions { display: flex; gap: 4px; }
 .icon-btn {
@@ -119,7 +125,7 @@ code { font-family: var(--mono); font-size: .92em; }
 }
 .icon-btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 .icon-btn:hover { background: var(--line-2); color: var(--ink); }
-.icon-btn.on { color: var(--accent); background: var(--accent-soft); }
+.icon-btn.on { color: var(--sel-ink); background: var(--sel); }
 
 .theme-btn .ico { display: none; }
 .theme-btn[data-theme-state="auto"] .ico-auto,
@@ -666,6 +672,8 @@ tbody tr.done .task-title { color: var(--ink-3); text-decoration: line-through; 
   --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
   --scroll: #3a3a34;
   --scroll-hover: #56564d;
+  --sel: #3a3a33;
+  --sel-ink: #f3f0e9;
 }
 :root[data-theme="dark"] .tab.on { background: #33332e; }
 :root[data-theme="dark"] .chip:hover { filter: brightness(1.25); }
