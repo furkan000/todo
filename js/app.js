@@ -142,6 +142,8 @@
       ((state.view === 'table' && state.group && shown)
         ? ' <span>·</span> <b>' + Views.sectionCount(ctx.visible) + '</b> sections' : '');
     document.getElementById('clear-search').hidden = !state.query;
+    // a search with something in it is in use, so it keeps its box
+    els.search.parentNode.classList.toggle('has-q', !!state.query);
 
     var canArchive = Archive.pending(doc).length;
     var archiveBtn = document.getElementById('archive-btn');

@@ -16,8 +16,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
 
   <header class="topbar">
     <!-- Controls in the order the panes sit on screen: the toggle for the pane
-         on the left, then the tabs for the pane on the right. The name is
-         centred out of the flow below, so it never comes between them. -->
+         on the left, then the tabs for the pane on the right. -->
     <button data-act="sidebar" class="icon-btn sidebar-btn" title="Hide the editor (Ctrl+\)" aria-pressed="true">
       <svg viewBox="0 0 16 16"><rect x="1" y="2.5" width="14" height="11" rx="1.5"/><path d="M6 2.5v11"/><path class="fill" d="M1.6 3.2h4v9.6h-4z"/></svg>
     </button>
@@ -31,11 +30,6 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
       <button data-view="tags"  class="tab" title="Tags (Ctrl+5)">Tags</button>
       <button data-view="log"   class="tab" title="Log (Ctrl+6)">Log</button>
     </nav>
-
-    <div class="brand" aria-hidden="true">
-      <span class="mark">▤</span>
-      <span class="name">Plain&nbsp;Text&nbsp;Todo</span>
-    </div>
 
     <div class="spacer-flex"></div>
 

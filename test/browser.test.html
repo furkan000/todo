@@ -35,10 +35,16 @@ document.getElementById('f').addEventListener('load', function () {
   ok('atlas chip exists', !!chip);
   click(chip);
   ok('search box filled', d.getElementById('search').value === '#proj:atlas', d.getElementById('search').value);
+  ok('a search in use draws its box', $('.search').classList.contains('has-q') &&
+     w.getComputedStyle(d.getElementById('search')).borderTopColor !== 'rgba(0, 0, 0, 0)',
+     w.getComputedStyle(d.getElementById('search')).borderTopColor);
   ok('stats shows filtered count', /showing <b>4<\/b>/.test(d.getElementById('stats').innerHTML), d.getElementById('stats').textContent);
   var chip2 = $$('.chip.select').filter(function (c) { return c.dataset.q === '#proj:atlas'; })[0];
   click(chip2); // clicking the same tag again clears it
   ok('second click clears filter', d.getElementById('search').value === '', d.getElementById('search').value);
+  ok('an idle search has no box', !$('.search').classList.contains('has-q') &&
+     w.getComputedStyle(d.getElementById('search')).borderTopColor === 'rgba(0, 0, 0, 0)',
+     w.getComputedStyle(d.getElementById('search')).borderTopColor);
   ok('unfiltered again', $$('.todo').length === 15, $$('.todo').length);
 
   // --- table view + sorting
@@ -246,8 +252,7 @@ document.getElementById('f').addEventListener('load', function () {
   ok('and the tabs follow it directly, with no title in between',
      $('[data-act="sidebar"]').nextElementSibling === $('.tabs'),
      $('[data-act="sidebar"]').nextElementSibling.className);
-  ok('the app name sits in the toolbar, out of the flow', $('.topbar .brand') !== null &&
-     w.getComputedStyle($('.topbar .brand')).position === 'absolute');
+  ok('the toolbar carries controls only, no wordmark', $('.brand') === null);
   ok('theme button reflects state', $('[data-act="theme"]').dataset.themeState === 'auto');
   ok('theme is persisted', JSON.parse(w.localStorage.getItem('ptt.prefs.v1')).theme === 'auto');
 
