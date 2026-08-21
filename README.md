@@ -56,6 +56,27 @@ A todo is any line with a checkbox. Everything else is just prose.
 - [ ] Pick up two litres of #color:blue emulsion @sat #home
 ```
 
+## Working on it
+
+`- [>] task` is a third checkbox state: the arrow points at what you are doing
+right now. It lives in the checkbox rather than trailing the line, so it cannot
+contradict itself — a task is open, in flight, or done, never two of those at
+once.
+
+```markdown
+- [>] Two-pass resolver @2026-08-20 !high #proj:atlas
+- [ ] Write the calendar view @2026-08-21
+```
+
+Set it with the **▸** beside any task in the document or the table, or with
+`Ctrl+.` on the line the caret is in. Marked rows are tinted and barred in the
+document, the table and the calendar, the editor colours the `[>]` to match, and
+the status bar counts what is in flight.
+
+The **Now** filter shows only marked tasks and hides everything else. Finishing
+an in-flight task simply overwrites the arrow with a tick, so nothing else — the
+subtask cascade, archiving, the log — needed a special case for it.
+
 ## Subtasks
 
 Indent a todo under another one and it becomes a subtask of it. That is all the
@@ -127,8 +148,9 @@ These are the non-obvious part, and they hold exactly:
 
 - **Text** — the source itself, full width. The other four are projections of it.
 - **Document** — readable text; todos are interactive checkboxes, nested by indent.
-- **Table** — rows are todos; columns auto-generated per namespace and per boolean,
-  all sortable, filterable by done/open.
+- **Table** — rows are todos; columns auto-generated per namespace and per boolean.
+  Rows keep the order the text is written in until you sort them; clicking a
+  column heading cycles ascending → descending → back to document order.
 - **Calendar** — dated todos on a month grid.
 - **Log** — when you finished things. See below.
 - **Tags** — the discovery surface: every namespace, value, boolean and label that
@@ -249,6 +271,9 @@ tagged plain text.
 | `Esc` | close the export menu |
 | `Enter` | continue the list; again on an empty item to end it |
 | `Tab` / `Shift+Tab` | indent a todo into a subtask, or promote it back out |
+| `Ctrl+.` | mark the current line as what you are working on |
+| `Alt+↑` / `Alt+↓` | move the line, or the selected lines, up and down |
+| `Ctrl+X` | with nothing selected, cut the whole line |
 
 ## Layout of the code
 
@@ -262,6 +287,8 @@ js/highlight.js syntax colouring, painted from the parse result
 js/log.js       completion log: watches parses for open -> done
 js/archive.js   moves finished todos into a Done section
 js/subtasks.js  the indent tree, ticking that follows it, and Tab authoring
+js/focus.js     the [>] "working on it" state
+js/lines.js     moving lines, and cutting one whole
 js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/app.js       state, text write-back, import/export
