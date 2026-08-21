@@ -1,0 +1,62 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var ed=d.getElementById('editor');
+  function type(v){ed.value=v;ed.dispatchEvent(new w.Event('input',{bubbles:true}));}
+  function key(o){o.bubbles=true;o.cancelable=true;ed.dispatchEvent(new w.KeyboardEvent('keydown',o));}
+
+  /* ---- moving lines ---- */
+  type('# L\n\n- [ ] a\n- [ ] b\n- [ ] c\n');
+  var p=ed.value.indexOf('- [ ] c')+2;
+  ed.focus(); ed.setSelectionRange(p,p);
+  key({key:'ArrowUp',altKey:true});
+  ok('Alt+Up swaps the line with the one above', /- \[ \] a\n- \[ \] c\n- \[ \] b/.test(ed.value), ed.value);
+  key({key:'ArrowDown',altKey:true});
+  ok('Alt+Down puts it back', /- \[ \] a\n- \[ \] b\n- \[ \] c/.test(ed.value), ed.value);
+  ok('the caret rides along, keeping its column',
+     ed.selectionStart===ed.selectionEnd &&
+     ed.selectionStart - w.Lines.lineStart(ed.value, ed.selectionStart) === 2 &&
+     /^- \[ \] c/.test(ed.value.slice(w.Lines.lineStart(ed.value, ed.selectionStart))),
+     [ed.selectionStart, ed.selectionEnd]);
+
+  // a run of selected lines moves as a block
+  type('# L\n\n- [ ] a\n- [ ] b\n- [ ] c\n- [ ] d\n');
+  var s0=ed.value.indexOf('- [ ] b'), s1=ed.value.indexOf('- [ ] c')+7;
+  ed.focus(); ed.setSelectionRange(s0,s1);
+  key({key:'ArrowDown',altKey:true});
+  ok('a selection of lines moves together', /- \[ \] a\n- \[ \] d\n- \[ \] b\n- \[ \] c/.test(ed.value), ed.value);
+  ok('and stays selected', ed.value.slice(ed.selectionStart,ed.selectionEnd)==='- [ ] b\n- [ ] c',
+     JSON.stringify(ed.value.slice(ed.selectionStart,ed.selectionEnd)));
+
+  // the ends of the document are a no-op, not a crash
+  type('- [ ] only\n');
+  ed.focus(); ed.setSelectionRange(2,2);
+  key({key:'ArrowUp',altKey:true});
+  ok('Alt+Up on the first line does nothing', ed.value==='- [ ] only\n', JSON.stringify(ed.value));
+
+  /* ---- cutting a whole line ---- */
+  type('# L\n\n- [ ] a\n- [ ] b\n- [ ] c\n');
+  var q=ed.value.indexOf('- [ ] b')+3;
+  ed.focus(); ed.setSelectionRange(q,q);
+  var dt=new w.DataTransfer();
+  var ev=new w.ClipboardEvent('cut',{bubbles:true,cancelable:true,clipboardData:dt});
+  ed.dispatchEvent(ev);
+  ok('Ctrl+X with no selection removes the whole line', /- \[ \] a\n- \[ \] c/.test(ed.value) && ed.value.indexOf('- [ ] b')===-1, ed.value);
+  ok('and the clipboard gets the line plus its newline', dt.getData('text/plain')==='- [ ] b\n',
+     JSON.stringify(dt.getData('text/plain')));
+
+  // with a real selection the browser's own cut is left alone
+  type('# L\n\n- [ ] a\n');
+  ed.focus(); ed.setSelectionRange(6,8);
+  var dt2=new w.DataTransfer();
+  var ev2=new w.ClipboardEvent('cut',{bubbles:true,cancelable:true,clipboardData:dt2});
+  ed.dispatchEvent(ev2);
+  ok('a selected cut is not intercepted', !ev2.defaultPrevented, '');
+ }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
+ document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

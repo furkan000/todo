@@ -35,6 +35,7 @@
 
     els.editor.addEventListener('input', function () { queueSave(); render(); });
     els.editor.addEventListener('keydown', onEditorKey);
+    els.editor.addEventListener('cut', onCut);
     els.search.addEventListener('input', function () { state.query = els.search.value; render(); });
     document.addEventListener('click', onClick);
     document.addEventListener('change', onChange);
@@ -161,6 +162,23 @@
     els.editor.value = next;
     els.editor.selectionStart = els.editor.selectionEnd = Math.min(sel, next.length);
     els.editor.scrollTop = top;
+    queueSave();
+    render();
+  }
+
+  // Replace one span through the editor itself, so the browser's own undo stack
+  // survives. Everything that rearranges text — moving lines, cutting one —
+  // goes through here, because those are exactly the edits you undo.
+  function replaceSpan(from, to, str, selStart, selEnd) {
+    els.editor.focus();
+    els.editor.setSelectionRange(from, to);
+    var ok = false;
+    try { ok = document.execCommand('insertText', false, str); } catch (e) { ok = false; }
+    if (!ok) {
+      var v = els.editor.value;
+      els.editor.value = v.slice(0, from) + str + v.slice(to);
+    }
+    els.editor.setSelectionRange(selStart, selEnd);
     queueSave();
     render();
   }
@@ -328,6 +346,18 @@
     render();
   }
 
+  // Ctrl+X with nothing selected takes the whole line, newline and all, so
+  // pasting it puts a line back rather than splicing it into another one.
+  // With a real selection the browser's own cut is left alone.
+  function onCut(e) {
+    if (els.editor.selectionStart !== els.editor.selectionEnd) return;
+    if (!e.clipboardData) return;
+    var r = Lines.cutLine(els.editor.value, els.editor.selectionStart);
+    e.preventDefault();
+    e.clipboardData.setData('text/plain', r.cut);
+    replaceSpan(r.from, r.to, '', r.caret, r.caret);
+  }
+
   function onEditorKey(e) {
     // Tab indents instead of leaving the field. On a list line it shifts the
     // whole line, which is how a todo becomes a subtask of the one above it;
@@ -335,6 +365,19 @@
     if (e.key === 'Tab') {
       e.preventDefault();
       return indent(e.shiftKey);
+    }
+    // Alt+Up/Down moves the line, or the whole selected run of lines
+    if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      var v0 = els.editor.value, s0 = els.editor.selectionStart, s1 = els.editor.selectionEnd;
+      var m = Lines.move(v0, s0, s1, e.key === 'ArrowUp' ? -1 : 1);
+      if (!m) return;
+      if (s0 === s1) {
+        // a plain caret keeps its column rather than selecting the line it rode on
+        var col = s0 - Lines.lineStart(v0, s0);
+        return replaceSpan(m.from, m.to, m.text, m.start + col, m.start + col);
+      }
+      return replaceSpan(m.from, m.to, m.text, m.start, m.end);
     }
     // Enter continues a todo/bullet list
     if (e.key === 'Enter' && !e.shiftKey) {
