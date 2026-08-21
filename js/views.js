@@ -90,15 +90,23 @@
 
   // The "working on it" arrow. Quiet until you hover, loud once it is set —
   // a marker you can leave on is a marker that has to be easy to take off.
+  // An active task also gets a rank control, so the queue can be put in order.
   function nowHTML(t) {
     if (t.done) return '';
-    return '<button class="now-btn" data-now="' + t.line + '" tabindex="-1" ' +
+    var out = '';
+    if (t.active) {
+      out += '<button class="rank-btn' + (t.order ? ' set' : '') + '" data-rank="' + t.line + '" tabindex="-1" ' +
+        'title="' + (t.order ? 'Number ' + t.order + ' in the queue' : 'Unnumbered') +
+        ' — click to change the order">' + (t.order || '–') + '</button>';
+    }
+    return out + '<button class="now-btn" data-now="' + t.line + '" tabindex="-1" ' +
       'title="' + (t.active ? 'Working on this — click to unset' : 'Mark as what you are working on') +
       ' (Ctrl+.)">▸</button>';
   }
 
   /* ---------- document ---------- */
   function renderDocument(doc, ctx) {
+    if (ctx.filter === 'now') return renderQueue(doc, ctx);
     var html = '', openList = false;
     var shown = new Set(ctx.visible.map(function (t) { return t.line; }));
     var hidden = doc.todos.length - ctx.visible.length;
@@ -140,6 +148,35 @@
     return html;
   }
 
+  // Asking to see only what you are working on is asking for a queue, not a
+  // document — so it is one flat ordered list, numbered work first, each item
+  // carrying the section it came from instead of the headings around it.
+  function renderQueue(doc, ctx) {
+    var items = global.Focus.queue(ctx.visible);
+    if (!items.length) {
+      return empty('Nothing in flight.',
+        'Mark what you are working on with the <b>▸</b> beside a task, <code>Ctrl+.</code>, ' +
+        'or by typing <code>[&gt;]</code> in its checkbox. Number them <code>[1]</code>, ' +
+        '<code>[2]</code>, <code>[3]</code> to put them in an order.');
+    }
+    var html = '<ul class="todos queue">';
+    items.forEach(function (t) {
+      var ln = doc.lines[t.line];
+      html += '<li class="todo active' + (t.order ? ' ranked' : '') + '">' +
+        '<label><input type="checkbox" data-toggle="' + t.line + '">' +
+        '<span class="box"></span><span class="body">' + textWithChips(ln.text, ln.tokens, ctx) +
+        (t.section ? '<span class="parent-of" title="' + attr(t.section.title) + '">' + esc(t.section.title) + '</span>' : '') +
+        '</span>' + progressHTML(t) + nowHTML(t) + '</label></li>';
+    });
+    html += '</ul>';
+    var rest = doc.todos.length - items.length;
+    if (rest > 0) {
+      html += '<p class="hidden-note">' + rest + ' other todo' + (rest === 1 ? '' : 's') +
+        ' hidden. Numbered work comes first, then the rest in document order.</p>';
+    }
+    return html;
+  }
+
   /* ---------- table ---------- */
   function columns(doc, todos) {
     todos = todos || doc.todos;
@@ -151,6 +188,10 @@
     // the column only exists once something in view actually has subtasks
     if (todos.some(function (t) { return t.subTotal; })) {
       cols.splice(2, 0, { id: 'sub', label: 'Sub', kind: 'sub', width: '86px' });
+    }
+    // likewise for the queue: no in-flight work in view, no column
+    if (todos.some(function (t) { return t.active; })) {
+      cols.splice(1, 0, { id: 'now', label: 'Now', kind: 'now', width: '58px' });
     }
     var nsNames = Array.from(doc.vocab.namespaces.keys()).filter(function (ns) {
       return todos.some(function (t) { return t.selects[ns]; });
@@ -179,6 +220,8 @@
       case 'done': return todo.done ? 1 : 0;
       case 'title': return todo.title.toLowerCase();
       case 'sub': return todo.subTotal ? todo.subDone / todo.subTotal : '';
+      // numbered work first, then the rest of what is in flight, then everything else
+      case 'now': return todo.order || (todo.active ? global.Focus.MAX_RANK + 1 : '');
       case 'due': return todo.due || '';
       case 'select':
         if (col.ns === 'priority') return todo.priorityRank;
@@ -282,12 +325,15 @@
         var under = t.parent
           ? '<span class="sub-of" title="subtask of ' + attr(t.parent.title) + '">↳</span>'
           : '';
-        return under + nowHTML(t) + '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' +
+        return under + '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' +
           (esc(t.title) || '<i class="muted">(untitled)</i>') + '</span>' +
           (t.parent ? '<span class="parent-of" title="' + attr(t.parent.title) + '">' + esc(t.parent.title) + '</span>' : '');
       case 'sub':
         if (!t.subTotal) return '<span class="muted">—</span>';
         return progressHTML(t);
+      case 'now':
+        if (!t.active) return '<span class="muted">—</span>';
+        return nowHTML(t);
       case 'due':
         if (!t.due) return '<span class="muted">—</span>';
         var over = !t.done && t.due < ctx.todayISO;
@@ -356,10 +402,11 @@
       html += '<div class="' + cls + '"><div class="cal-num">' + d.getDate() + '</div>';
       items.slice(0, 4).forEach(function (t) {
         var over = !t.done && iso < ctx.todayISO;
+        var rankTag = t.order ? '<b class="cal-rank">' + t.order + '</b>' : '';
         html += '<div class="cal-item' + (t.done ? ' done' : '') + (t.active ? ' active' : '') + (over ? ' overdue' : '') +
           (t.priority ? ' prio-' + (TT.canonicalPriority(t.priority) || 'x') : '') +
           '" data-goto="' + t.line + '" title="' + attr(t.parent ? t.title + ' — subtask of ' + t.parent.title : t.title) + '">' +
-          '<span class="dot" data-toggle="' + t.line + '"></span><span class="t">' +
+          '<span class="dot" data-toggle="' + t.line + '"></span><span class="t">' + rankTag +
           (t.parent ? '<span class="sub-of">↳</span>' : '') + esc(t.title || '(untitled)') + '</span></div>';
       });
       if (items.length > 4) html += '<div class="cal-more">+' + (items.length - 4) + ' more</div>';

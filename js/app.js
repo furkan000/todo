@@ -106,7 +106,7 @@
     var ctx = {
       today: now, todayISO: TT.isoOf(now), sort: state.sort,
       month: state.month, visible: visibleTodos(), query: state.query,
-      group: state.group
+      group: state.group, filter: state.filter
     };
 
     Log.observe(doc);          // catches open -> done however it happened
@@ -207,13 +207,18 @@
     var lines = els.editor.value.split('\n');
     var raw = lines[lineNo];
     if (raw === undefined) return;
-    lines[lineNo] = raw.replace(/\[([ xX>])\]/, function (_, c) { return c === 'x' || c === 'X' ? '[ ]' : '[x]'; });
+    lines[lineNo] = raw.replace(/\[([ xX>1-9])\]/, function (_, c) { return c === 'x' || c === 'X' ? '[ ]' : '[x]'; });
     setText(lines.join('\n'));
   }
 
   // Flag the line you are working on right now, wherever you clicked from.
   function markNow(lineNo) {
     var next = Focus.toggle(els.editor.value, lineNo);
+    if (next !== null) setText(next);
+  }
+
+  function bumpRank(lineNo) {
+    var next = Focus.cycleRank(els.editor.value, lineNo);
     if (next !== null) setText(next);
   }
 
@@ -239,10 +244,11 @@
   function onClick(e) {
     var pop = document.getElementById('export-menu');
     if (pop && !pop.hidden && !e.target.closest('.menu')) closeMenu();
-    var el = e.target.closest ? e.target.closest('[data-view],[data-layout],[data-filter],[data-group],[data-sort],[data-q],[data-month],[data-goto],[data-act],[data-now],.dot[data-toggle]') : null;
+    var el = e.target.closest ? e.target.closest('[data-view],[data-layout],[data-filter],[data-group],[data-sort],[data-q],[data-month],[data-goto],[data-act],[data-now],[data-rank],.dot[data-toggle]') : null;
     if (!el) return;
 
     if (el.dataset.now !== undefined) { e.preventDefault(); e.stopPropagation(); return markNow(+el.dataset.now); }
+    if (el.dataset.rank !== undefined) { e.preventDefault(); e.stopPropagation(); return bumpRank(+el.dataset.rank); }
     if (el.matches('.dot[data-toggle]')) { e.stopPropagation(); return toggleLine(+el.dataset.toggle); }
     if (el.dataset.view) return showView(el.dataset.view);
     if (el.dataset.layout) return setLayout(el.dataset.layout);
@@ -336,7 +342,7 @@
     var lineNo = v.slice(0, from).split('\n').length - 1;
     var lastNo = v.slice(0, en).split('\n').length - 1;
     var eol = v.indexOf('\n', from);
-    var onList = /^\s*(?:[-*+]\s|\[[ xX>]\])/.test(v.slice(from, eol === -1 ? v.length : eol));
+    var onList = /^\s*(?:[-*+]\s|\[[ xX>1-9]\])/.test(v.slice(from, eol === -1 ? v.length : eol));
 
     if (!out && s === en && !onList) {
       return setText(v.slice(0, s) + '  ' + v.slice(en), s + 2);
@@ -389,14 +395,14 @@
       if (pos !== els.editor.selectionEnd) return;
       var lineStart = val.lastIndexOf('\n', pos - 1) + 1;
       var cur = val.slice(lineStart, pos);
-      var m = /^(\s*)([-*+] \[[ xX>]\] |[-*+] )/.exec(cur);
+      var m = /^(\s*)([-*+] \[[ xX>1-9]\] |[-*+] )/.exec(cur);
       if (!m) return;
       e.preventDefault();
       if (cur.trim() === m[2].trim()) {           // empty item: end the list
         var cleared = val.slice(0, lineStart) + val.slice(pos);
         return setText(cleared, lineStart);
       }
-      var lead = m[1] + m[2].replace(/\[[xX>]\]/, '[ ]');
+      var lead = m[1] + m[2].replace(/\[[xX>1-9]\]/, '[ ]');
       var next = val.slice(0, pos) + '\n' + lead + val.slice(pos);
       setText(next, pos + 1 + lead.length);
     }
@@ -595,7 +601,7 @@
       log: Log.all(),
       todos: doc.todos.map(function (t) {
         return {
-          line: t.line + 1, done: t.done, active: t.active, title: t.title,
+          line: t.line + 1, done: t.done, active: t.active, order: t.order, title: t.title,
           depth: t.depth, parentLine: t.parent ? t.parent.line + 1 : null,
           subtasks: t.subTotal ? { done: t.subDone, total: t.subTotal } : null,
           due: t.due, priority: t.priority,

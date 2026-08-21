@@ -124,6 +124,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
         <dl>
           <dt><code>- [ ]</code> <code>- [x]</code></dt><dd>a todo — anything else is just prose</dd>
           <dt><code>- [&gt;]</code></dt><dd>working on it right now — a third checkbox state, highlighted everywhere and filtered by <b>Now</b>. Set it with <code>Ctrl+.</code> or the <b>▸</b> beside any task</dd>
+          <dt><code>- [1]</code> <code>- [2]</code></dt><dd>the same, in an order — <b>Now</b> lists numbered work first. Click the <b>–</b> beside a marked task to number it</dd>
           <dt><code>Alt+↑</code> <code>Alt+↓</code></dt><dd>move the line, or the selected lines, up and down</dd>
           <dt><code>Ctrl+X</code></dt><dd>with nothing selected, cuts the whole line</dd>
           <dt><code>Tab</code> on a todo</dt><dd>indents it into a subtask of the one above; <code>Shift+Tab</code> promotes it back. Ticking a task ticks its subtasks; finishing the last subtask finishes the task</dd>

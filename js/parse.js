@@ -148,18 +148,22 @@
   }
 
   /* ---------- line classification ---------- */
-  // [>] is "working on it": open, but the one you are actually doing
-  var TODO_RE = /^(\s*)(?:[-*+]\s+)?\[([ xX>])\]\s?(.*)$/;
+  // [>] is "working on it": open, but the one you are actually doing. A digit
+  // says the same and ranks it, so the marker stays one character wide either
+  // way and the raw text keeps its column alignment.
+  var TODO_RE = /^(\s*)(?:[-*+]\s+)?\[([ xX>1-9])\]\s?(.*)$/;
   var HEAD_RE = /^(#{1,6})\s+(.*)$/;
   var BULLET_RE = /^(\s*)[-*+]\s+(.*)$/;
 
   function classify(raw) {
     var m;
     if ((m = TODO_RE.exec(raw))) {
+      var box = m[2];
       return {
         kind: 'todo', indent: m[1].length, text: m[3],
-        done: m[2] === 'x' || m[2] === 'X',
-        active: m[2] === '>'
+        done: box === 'x' || box === 'X',
+        active: box === '>' || (box >= '1' && box <= '9'),
+        order: box >= '1' && box <= '9' ? +box : null
       };
     }
     if ((m = HEAD_RE.exec(raw))) return { kind: 'heading', level: m[1].length, text: m[2] };
@@ -248,7 +252,8 @@
       }
       if (ln.kind !== 'todo') return;
       var todo = {
-        id: 't' + ln.line, line: ln.line, done: ln.done, active: !!ln.active, indent: ln.indent,
+        id: 't' + ln.line, line: ln.line, done: ln.done, active: !!ln.active,
+        order: ln.order === undefined ? null : ln.order, indent: ln.indent,
         text: ln.text, tokens: ln.tokens, title: stripTokens(ln.text, ln.tokens),
         due: null, dueRaw: null, priority: null,
         selects: {}, values: {}, bools: {}, labels: [],

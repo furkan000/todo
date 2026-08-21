@@ -53,13 +53,48 @@ document.getElementById('f').addEventListener('load',function(){
   ok('the status bar counts it', /1<\/b> in progress/.test(d.getElementById('stats').innerHTML), d.getElementById('stats').textContent);
   click(d.querySelector('[data-filter="all"]'));
 
+  /* ---- ranking ---- */
+  type('# L\n\n- [2] second\n- [1] first\n- [>] whenever\n- [ ] not started\n');
+  var t2=todos();
+  ok('a digit in the box is in-flight too', t2[0].active===true && t2[1].active===true, t2.map(function(x){return x.active;}));
+  ok('and carries its rank', t2[0].order===2 && t2[1].order===1, [t2[0].order,t2[1].order]);
+  ok('an unranked marker has no number', t2[2].active===true && t2[2].order===null, t2[2].order);
+  ok('a plain todo is neither', t2[3].active===false && t2[3].order===null, t2[3]);
+
+  var q=w.Focus.queue(todos()).map(function(x){return x.title;});
+  ok('the queue puts numbered work first, in order', q.join('|')==='first|second|whenever', q);
+
+  click(d.querySelector('[data-filter="now"]'));
+  var rows=[].map.call(d.querySelectorAll('.queue .todo .body'),function(b){return b.textContent.trim();});
+  ok('the Now view lists them in that order', /^first/.test(rows[0]) && /^second/.test(rows[1]), rows);
+  ok('and leaves out what is not in flight', rows.length===3, rows.length);
+  click(d.querySelector('[data-filter="all"]'));
+
+  /* ---- the rank control ---- */
+  type('# L\n\n- [>] one\n');
+  click(d.querySelector('[data-rank="2"]'));
+  ok('clicking the rank numbers it', /- \[1\] one/.test(ed.value), ed.value);
+  click(d.querySelector('[data-rank="2"]'));
+  ok('clicking again advances it', /- \[2\] one/.test(ed.value), ed.value);
+  type(ed.value.replace('[2]','[9]'));
+  click(d.querySelector('[data-rank="2"]'));
+  ok('past the last number it drops back to unranked', /- \[>\] one/.test(ed.value), ed.value);
+  ok('an unmarked todo offers no rank control', !d.querySelector('[data-rank="0"]'), '');
+
+  type('# L\n\n- [3] ranked\n');
+  click(d.querySelector('[data-now="2"]'));
+  ok('unsetting a ranked task clears the number too', /- \[ \] ranked/.test(ed.value), ed.value);
+
   /* ---- subtasks and archiving still behave ---- */
   type('# L\n\n- [ ] Parent\n  - [>] One\n  - [ ] Two\n');
   var box=d.querySelector('input[data-toggle="2"]');
   box.checked=true; box.dispatchEvent(new w.Event('change',{bubbles:true}));
   ok('the cascade overwrites an in-flight subtask', /- \[x\] Parent\n  - \[x\] One\n  - \[x\] Two/.test(ed.value), ed.value);
-  type('# L\n\n- [>] busy\n');
+  type('# L\n\n- [>] busy\n- [4] also busy\n');
   ok('in-flight work is not archivable', w.Archive.pending(w.PTT.doc()).length===0, ed.value);
+  var cb2=d.querySelector('input[data-toggle="3"]');
+  cb2.checked=true; cb2.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('finishing ranked work overwrites the number with a tick', /- \[x\] also busy/.test(ed.value), ed.value);
 
   /* ---- Enter continues an active line as a plain one ---- */
   ed.value='- [>] first'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));

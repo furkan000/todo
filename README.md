@@ -63,19 +63,29 @@ right now. It lives in the checkbox rather than trailing the line, so it cannot
 contradict itself — a task is open, in flight, or done, never two of those at
 once.
 
+A digit says the same thing and puts it in an order — so every marker stays one
+character wide and the raw text keeps its column alignment:
+
 ```markdown
-- [>] Two-pass resolver @2026-08-20 !high #proj:atlas
-- [ ] Write the calendar view @2026-08-21
+- [1] Invoice for July retainer @2026-08-25 !high
+- [2] Write the calendar view @2026-08-21
+- [>] Repaint the shed
+- [ ] Chase Vega for assets
 ```
 
-Set it with the **▸** beside any task in the document or the table, or with
-`Ctrl+.` on the line the caret is in. Marked rows are tinted and barred in the
-document, the table and the calendar, the editor colours the `[>]` to match, and
-the status bar counts what is in flight.
+Set the marker with the **▸** beside any task, or with `Ctrl+.` on the line the
+caret is in. Numbering is optional: click the **–** that appears beside a marked
+task to cycle it through 1…9 and back to unnumbered. Marked rows are tinted and
+barred in the document, the table and the calendar, the editor colours the box to
+match, and the status bar counts what is in flight.
 
-The **Now** filter shows only marked tasks and hides everything else. Finishing
-an in-flight task simply overwrites the arrow with a tick, so nothing else — the
-subtask cascade, archiving, the log — needed a special case for it.
+The **Now** filter turns the document into a queue rather than a document: one
+flat list, numbered work first in its own order, then the rest in the order the
+text has it, each item carrying the section it came from. The table grows a
+sortable **Now** column with the same ranking.
+
+Finishing an in-flight task simply overwrites the marker with a tick, so nothing
+else — the subtask cascade, archiving, the log — needed a special case for it.
 
 ## Subtasks
 

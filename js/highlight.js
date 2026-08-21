@@ -43,7 +43,7 @@
       return '<span class="hl-hash">' + esc(prefix) + '</span><span class="hl-head">' + body + '</span>';
     }
     if (ln.kind === 'todo') {
-      var state = ln.done ? ' done' : ln.active ? ' active' : '';
+      var state = ln.done ? ' done' : ln.order ? ' active ranked' : ln.active ? ' active' : '';
       var mark = '<span class="hl-mark' + state + '">' + esc(prefix) + '</span>';
       return mark + (ln.done ? '<span class="hl-done">' + body + '</span>'
                    : ln.active ? '<span class="hl-now">' + body + '</span>' : body);

@@ -7,7 +7,7 @@
 (function (global) {
   'use strict';
 
-  var CHECK_RE = /\[([ xX>])\]/;
+  var CHECK_RE = /\[([ xX>1-9])\]/;
 
   /* ---------- tree ---------- */
   // Idempotent: safe to call on a doc that already has one.
