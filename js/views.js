@@ -95,15 +95,17 @@
   // The "working on it" arrow. Quiet until you hover, loud once it is set —
   // a marker you can leave on is a marker that has to be easy to take off.
   // An active task also gets a rank control, so the queue can be put in order.
+  // The rank control, which only an in-flight task has any use for.
+  function rankHTML(t) {
+    if (!t.active || t.done) return '';
+    return '<button class="rank-btn' + (t.order ? ' set' : '') + '" data-rank="' + t.line + '" tabindex="-1" ' +
+      'title="' + (t.order ? 'Number ' + t.order + ' in the queue' : 'Unnumbered') +
+      ' — click to change the order">' + (t.order || '–') + '</button>';
+  }
+
   function nowHTML(t) {
     if (t.done) return '';
-    var out = '';
-    if (t.active) {
-      out += '<button class="rank-btn' + (t.order ? ' set' : '') + '" data-rank="' + t.line + '" tabindex="-1" ' +
-        'title="' + (t.order ? 'Number ' + t.order + ' in the queue' : 'Unnumbered') +
-        ' — click to change the order">' + (t.order || '–') + '</button>';
-    }
-    return out + '<button class="now-btn" data-now="' + t.line + '" tabindex="-1" ' +
+    return rankHTML(t) + '<button class="now-btn" data-now="' + t.line + '" tabindex="-1" ' +
       'title="' + (t.active ? 'Working on this — click to unset' : 'Mark as what you are working on') +
       ' (Ctrl+.)">▸</button>';
   }
@@ -324,7 +326,7 @@
           ? '<span class="sub-mark" title="subtask of ' + attr(t.parent.title) + '">' + BRANCH + '</span>'
           : '';
         // rank first, then the nesting stem: the number is the thing you scan for
-        return nowHTML(t) + under + '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' +
+        return rankHTML(t) + under + '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' +
           (esc(t.title) || '<i class="muted">(untitled)</i>') + '</span>' +
           (t.parent ? '<span class="parent-of" title="' + attr(t.parent.title) + '">' + esc(t.parent.title) + '</span>' : '');
       case 'sub':

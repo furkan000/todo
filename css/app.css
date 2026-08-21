@@ -413,8 +413,7 @@ tbody tr.active { background: var(--now-soft); box-shadow: inset 2px 0 0 var(--n
 tbody tr.active:hover { background: var(--now-soft); }
 tbody tr.active .task-title { font-weight: 600; }
 /* the marker sits with the task rather than in a column of its own */
-.col-title .now-btn, .col-title .rank-btn { margin-left: 0; margin-right: 3px; vertical-align: middle; }
-.col-title .rank-btn { margin-left: 0; }
+.col-title .rank-btn { margin-left: 0; margin-right: 4px; vertical-align: middle; }
 
 .cal-item.active { border-left-color: var(--now-line); background: var(--now-soft); color: var(--now); }
 .statusbar b.now { color: var(--now); }
