@@ -8,6 +8,39 @@ discovered from what you type.
 Open `index.html` in a browser. No build step, no dependencies, no server.
 The text is saved to `localStorage` as you type.
 
+## Running it as a local server
+
+`./serve.sh` serves the app on <http://127.0.0.1:3111/> (Ctrl+C to stop). It uses
+`python3 -m http.server` — nothing to install.
+
+```bash
+./serve.sh                 # localhost, port 3111
+PORT=8080 ./serve.sh       # another port
+HOST=0.0.0.0 ./serve.sh    # reachable from your phone on the same network
+```
+
+To have it come back on its own after a reboot:
+
+```bash
+./autostart-install.sh              # localhost only
+./autostart-install.sh --lan        # reachable from other devices
+./autostart-install.sh --port 8080
+```
+
+That installs a systemd **user** service — no root needed — and enables lingering
+so it starts at boot rather than at login. Undo it with:
+
+```bash
+./autostart-uninstall.sh
+```
+
+Note that `localStorage` is per-origin, so `http://127.0.0.1:3111` and a file you
+opened directly keep **separate** documents. Pick one and stay with it, or move
+your text across with the export/import menu.
+
+Serving on `0.0.0.0` puts your todos on the local network with no password. Only
+use `--lan` on a network you trust.
+
 ## Writing
 
 A todo is any line with a checkbox. Everything else is just prose.
