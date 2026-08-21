@@ -149,10 +149,11 @@ code { font-family: var(--mono); font-size: .92em; }
 .app.layout-view .editor-pane { display: none; }
 .app.layout-text .view-pane { display: none; }
 .app.layout-text .editor-pane { border-right: 0; background: var(--bg); }
-/* text-only: one comfortable measure, centred */
+/* text-only: one comfortable measure, aligned left so the header, the text and
+   the syntax tip all start on the same edge */
 .app.layout-text .pane-head,
 .app.layout-text #editor,
-.app.layout-text .syntax > * { max-width: 940px; margin-left: auto; margin-right: auto; width: 100%; }
+.app.layout-text .syntax > * { max-width: 940px; margin-left: 0; margin-right: auto; width: 100%; }
 .app.layout-text #editor { font-size: 13.5px; padding: 26px 18px; }
 .app.layout-text .syntax { background: transparent; }
 .segmented.layout button { padding: 5px 8px; display: grid; place-items: center; }
@@ -206,7 +207,7 @@ code { font-family: var(--mono); font-size: .92em; }
    made transparent so the layer below shows through. */
 .editor-wrap { position: relative; flex: 1; min-height: 0; display: flex; }
 .occ-marks, .find-marks, .syntax-layer {
-  position: absolute; top: 0; left: 0; bottom: 0; overflow: hidden;
+  position: absolute; top: 0; left: 0; overflow: hidden;
   pointer-events: none; white-space: pre-wrap; word-wrap: break-word;
 }
 .occ-marks { color: transparent; z-index: 0; }

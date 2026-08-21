@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Serve the app as static files. The systemd unit runs this, and it is fine to
-# run by hand: ./serve.sh   (Ctrl+C to stop)
+# run by hand: scripts/serve.sh   (Ctrl+C to stop)
 #
-#   PORT=8080 ./serve.sh        different port
-#   HOST=0.0.0.0 ./serve.sh     reachable from other devices on your network
+#   PORT=8080 scripts/serve.sh      different port
+#   HOST=0.0.0.0 scripts/serve.sh   reachable from other devices on your network
 set -euo pipefail
 
-APP_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+APP_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 PORT="${PORT:-3111}"
 HOST="${HOST:-127.0.0.1}"
 

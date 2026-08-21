@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Undo autostart-install.sh: stop the app and stop it starting at boot.
 #
-#   ./autostart-uninstall.sh                  remove the service
-#   ./autostart-uninstall.sh --disable-linger  also stop *any* of your user
+#   scripts/autostart-uninstall.sh                   remove the service
+#   scripts/autostart-uninstall.sh --disable-linger  also stop *any* of your user
 #                                              services running while logged out
 set -euo pipefail
 

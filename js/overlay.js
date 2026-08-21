@@ -34,7 +34,12 @@
     l.letterSpacing = cs.letterSpacing;
     l.tabSize = cs.tabSize;
     l.padding = cs.padding;
+    // the textarea is not always flush with its wrapper — in text-only mode it is
+    // a centred or inset column — so anchor to the textarea's own box
+    l.left = p.ed.offsetLeft + 'px';
+    l.top = p.ed.offsetTop + 'px';
     l.width = p.ed.clientWidth + 'px';
+    l.height = p.ed.clientHeight + 'px';
     p.layer.scrollTop = p.ed.scrollTop;
   }
 

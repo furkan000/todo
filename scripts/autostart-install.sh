@@ -2,14 +2,14 @@
 # Start the app automatically when this machine boots, on port 3111.
 #
 # Installs a systemd *user* service, so no root is needed. Undo it with
-# ./autostart-uninstall.sh
+# scripts/autostart-uninstall.sh
 #
-#   ./autostart-install.sh                 localhost only (default)
-#   ./autostart-install.sh --lan           reachable from other devices
-#   ./autostart-install.sh --port 8080     a different port
+#   scripts/autostart-install.sh               localhost only (default)
+#   scripts/autostart-install.sh --lan         reachable from other devices
+#   scripts/autostart-install.sh --port 8080   a different port
 set -euo pipefail
 
-APP_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+APP_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
 SERVICE="todo-app"
 UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 UNIT="$UNIT_DIR/$SERVICE.service"
@@ -81,7 +81,7 @@ if systemctl --user is-active --quiet "$SERVICE"; then
   echo
   echo "  status:     systemctl --user status $SERVICE"
   echo "  stop now:   systemctl --user stop $SERVICE"
-  echo "  remove:     $APP_DIR/autostart-uninstall.sh"
+  echo "  remove:     $APP_DIR/scripts/autostart-uninstall.sh"
 else
   echo "The service did not start. Logs:" >&2
   systemctl --user status "$SERVICE" --no-pager || true
