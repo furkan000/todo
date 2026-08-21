@@ -78,6 +78,10 @@
     return out + inline(text.slice(at));
   }
 
+  // A subtask's mark: a branch elbow drawn rather than typed, so it lands on the
+  // same baseline in every font and matches the app's other inline icons.
+  var BRANCH = '<svg class="sub-of" viewBox="0 0 12 14" aria-hidden="true"><path d="M3.2 1.5v6.2a2.3 2.3 0 0 0 2.3 2.3h3.6"/></svg>';
+
   /* ---------- subtask progress ---------- */
   // Only a todo with something under it earns a counter.
   function progressHTML(t) {
@@ -317,7 +321,7 @@
         // sorting scatters the document order, so a subtask has to say whose it
         // is rather than rely on sitting under it
         var under = t.parent
-          ? '<span class="sub-of" title="subtask of ' + attr(t.parent.title) + '">└</span>'
+          ? '<span class="sub-mark" title="subtask of ' + attr(t.parent.title) + '">' + BRANCH + '</span>'
           : '';
         // rank first, then the nesting stem: the number is the thing you scan for
         return nowHTML(t) + under + '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' +
@@ -399,7 +403,7 @@
           (t.priority ? ' prio-' + (TT.canonicalPriority(t.priority) || 'x') : '') +
           '" data-goto="' + t.line + '" title="' + attr(t.parent ? t.title + ' — subtask of ' + t.parent.title : t.title) + '">' +
           '<span class="dot" data-toggle="' + t.line + '"></span><span class="t">' + rankTag +
-          (t.parent ? '<span class="sub-of">└</span>' : '') + esc(t.title || '(untitled)') + '</span></div>';
+          (t.parent ? BRANCH : '') + esc(t.title || '(untitled)') + '</span></div>';
       });
       if (items.length > 4) html += '<div class="cal-more">+' + (items.length - 4) + ' more</div>';
       html += '</div>';
@@ -504,7 +508,7 @@
       html += '<section class="log-day"><h3>' + esc(label) + '<b>' + d.items.length + '</b></h3><ul>';
       d.items.forEach(function (e) {
         html += '<li><span class="log-time">' + esc(e.at.slice(11)) + '</span>' +
-          '<span class="log-title">' + (e.parent ? '<span class="sub-of" title="subtask of ' + attr(e.parent) + '">└</span>' : '') +
+          '<span class="log-title">' + (e.parent ? '<span class="sub-mark" title="subtask of ' + attr(e.parent) + '">' + BRANCH + '</span>' : '') +
           (esc(e.title) || '<i class="muted">(untitled)</i>') +
           (e.parent ? '<span class="parent-of muted"> · ' + esc(e.parent) + '</span>' : '') + '</span>' +
           (e.priority ? '<span class="chip select prio-' + (TT.canonicalPriority(e.priority) || 'x') + '">' + esc(e.priority) + '</span>' : '') +
