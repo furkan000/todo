@@ -88,6 +88,15 @@
       '<b></b><i>' + t.subDone + '/' + t.subTotal + '</i></span>';
   }
 
+  // The "working on it" arrow. Quiet until you hover, loud once it is set —
+  // a marker you can leave on is a marker that has to be easy to take off.
+  function nowHTML(t) {
+    if (t.done) return '';
+    return '<button class="now-btn" data-now="' + t.line + '" tabindex="-1" ' +
+      'title="' + (t.active ? 'Working on this — click to unset' : 'Mark as what you are working on') +
+      ' (Ctrl+.)">▸</button>';
+  }
+
   /* ---------- document ---------- */
   function renderDocument(doc, ctx) {
     var html = '', openList = false;
@@ -101,12 +110,12 @@
         if (!openList) { html += '<ul class="todos">'; openList = true; }
         var t = ln.todo;
         var kids = t.children || [];
-        var cls = 'todo' + (t.done ? ' done' : '') + (kids.length ? ' parent' : '') +
-          (t.partial ? ' partial' : '') + (t.parent ? ' sub' : '');
+        var cls = 'todo' + (t.done ? ' done' : '') + (t.active ? ' active' : '') +
+          (kids.length ? ' parent' : '') + (t.partial ? ' partial' : '') + (t.parent ? ' sub' : '');
         html += '<li class="' + cls + '" style="--indent:' + Math.floor(t.indent / 2) + '">' +
           '<label><input type="checkbox" data-toggle="' + t.line + '"' + (t.done ? ' checked' : '') + '>' +
           '<span class="box"></span><span class="body">' + textWithChips(ln.text, ln.tokens, ctx) + '</span>' +
-          progressHTML(t) + '</label></li>';
+          progressHTML(t) + nowHTML(t) + '</label></li>';
       } else if (ln.kind === 'bullet') {
         if (!openList) { html += '<ul class="todos">'; openList = true; }
         html += '<li class="bullet" style="--indent:' + Math.floor(ln.indent / 2) + '">' +
@@ -249,7 +258,7 @@
     html += '</tr></thead><tbody>';
 
     rows.forEach(function (t) {
-      html += '<tr class="' + (t.done ? 'done' : '') + '">';
+      html += '<tr class="' + (t.done ? 'done' : '') + (t.active ? ' active' : '') + '">';
       cols.forEach(function (c) {
         html += '<td class="col-' + c.kind + '">' + cellHTML(t, c, ctx) + '</td>';
       });
@@ -268,7 +277,7 @@
         var under = t.parent
           ? '<span class="sub-of" title="subtask of ' + attr(t.parent.title) + '">↳</span>'
           : '';
-        return under + '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' +
+        return under + nowHTML(t) + '<span class="task-title" data-goto="' + t.line + '" title="Jump to line ' + (t.line + 1) + '">' +
           (esc(t.title) || '<i class="muted">(untitled)</i>') + '</span>' +
           (t.parent ? '<span class="parent-of" title="' + attr(t.parent.title) + '">' + esc(t.parent.title) + '</span>' : '');
       case 'sub':
@@ -342,7 +351,7 @@
       html += '<div class="' + cls + '"><div class="cal-num">' + d.getDate() + '</div>';
       items.slice(0, 4).forEach(function (t) {
         var over = !t.done && iso < ctx.todayISO;
-        html += '<div class="cal-item' + (t.done ? ' done' : '') + (over ? ' overdue' : '') +
+        html += '<div class="cal-item' + (t.done ? ' done' : '') + (t.active ? ' active' : '') + (over ? ' overdue' : '') +
           (t.priority ? ' prio-' + (TT.canonicalPriority(t.priority) || 'x') : '') +
           '" data-goto="' + t.line + '" title="' + attr(t.parent ? t.title + ' — subtask of ' + t.parent.title : t.title) + '">' +
           '<span class="dot" data-toggle="' + t.line + '"></span><span class="t">' +

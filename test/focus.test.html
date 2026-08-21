@@ -1,0 +1,73 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var ed=d.getElementById('editor');
+  function type(v){ed.value=v;ed.dispatchEvent(new w.Event('input',{bubbles:true}));}
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  function key(o){o.bubbles=true;o.cancelable=true;ed.dispatchEvent(new w.KeyboardEvent('keydown',o));}
+  function todos(){return w.PTT.doc().todos;}
+  w.Log.clear();
+  click(d.querySelector('[data-view="doc"]'));
+
+  /* ---- the third checkbox state ---- */
+  type('# L\n\n- [ ] one\n- [>] two\n- [x] three\n');
+  var t=todos();
+  ok('[>] parses as a todo', t.length===3, t.length);
+  ok('and reads as active', t[1].active===true, t[1]);
+  ok('active is not done', t[1].done===false, t[1].done);
+  ok('a plain todo is not active', t[0].active===false, t[0].active);
+  ok('a finished todo is not active', t[2].active===false, t[2].active);
+
+  /* ---- the marker button ---- */
+  var btn=d.querySelector('.todo [data-now="2"]');
+  ok('every open todo offers the marker', !!btn, '');
+  click(btn);
+  ok('clicking it writes [>] into the text', /- \[>\] one/.test(ed.value), ed.value);
+  ok('the row is marked active', !!d.querySelector('.todo.active'), '');
+  click(d.querySelector('.todo [data-now="2"]'));
+  ok('clicking again clears it', /- \[ \] one/.test(ed.value), ed.value);
+  ok('a done todo has no marker', !d.querySelector('.todo [data-now="4"]'), '');
+
+  /* ---- Ctrl+. on the caret's line ---- */
+  type('# L\n\n- [ ] one\n- [ ] two\n');
+  var at=ed.value.indexOf('- [ ] two')+3;
+  ed.focus(); ed.setSelectionRange(at,at);
+  d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'.',ctrlKey:true,bubbles:true,cancelable:true}));
+  ok('Ctrl+. marks the line the caret is on', /- \[ \] one\n- \[>\] two/.test(ed.value), ed.value);
+
+  /* ---- ticking it off ---- */
+  var cb=d.querySelector('input[data-toggle="3"]');
+  cb.checked=true; cb.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('finishing an active task replaces the arrow with a tick', /- \[x\] two/.test(ed.value), ed.value);
+  ok('and it is no longer active', todos()[1].active===false, todos()[1]);
+
+  /* ---- the Now filter ---- */
+  type('# L\n\n- [ ] one\n- [>] two\n- [x] three\n');
+  click(d.querySelector('[data-filter="now"]'));
+  ok('Now shows only what is in flight', d.querySelectorAll('.todo').length===1, d.querySelectorAll('.todo').length);
+  ok('and it is the right one', /two/.test(d.querySelector('.todo').textContent), d.querySelector('.todo').textContent);
+  ok('the status bar counts it', /1<\/b> in progress/.test(d.getElementById('stats').innerHTML), d.getElementById('stats').textContent);
+  click(d.querySelector('[data-filter="all"]'));
+
+  /* ---- subtasks and archiving still behave ---- */
+  type('# L\n\n- [ ] Parent\n  - [>] One\n  - [ ] Two\n');
+  var box=d.querySelector('input[data-toggle="2"]');
+  box.checked=true; box.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('the cascade overwrites an in-flight subtask', /- \[x\] Parent\n  - \[x\] One\n  - \[x\] Two/.test(ed.value), ed.value);
+  type('# L\n\n- [>] busy\n');
+  ok('in-flight work is not archivable', w.Archive.pending(w.PTT.doc()).length===0, ed.value);
+
+  /* ---- Enter continues an active line as a plain one ---- */
+  ed.value='- [>] first'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  ed.setSelectionRange(11,11);
+  key({key:'Enter'});
+  ok('Enter after an active line starts a plain todo', ed.value==='- [>] first\n- [ ] ', JSON.stringify(ed.value));
+
+ }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
+ document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

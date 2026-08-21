@@ -88,6 +88,7 @@
   function visibleTodos() {
     var q = state.query.trim().toLowerCase();
     return doc.todos.filter(function (t) {
+      if (state.filter === 'now' && !t.active) return false;
       if (state.filter === 'open' && t.done) return false;
       if (state.filter === 'done' && !t.done) return false;
       return !q || haystack(t).indexOf(q) !== -1;
@@ -127,8 +128,10 @@
 
     var open = doc.todos.filter(function (t) { return !t.done; }).length;
     var overdue = doc.todos.filter(function (t) { return !t.done && t.due && t.due < ctx.todayISO; }).length;
+    var inFlight = Focus.active(doc).length;
     var shown = ctx.visible.length;
     els.stats.innerHTML =
+      (inFlight ? '<b class="now">' + inFlight + '</b> in progress <span>·</span> ' : '') +
       '<b>' + open + '</b> open <span>·</span> <b>' + (doc.todos.length - open) + '</b> done' +
       (overdue ? ' <span>·</span> <b class="bad">' + overdue + '</b> overdue' : '') +
       ((state.query || state.filter !== 'all') ? ' <span>·</span> showing <b>' + shown + '</b>' : '') +
@@ -183,8 +186,14 @@
     var lines = els.editor.value.split('\n');
     var raw = lines[lineNo];
     if (raw === undefined) return;
-    lines[lineNo] = raw.replace(/\[([ xX])\]/, function (_, c) { return c === ' ' ? '[x]' : '[ ]'; });
+    lines[lineNo] = raw.replace(/\[([ xX>])\]/, function (_, c) { return c === 'x' || c === 'X' ? '[ ]' : '[x]'; });
     setText(lines.join('\n'));
+  }
+
+  // Flag the line you are working on right now, wherever you clicked from.
+  function markNow(lineNo) {
+    var next = Focus.toggle(els.editor.value, lineNo);
+    if (next !== null) setText(next);
   }
 
   function gotoLine(lineNo) {
@@ -209,9 +218,10 @@
   function onClick(e) {
     var pop = document.getElementById('export-menu');
     if (pop && !pop.hidden && !e.target.closest('.menu')) closeMenu();
-    var el = e.target.closest ? e.target.closest('[data-view],[data-layout],[data-filter],[data-group],[data-sort],[data-q],[data-month],[data-goto],[data-act],.dot[data-toggle]') : null;
+    var el = e.target.closest ? e.target.closest('[data-view],[data-layout],[data-filter],[data-group],[data-sort],[data-q],[data-month],[data-goto],[data-act],[data-now],.dot[data-toggle]') : null;
     if (!el) return;
 
+    if (el.dataset.now !== undefined) { e.preventDefault(); e.stopPropagation(); return markNow(+el.dataset.now); }
     if (el.matches('.dot[data-toggle]')) { e.stopPropagation(); return toggleLine(+el.dataset.toggle); }
     if (el.dataset.view) return showView(el.dataset.view);
     if (el.dataset.layout) return setLayout(el.dataset.layout);
@@ -304,7 +314,7 @@
     var lineNo = v.slice(0, from).split('\n').length - 1;
     var lastNo = v.slice(0, en).split('\n').length - 1;
     var eol = v.indexOf('\n', from);
-    var onList = /^\s*(?:[-*+]\s|\[[ xX]\])/.test(v.slice(from, eol === -1 ? v.length : eol));
+    var onList = /^\s*(?:[-*+]\s|\[[ xX>]\])/.test(v.slice(from, eol === -1 ? v.length : eol));
 
     if (!out && s === en && !onList) {
       return setText(v.slice(0, s) + '  ' + v.slice(en), s + 2);
@@ -332,14 +342,14 @@
       if (pos !== els.editor.selectionEnd) return;
       var lineStart = val.lastIndexOf('\n', pos - 1) + 1;
       var cur = val.slice(lineStart, pos);
-      var m = /^(\s*)([-*+] \[ \] |[-*+] \[[xX]\] |[-*+] )/.exec(cur);
+      var m = /^(\s*)([-*+] \[[ xX>]\] |[-*+] )/.exec(cur);
       if (!m) return;
       e.preventDefault();
       if (cur.trim() === m[2].trim()) {           // empty item: end the list
         var cleared = val.slice(0, lineStart) + val.slice(pos);
         return setText(cleared, lineStart);
       }
-      var lead = m[1] + m[2].replace(/\[[xX]\]/, '[ ]');
+      var lead = m[1] + m[2].replace(/\[[xX>]\]/, '[ ]');
       var next = val.slice(0, pos) + '\n' + lead + val.slice(pos);
       setText(next, pos + 1 + lead.length);
     }
@@ -348,6 +358,11 @@
   function onKey(e) {
     if (e.key === 'Escape') { closeMenu(); if (Find.isOpen()) Find.close(); return; }
     if ((e.metaKey || e.ctrlKey) && e.key === 'f') { e.preventDefault(); return Find.open(); }
+    if ((e.metaKey || e.ctrlKey) && e.key === '.') {
+      e.preventDefault();
+      var v = els.editor.value;
+      return markNow(v.slice(0, els.editor.selectionStart).split('\n').length - 1);
+    }
     if (!(e.metaKey || e.ctrlKey)) return;
     var map = { '2': 'doc', '3': 'table', '4': 'cal', '5': 'tags', '6': 'log' };
     if (e.key === '1') { e.preventDefault(); setLayout('text'); }
@@ -533,7 +548,7 @@
       log: Log.all(),
       todos: doc.todos.map(function (t) {
         return {
-          line: t.line + 1, done: t.done, title: t.title,
+          line: t.line + 1, done: t.done, active: t.active, title: t.title,
           depth: t.depth, parentLine: t.parent ? t.parent.line + 1 : null,
           subtasks: t.subTotal ? { done: t.subDone, total: t.subTotal } : null,
           due: t.due, priority: t.priority,

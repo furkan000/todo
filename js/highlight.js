@@ -43,8 +43,10 @@
       return '<span class="hl-hash">' + esc(prefix) + '</span><span class="hl-head">' + body + '</span>';
     }
     if (ln.kind === 'todo') {
-      var mark = '<span class="hl-mark' + (ln.done ? ' done' : '') + '">' + esc(prefix) + '</span>';
-      return mark + (ln.done ? '<span class="hl-done">' + body + '</span>' : body);
+      var state = ln.done ? ' done' : ln.active ? ' active' : '';
+      var mark = '<span class="hl-mark' + state + '">' + esc(prefix) + '</span>';
+      return mark + (ln.done ? '<span class="hl-done">' + body + '</span>'
+                   : ln.active ? '<span class="hl-now">' + body + '</span>' : body);
     }
     if (ln.kind === 'bullet') {
       return '<span class="hl-mark">' + esc(prefix) + '</span>' + body;

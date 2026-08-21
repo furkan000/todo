@@ -13,6 +13,10 @@
   --accent-soft: #e7edfa;
   --bad: #b23a2b;
   --good: #1c7a4a;
+  /* "working on it" — warm and awake, and not any of the priority colours */
+  --now: hsl(28 84% 44%);
+  --now-soft: hsl(36 88% 94%);
+  --now-line: hsl(30 80% 58%);
   --shadow: 0 1px 2px rgba(45,38,25,.05), 0 8px 24px rgba(45,38,25,.06);
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, sans-serif;
@@ -357,6 +361,39 @@ ul.todos { list-style: none; margin: 6px 0; padding: 0; }
 .todo.done .body { color: var(--ink-3); }
 .todo.done .body > code, .todo.done .body { text-decoration: none; }
 .todo.done .body::first-line { text-decoration: none; }
+/* ---------- working on it ---------- */
+/* the row you are on: a warm bar down its edge and a tint, loud enough to find
+   by scrolling and quiet enough to leave switched on */
+.todo.active > label {
+  background: var(--now-soft);
+  box-shadow: inset 2px 0 0 var(--now-line);
+}
+.todo.active > label:hover { background: var(--now-soft); filter: brightness(.985); }
+.todo.active .body { color: var(--ink); font-weight: 500; }
+
+.now-btn {
+  flex: none; align-self: center; margin-left: 6px; border: 0; background: none;
+  color: var(--ink-3); font-size: 12px; line-height: 1; padding: 3px 5px;
+  border-radius: 5px; opacity: 0; transition: opacity .12s, color .12s;
+}
+.todo label:hover .now-btn, tbody tr:hover .now-btn { opacity: .55; }
+.now-btn:hover { opacity: 1 !important; color: var(--now); background: var(--now-soft); }
+.now-btn:focus-visible { opacity: 1; outline: 2px solid var(--accent); outline-offset: 1px; }
+/* once it is set it stops hiding — an invisible marker is a lost marker */
+.todo.active .now-btn, tr.active .now-btn { opacity: 1; color: var(--now); }
+
+tbody tr.active { background: var(--now-soft); box-shadow: inset 2px 0 0 var(--now-line); }
+tbody tr.active:hover { background: var(--now-soft); }
+tbody tr.active .task-title { font-weight: 600; }
+.col-title .now-btn { margin-left: 0; margin-right: 2px; }
+
+.cal-item.active { border-left-color: var(--now-line); background: var(--now-soft); color: var(--now); }
+.statusbar b.now { color: var(--now); }
+
+/* in the editor, the [>] marker and its line carry the same warmth */
+.hl-mark.active { color: var(--now); font-weight: 700; }
+.hl-now { color: var(--ink); }
+
 /* ---------- subtasks ---------- */
 /* a hairline down the left edge of anything nested, so depth reads at a glance */
 .todo.sub > label { border-left: 1px solid var(--line); padding-left: 10px; }
@@ -612,3 +649,11 @@ tbody tr.done .task-title { color: var(--ink-3); text-decoration: line-through; 
 
 :root[data-theme="dark"] .sub-count { background: #2a2a26; }
 :root[data-theme="dark"] .sub-count b { background: hsl(212 40% 24%); }
+
+:root[data-theme="dark"] {
+  --now: hsl(34 88% 62%);
+  --now-soft: hsl(30 30% 15%);
+  --now-line: hsl(32 78% 52%);
+}
+:root[data-theme="dark"] .todo.active .body,
+:root[data-theme="dark"] .hl-now { color: #f0ece4; }
