@@ -52,13 +52,18 @@ document.getElementById('f').addEventListener('load', function () {
      [$$('.group')[0].querySelectorAll('th').length, $$('.group')[2].querySelectorAll('th').length]);
   click($('[data-group="0"]'));   // the sort assertions below are about one flat table
   ok('flat mode is one table', $$('table').length === 1, $$('table').length);
-  var due0 = $$('table tbody tr .due')[0].textContent;
-  ok('default sort is due asc', /2026-08-14/.test(due0), due0);
+  var first0 = $$('.task-title')[0].textContent;
+  ok('default order is the order the text is written in', first0 === 'Rewrite the tag scanner', first0);
   click($('th[data-sort="title"]'));
   var t0 = $$('.task-title')[0].textContent;
   ok('sort by title asc', t0 === 'Book the boiler service', t0);
   click($('th[data-sort="title"]'));
   ok('sort by title desc', $$('.task-title')[0].textContent === 'Write the calendar view', $$('.task-title')[0].textContent);
+  click($('th[data-sort="title"]'));
+  ok('a third click drops back to document order', $$('.task-title')[0].textContent === 'Rewrite the tag scanner', $$('.task-title')[0].textContent);
+  ok('and no column reads as sorted', $$('th.sorted').length === 0, $$('th.sorted').length);
+  click($('th[data-sort="title"]'));
+  ok('and the cycle starts again at ascending', $$('.task-title')[0].textContent === 'Book the boiler service', $$('.task-title')[0].textContent);
   click($('th[data-sort="ns:priority"]'));
   ok('priority sorts high first', $$('tbody tr')[0].querySelector('.col-select .chip').textContent === 'high', $$('tbody tr')[0].textContent);
   var lastRow = $$('tbody tr').slice(-1)[0];

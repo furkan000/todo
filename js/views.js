@@ -190,7 +190,10 @@
     return '';
   }
 
+  // No column chosen means the document's own order — the text is the source of
+  // truth, so the order you wrote things in is the one to fall back to.
   function sortTodos(todos, cols, sort) {
+    if (!sort || !sort.col) return todos.slice();
     var col = cols.filter(function (c) { return c.id === sort.col; })[0];
     if (!col) return todos.slice();
     var dir = sort.dir === 'desc' ? -1 : 1;
@@ -249,11 +252,13 @@
 
     var html = '<div class="table-wrap"><table><thead><tr>';
     cols.forEach(function (c) {
-      var active = ctx.sort.col === c.id;
-      html += '<th class="col-' + c.kind + (active ? ' sorted ' + ctx.sort.dir : '') + '" data-sort="' + attr(c.id) + '"' +
+      var on = ctx.sort.col === c.id;
+      var next = !on ? 'sort ascending' : ctx.sort.dir === 'asc' ? 'sort descending' : 'back to document order';
+      html += '<th class="col-' + c.kind + (on ? ' sorted ' + ctx.sort.dir : '') + '" data-sort="' + attr(c.id) + '"' +
+        ' title="' + attr((c.label || 'Done') + ' — click to ' + next) + '"' +
         (c.width ? ' style="width:' + c.width + '"' : '') + '>' +
         '<span>' + esc(c.label) + '</span>' +
-        (active ? '<b class="arrow">' + (ctx.sort.dir === 'desc' ? '↓' : '↑') + '</b>' : '<b class="arrow">↕</b>') + '</th>';
+        '<b class="arrow">' + (on ? (ctx.sort.dir === 'desc' ? '↓' : '↑') : '↕') + '</b></th>';
     });
     html += '</tr></thead><tbody>';
 

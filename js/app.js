@@ -10,7 +10,7 @@
     view: 'doc',
     filter: 'all',
     query: '',
-    sort: { col: 'due', dir: 'asc' },
+    sort: { col: null, dir: null },   // null = the order the text is written in
     group: true,             // table view: one table per heading
     split: 40,               // editor width in split mode, as a % of the pane row
     month: new Date(),
@@ -30,6 +30,9 @@
     els.editor.value = saved === null ? SAMPLE : saved;
     try {
       var p = JSON.parse(localStorage.getItem(PREFS) || '{}');
+      // the table used to sort by due date out of the box; one-time, drop that
+      // stored choice so the new default — document order — actually shows up
+      if (p.sortV !== 2) delete p.sort;
       ['view', 'filter', 'sort', 'layout', 'theme', 'group', 'split'].forEach(function (k) { if (p[k] !== undefined) state[k] = p[k]; });
     } catch (e) {}
 
@@ -69,7 +72,7 @@
       localStorage.setItem(PREFS, JSON.stringify({
         view: state.view, filter: state.filter, sort: state.sort,
         layout: state.layout, theme: state.theme, group: state.group,
-        split: state.split
+        split: state.split, sortV: 2
       }));
     } catch (e) {}
   }
@@ -246,10 +249,11 @@
     if (el.dataset.group) { state.group = el.dataset.group === '1'; savePrefs(); return render(); }
     if (el.dataset.filter) { state.filter = el.dataset.filter; savePrefs(); return render(); }
     if (el.dataset.sort) {
+      // ascending, descending, then back to the order you wrote them in
       var col = el.dataset.sort;
-      state.sort = state.sort.col === col
-        ? { col: col, dir: state.sort.dir === 'asc' ? 'desc' : 'asc' }
-        : { col: col, dir: 'asc' };
+      state.sort = state.sort.col !== col ? { col: col, dir: 'asc' }
+        : state.sort.dir === 'asc' ? { col: col, dir: 'desc' }
+        : { col: null, dir: null };
       savePrefs();
       return render();
     }
