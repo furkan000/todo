@@ -486,10 +486,10 @@ ul.todos { list-style: none; margin: 6px 0; padding: 0; }
 .todo.done .body > code, .todo.done .body { text-decoration: none; }
 .todo.done .body::first-line { text-decoration: none; }
 /* ---------- working on it ---------- */
-/* the row you are on: a warm tint and nothing else. A rule down the left edge
-   too was one marker more than the row needed — loud enough to find by
-   scrolling is already what the wash does. The table and the Now queue keep
-   their edge because there the tint alone reads as a table stripe. */
+/* the row you are on: a warm tint and nothing else, in the document and in the
+   Now queue alike. A rule down the left edge too was one marker more than the
+   row needed — loud enough to find by scrolling is already what the wash does.
+   Only the table keeps an edge, where a tint alone reads as a table stripe. */
 .todo.active > label { background: var(--now-soft); }
 .todo.active > label:hover { background: var(--now-soft); filter: brightness(.985); }
 .todo.active .body { color: var(--ink); font-weight: 500; }
@@ -517,7 +517,7 @@ ul.todos { list-style: none; margin: 6px 0; padding: 0; }
 /* the queue: what Now shows instead of the document */
 .queue .todo { margin-left: 0; }
 .queue .parent-of { margin-left: 0; margin-top: 1px; }
-.queue .todo.ranked > label { box-shadow: inset 3px 0 0 var(--now); }
+/* ranked rows carry their number already; the wash is the rest of the signal */
 .cal-rank {
   display: inline-block; min-width: 13px; text-align: center; margin-right: 3px;
   background: var(--now); color: #fff; border-radius: 3px; font-size: 9.5px; font-weight: 700;

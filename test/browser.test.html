@@ -287,6 +287,14 @@ document.getElementById('f').addEventListener('load', function () {
   ok('the in-flight row is tinted', !!row &&
      w.getComputedStyle(row).backgroundColor !== 'rgba(0, 0, 0, 0)', row && w.getComputedStyle(row).backgroundColor);
   ok('but carries no left border accent', w.getComputedStyle(row).boxShadow === 'none', w.getComputedStyle(row).boxShadow);
+  ed.value = '- [1] first up\n- [>] also on this\n- [ ] not this one\n';
+  ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  click($('[data-filter="now"]'));
+  var ranked = $('.queue .todo.ranked > label');
+  ok('the Now queue shows the ranked row', !!ranked, $('.queue') && $('.queue').innerHTML.slice(0, 60));
+  ok('and it has no left border accent either',
+     w.getComputedStyle(ranked).boxShadow === 'none', w.getComputedStyle(ranked).boxShadow);
+  click($('[data-filter="all"]'));
   ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
   ok('theme is persisted', JSON.parse(w.localStorage.getItem('ptt.prefs.v1')).theme === 'auto');
 
