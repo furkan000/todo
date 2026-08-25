@@ -31,6 +31,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
       <button data-view="log"   class="tab" title="Log (Ctrl+6)">Log</button>
       <span class="tab-div" aria-hidden="true"></span>
       <button data-view="focus" class="tab" title="Focus timer (Ctrl+7)">Focus</button>
+      <button data-view="music" class="tab" title="Music (Ctrl+8)">Music</button>
     </nav>
 
     <div class="spacer-flex"></div>
@@ -153,6 +154,8 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
     <div id="stats"></div>
     <div class="spacer-flex"></div>
     <div id="status-tools"></div>
+    <!-- the transport for whatever is playing; empty until there is a catalogue -->
+    <div id="music-bar" class="music-bar idle"></div>
     <!-- the timer is mounted here: the status bar is on screen in every view and
          every layout, and it is already the quiet part of the window -->
     <div id="pomo-slot"></div>
@@ -170,6 +173,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
 <script src="js/lines.js"></script>
 <script src="js/scrollbars.js"></script>
 <script src="js/pomodoro.js"></script>
+<script src="js/music.js"></script>
 <script src="js/overlay.js"></script>
 <script src="js/highlight.js"></script>
 <script src="js/occurrences.js"></script>

@@ -58,6 +58,12 @@
       flash: flash,
       ensureVisible: function () { if (state.layout === 'view') setLayout('split'); }
     });
+    Music.init({
+      // the catalogue is a projection like any other view, so a change to it is
+      // just another render; the status bar transport repaints itself
+      refresh: function () { if (state.view === 'music') render(); },
+      show: showView
+    });
     Pomodoro.init({
       mount: document.querySelector('.statusbar'),
       before: document.getElementById('pomo-slot'),
@@ -131,8 +137,9 @@
       : state.view === 'table' ? Views.table(doc, ctx)
       : state.view === 'cal' ? Views.calendar(doc, ctx)
       : state.view === 'log' ? Views.log(doc, ctx)
-      // the timer owns its own markup; the stage only gives it the room
+      // the timer and the player own their own markup; the stage gives them room
       : state.view === 'focus' ? Pomodoro.panelHTML()
+      : state.view === 'music' ? Music.catalogueHTML()
       : Views.discovery(doc, ctx);
     els.stage.className = 'stage view-' + state.view;
     els.stage.innerHTML = html;
@@ -433,7 +440,7 @@
       return markNow(v.slice(0, els.editor.selectionStart).split('\n').length - 1);
     }
     if (!(e.metaKey || e.ctrlKey)) return;
-    var map = { '2': 'doc', '3': 'table', '4': 'cal', '5': 'tags', '6': 'log', '7': 'focus' };
+    var map = { '2': 'doc', '3': 'table', '4': 'cal', '5': 'tags', '6': 'log', '7': 'focus', '8': 'music' };
     if (e.key === '1') { e.preventDefault(); setLayout('text'); }
     else if (map[e.key]) { e.preventDefault(); showView(map[e.key]); }
     else if (e.key === 'k') { e.preventDefault(); els.search.focus(); els.search.select(); }

@@ -307,6 +307,38 @@ hold either way. It rolls over on its own: a stamp from another day reads as
 nothing yet today. Breaks are not pomodoros, and neither is a session you
 skipped — only one that ran out counts.
 
+## Music
+
+A **Music** tab (`Ctrl+8`) holding a catalogue of YouTube videos and playlists.
+Paste a link — a watch URL, a `youtu.be` link, a playlist page, an embed, a
+short, or a bare ID — and it becomes a row you can click to play. A link that
+carries both a video and a list (`watch?v=X&list=Y`) is taken as the playlist,
+since that is the thing with more music in it.
+
+**It is sound, not video.** YouTube has no audio-only embed, so the player is a
+real iframe that is really playing; it simply lives off the left edge of the
+window. Not `display: none` and not collapsed to a pixel — browsers throttle or
+refuse to start playback in an iframe they consider invisible, and the point is
+that it keeps running while you look at the document.
+
+Transport sits at the right-hand end of the status bar, so it is reachable from
+every view: previous, play/pause, next, and the title of what is on, which is
+also a way back to the catalogue. Inside a playlist the skip buttons move
+through the playlist; outside one, the catalogue itself is the running order,
+and a video that ends hands over to the row below it.
+
+Titles, authors and thumbnails come from YouTube's oEmbed endpoint, the one
+thing there that answers a browser directly. It can fail — no network, or a
+`file://` origin it dislikes — and that is survivable: the row keeps the ID as
+its name and the thumbnail still resolves, because that URL is guessable from
+the video ID alone. The IFrame Player API is fetched the first time you press
+play rather than at boot, so the app still starts, parses and renders with no
+network at all; without it you have your catalogue and no sound, and nothing
+else notices.
+
+One caveat worth knowing: auto-generated mixes (`RD…`) are built per viewer and
+often refuse to embed. Adding one says so.
+
 ## Selection echo
 
 Select any text in the editor and every other copy of it is boxed, so you can see
@@ -354,7 +386,7 @@ tagged plain text.
 | | |
 | --- | --- |
 | `Ctrl+1` | Text |
-| `Ctrl+2..7` | Doc / Table / Calendar / Tags / Log / Focus |
+| `Ctrl+2..8` | Doc / Table / Calendar / Tags / Log / Focus / Music |
 | `Ctrl+K` | search / filter by tag |
 | `Ctrl+F` | find & replace in the text |
 | `Ctrl+\` | open/close the editor |
@@ -382,6 +414,7 @@ js/focus.js     the [>] "working on it" state
 js/lines.js     moving lines, and cutting one whole
 js/scrollbars.js  shows a scrollbar only while it is in use
 js/pomodoro.js  the focus timer: a wall-clock state machine + its status-bar chip
+js/music.js     the catalogue, the unseen YouTube player, and its transport
 js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/app.js       state, text write-back, import/export

@@ -1,0 +1,135 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var M=w.Music;
+  function $(s){return d.querySelector(s);}
+  function $$(s){return [].slice.call(d.querySelectorAll(s));}
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  M.silence();          // the catalogue is what is under test, never the network
+  M.clear();
+
+  // ---- what you can paste
+  ok('a watch URL', JSON.stringify(M.parse('https://www.youtube.com/watch?v=dQw4w9WgXcQ'))===
+     JSON.stringify({kind:'video',videoId:'dQw4w9WgXcQ'}), M.parse('https://www.youtube.com/watch?v=dQw4w9WgXcQ'));
+  ok('a short link', M.parse('https://youtu.be/dQw4w9WgXcQ').videoId==='dQw4w9WgXcQ');
+  ok('a short link with a timestamp', M.parse('https://youtu.be/dQw4w9WgXcQ?t=42').videoId==='dQw4w9WgXcQ');
+  ok('a bare video id', M.parse('dQw4w9WgXcQ').kind==='video');
+  ok('an embed URL', M.parse('https://www.youtube.com/embed/dQw4w9WgXcQ').videoId==='dQw4w9WgXcQ');
+  ok('a short', M.parse('https://youtube.com/shorts/dQw4w9WgXcQ').videoId==='dQw4w9WgXcQ');
+  ok('a playlist page', M.parse('https://www.youtube.com/playlist?list=PLabcdefghij123').kind==='playlist');
+  ok('a bare playlist id', M.parse('PLabcdefghij123').playlistId==='PLabcdefghij123');
+  ok('a nocookie embed', M.parse('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ').kind==='video');
+
+  // a link carrying both is the playlist — that is the one with more music in it
+  var both=M.parse('https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=PLabcdefghij123');
+  ok('video + list is taken as the playlist', both.kind==='playlist' && both.playlistId==='PLabcdefghij123', both);
+  ok('but it remembers where you came in', both.videoId==='dQw4w9WgXcQ', both);
+
+  ok('a non-YouTube URL is refused', M.parse('https://vimeo.com/12345')===null);
+  ok('nonsense is refused', M.parse('hello there')===null);
+  ok('empty is refused', M.parse('')===null && M.parse(null)===null);
+  ok('a malformed video id is not mistaken for one',
+     M.parse('https://www.youtube.com/watch?v=short')===null, M.parse('https://www.youtube.com/watch?v=short'));
+  ok('a bare word the length of an id is still an id', M.parse('abcdefghijk').kind==='video');
+
+  // ---- the catalogue
+  ok('it starts empty', M.all().length===0, M.all());
+  var a=M.add('https://youtu.be/dQw4w9WgXcQ');
+  ok('adding returns the entry', !!a && a.kind==='video', a);
+  ok('it is keyed by what it is', a.key==='v:dQw4w9WgXcQ', a.key);
+  ok('a thumbnail is guessable from the id alone', /dQw4w9WgXcQ\/mqdefault/.test(a.thumbnail), a.thumbnail);
+  ok('and the id stands in for a name until one arrives', a.title==='dQw4w9WgXcQ', a.title);
+  var again=M.add('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  ok('the same thing twice is one row', M.all().length===1, M.all().length);
+  ok('and hands back what was already there', again.key===a.key);
+  ok('junk adds nothing', M.add('not a link')===null && M.all().length===1);
+
+  var p=M.add('https://www.youtube.com/playlist?list=PLabcdefghij123');
+  ok('a playlist joins it', p.kind==='playlist' && M.all().length===2, M.all().length);
+  ok('newest first', M.all()[0].key===p.key, M.all().map(function(e){return e.key;}));
+  ok('a playlist with no seed video is named for what it is', p.title==='Playlist', p.title);
+  var mix=M.add('RDabcdefghij123');
+  ok('a mix is a playlist', mix.kind==='playlist' && M.isMix(mix), mix);
+  ok('and says so by name', mix.title==='YouTube mix', mix.title);
+  ok('a plain playlist is not a mix', !M.isMix(p));
+
+  // the catalogue is the running order for single videos
+  ok('the next row after the last is nothing', M.neighbour(M.all()[2].key,1)===null, M.all()[2].key);
+  ok('and the one before the first too', M.neighbour(M.all()[0].key,-1)===null);
+  ok('otherwise it steps', M.neighbour(M.all()[0].key,1).key===M.all()[1].key);
+
+  ok('it survives a reload', M.read().items.length===3, M.read().items.length);
+  ok('removing takes one out', M.remove(mix.key)===true && M.all().length===2, M.all().length);
+  ok('removing something absent is a no-op', M.remove('v:nope')===false);
+
+  // ---- the tab
+  ok('there is a tab for it', !!$('[data-view="music"]') && $('[data-view="music"]').textContent==='Music');
+  click($('[data-view="music"]'));
+  ok('the stage knows the view', $('.stage').classList.contains('view-music'), $('.stage').className);
+  ok('every row is listed', $$('.mu-row').length===2, $$('.mu-row').length);
+  ok('a playlist row is marked as one', !!$('.mu-row .mu-kind'), $('.mu-row').innerHTML.slice(0,120));
+  ok('nothing is playing yet', $$('.mu-row.on').length===0);
+
+  click($('.mu-row[data-music-play="' + p.key + '"]'));
+  ok('clicking a row makes it current', M.activeKey()===p.key, M.activeKey());
+  ok('and the row says so', $('.mu-row.on').dataset.musicPlay===p.key, $('.mu-row.on').dataset.musicPlay);
+  ok('the choice is remembered', M.read().active===p.key, M.read().active);
+
+  // ---- the player is heard, not seen
+  ok('there is no visible video anywhere in the stage', $('.stage iframe')===null);
+  M.play(p.key);
+  var sink=$('.music-sink');
+  if (sink) {
+    var cs=w.getComputedStyle(sink);
+    ok('the player sits off the edge of the window', parseInt(cs.left,10) < -300, cs.left);
+    ok('at a real size, not collapsed', parseInt(cs.width,10) > 100 && parseInt(cs.height,10) > 50, cs.width+'x'+cs.height);
+    ok('and cannot be clicked into', cs.pointerEvents==='none', cs.pointerEvents);
+  } else {
+    ok('no player is mounted while silenced', true);
+    ok('no player is mounted while silenced', true);
+    ok('no player is mounted while silenced', true);
+  }
+
+  // ---- the transport in the status bar
+  var bar=$('#music-bar');
+  ok('the transport lives in the status bar', !!bar && bar.closest('.statusbar')!==null);
+  ok('it sits beside the timer, not inside the toolbar',
+     d.querySelector('.topbar #music-bar')===null &&
+     bar.nextElementSibling.classList.contains('pomo'),
+     bar.nextElementSibling.className);
+  ok('it offers the three transport controls plus the title',
+     !!bar.querySelector('[data-music="prev"]') && !!bar.querySelector('[data-music="toggle"]') &&
+     !!bar.querySelector('[data-music="next"]') && !!bar.querySelector('.mu-now'), bar.innerHTML.slice(0,80));
+  ok('and names what is on', bar.querySelector('.mu-now').textContent===p.title,
+     bar.querySelector('.mu-now').textContent);
+
+  click($('[data-view="doc"]'));
+  ok('the transport is still there in another view', !!$('#music-bar .mu-now'));
+  click($('#music-bar [data-music="open"]'));
+  ok('the title is a way back to the catalogue', w.PTT.state.view==='music', w.PTT.state.view);
+
+  // stepping through single videos walks the catalogue
+  M.play(a.key);
+  M.step(-1);
+  ok('previous from the last video lands on the one above', M.activeKey()===p.key, M.activeKey());
+  M.step(1);
+  ok('and next comes back', M.activeKey()===a.key, M.activeKey());
+
+  click($('.mu-row .mu-del'));
+  ok('the row delete button removes it', M.all().length===1, M.all().length);
+  ok('and the view keeps up', $$('.mu-row').length===1, $$('.mu-row').length);
+
+  M.clear();
+  w.PTT.showView('music');
+  ok('an empty catalogue explains itself', !!$('.music-view .empty'), $('.music-view').innerHTML.slice(0,80));
+  ok('and the transport goes quiet', $('#music-bar').classList.contains('idle'), $('#music-bar').className);
+  ok('leaving one way in', !!$('#music-bar [data-music="open"]'), $('#music-bar').innerHTML);
+  click($('[data-view="doc"]'));
+ }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
+ document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

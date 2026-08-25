@@ -299,6 +299,73 @@ code { font-family: var(--mono); font-size: .92em; }
 .pv-today b { color: var(--ink-2); font-weight: 650; }
 .pv-today span { opacity: .5; margin: 0 3px; }
 
+/* ---------- music ---------- */
+/* The player is real and it is playing; it just lives off the left edge of the
+   window. Not display:none and not zero-sized — browsers throttle or refuse to
+   start playback in an iframe they consider invisible, and the whole point is
+   that it keeps running while you look at something else. */
+.music-sink {
+  position: fixed; left: -1000px; top: 0; width: 320px; height: 180px;
+  opacity: 0; pointer-events: none; z-index: -1;
+}
+.music-sink iframe { width: 320px; height: 180px; border: 0; }
+
+.stage.view-music { padding: 20px 18px 32px; }
+.music-view { max-width: 720px; margin-inline: auto; }
+.mu-add { display: flex; gap: 8px; margin-bottom: 10px; }
+.mu-add input {
+  flex: 1; min-width: 0; font: inherit; font-size: 13px; color: var(--ink);
+  padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
+}
+.mu-add input:focus { outline: none; border-color: var(--accent); }
+.mu-add button {
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--ink-2);
+  padding: 0 16px; border-radius: 8px; font-size: 13px; font-weight: 550;
+}
+.mu-add button:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.mu-note { margin: 0 0 12px; font-size: 12px; color: var(--ink-3); min-height: 16px; }
+.mu-note.bad { color: var(--bad); }
+
+.mu-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.mu-row {
+  display: flex; align-items: center; gap: 12px; padding: 7px 10px 7px 7px;
+  border-radius: 9px; cursor: pointer; position: relative;
+}
+.mu-row:hover { background: var(--panel-2); }
+.mu-row.on { background: var(--now-soft); }
+.mu-thumb { width: 84px; height: 47px; flex: none; border-radius: 5px; object-fit: cover; background: var(--line-2); }
+.mu-thumb.blank { display: block; }
+.mu-meta { flex: 1; min-width: 0; }
+.mu-title { display: block; font-size: 13.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mu-sub { display: block; font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+.mu-kind {
+  display: inline-block; margin-right: 6px; padding: 0 5px; border-radius: 4px;
+  background: var(--line-2); color: var(--ink-2); font-size: 9.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em; vertical-align: 1px;
+}
+.mu-on { flex: none; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 650; color: var(--now); }
+.mu-del { flex: none; border: 0; background: none; color: var(--ink-3); font-size: 17px; line-height: 1; padding: 2px 6px; border-radius: 5px; opacity: 0; }
+.mu-row:hover .mu-del { opacity: 1; }
+.mu-del:hover { color: var(--bad); background: var(--line-2); }
+
+/* the transport: quiet and one icon wide until there is something playing */
+.music-bar { display: flex; align-items: center; gap: 1px; margin: -3px 0; }
+.music-bar.idle { opacity: .5; }
+.music-bar.idle:hover { opacity: 1; }
+.mu-mini {
+  border: 0; background: none; color: var(--ink-3); padding: 3px; border-radius: 5px;
+  display: flex; align-items: center;
+}
+.mu-mini svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.mu-mini svg path[d^="M4.5 3v10"], .mu-mini svg path[d^="M12 3.5v9l6"], .mu-mini svg path[d^="M4 3.5v9l6"] { fill: currentColor; }
+.mu-mini:hover { color: var(--ink); background: var(--line-2); }
+.music-bar.playing .mu-mini.play { color: var(--now); }
+.mu-now {
+  border: 0; background: none; color: var(--ink-3); font-size: 11.5px; padding: 2px 6px;
+  max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mu-now:hover { color: var(--ink); }
+
 .log-pomo { width: 12px; height: 12px; flex: none; fill: none; stroke: var(--now); stroke-width: 1.4; margin-right: 6px; vertical-align: -1px; }
 .log-focus .log-title { color: var(--ink-2); }
 .log-mins { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
