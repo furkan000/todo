@@ -527,6 +527,34 @@
   var TOMATO = '<svg class="log-pomo" viewBox="0 0 16 16" aria-hidden="true">' +
     '<circle cx="8" cy="9.4" r="5.2"/><path d="M8 4.2V2.6M8 2.6c-1.3-.9-2.6-.6-3.2-.1M8 2.6c1.3-.9 2.6-.6 3.2-.1"/></svg>';
 
+  /* Removing an entry. The × sits at the tail of the row rather than in front of
+     the text, so it never indents what you are reading, and it is transparent
+     until the row is under the pointer — but it keeps its place either way, so
+     nothing moves when it appears. */
+  function rowAttrs(e) { return e.id ? ' data-log-id="' + attr(e.id) + '"' : ''; }
+
+  function del(e) {
+    if (!e.id) return '';
+    return '<button class="log-del" data-log-remove="' + attr(e.id) + '"' +
+      ' title="Remove this entry" aria-label="Remove this entry">×</button>';
+  }
+
+  /* A removed entry does not vanish under the pointer that removed it: it stays
+     where it was, struck through, with the way back beside it and a hairline
+     draining along the bottom to say how long that offer stands. The drain is
+     started in the past by however much of the grace has already gone, so a
+     re-render mid-countdown resumes it rather than beginning it again. */
+  function graceRow(e) {
+    var bar = e.grace ? '<span class="log-grace" style="animation-duration:' + e.grace +
+      'ms;animation-delay:-' + Math.max(0, e.grace - e.left) + 'ms"></span>' : '';
+    return '<li class="log-gone"' + rowAttrs(e) + '>' +
+      '<span class="log-time">' + esc(e.at.slice(11)) + '</span>' +
+      '<span class="log-title"><s>' + (esc(e.title) || '(untitled)') + '</s></span>' +
+      '<span class="log-gone-note">Removed</span>' +
+      '<button class="link log-undo" data-log-undo="' + attr(e.id) + '">Undo</button>' +
+      bar + '</li>';
+  }
+
   function renderLog(doc, ctx) {
     var days = ctx.log;
     if (!days.length) {
@@ -536,6 +564,7 @@
     var total = 0, sessions = 0, minutes = 0;
     days.forEach(function (d) {
       d.items.forEach(function (e) {
+        if (e.pending) return;                 // on its way out; already counted as gone
         if (e.event === 'focus') { sessions++; minutes += e.minutes || 0; } else total++;
       });
     });
@@ -549,21 +578,23 @@
       var when = new Date(d.day + 'T00:00:00');
       var label = isNaN(when) ? d.day : DAY_NAMES[when.getDay()] + ' ' + when.getDate() + ' ' +
         ['January','February','March','April','May','June','July','August','September','October','November','December'][when.getMonth()];
-      html += '<section class="log-day"><h3>' + esc(label) + '<b>' + d.items.length + '</b></h3><ul>';
+      var live = d.items.filter(function (e) { return !e.pending; }).length;
+      html += '<section class="log-day"><h3>' + esc(label) + '<b>' + live + '</b></h3><ul>';
       d.items.forEach(function (e) {
+        if (e.pending) { html += graceRow(e); return; }
         if (e.event === 'focus') {
-          html += '<li class="log-focus"><span class="log-time">' + esc(e.at.slice(11)) + '</span>' +
+          html += '<li class="log-focus"' + rowAttrs(e) + '><span class="log-time">' + esc(e.at.slice(11)) + '</span>' +
             '<span class="log-title">' + TOMATO + (esc(e.title) || '<i class="muted">(untitled)</i>') + '</span>' +
-            (e.minutes ? '<span class="log-mins">' + e.minutes + ' min</span>' : '') + '</li>';
+            (e.minutes ? '<span class="log-mins">' + e.minutes + ' min</span>' : '') + del(e) + '</li>';
           return;
         }
-        html += '<li><span class="log-time">' + esc(e.at.slice(11)) + '</span>' +
+        html += '<li' + rowAttrs(e) + '><span class="log-time">' + esc(e.at.slice(11)) + '</span>' +
           '<span class="log-title">' + (e.parent ? '<span class="sub-mark" title="subtask of ' + attr(e.parent) + '">' + BRANCH + '</span>' : '') +
           (esc(e.title) || '<i class="muted">(untitled)</i>') +
           (e.parent ? '<span class="parent-of muted"> · ' + esc(e.parent) + '</span>' : '') + '</span>' +
           (e.priority ? '<span class="chip select prio-' + (TT.canonicalPriority(e.priority) || 'x') + '">' + esc(e.priority) + '</span>' : '') +
           (e.section ? '<span class="log-section">' + esc(e.section) + '</span>' : '') +
-          '</li>';
+          del(e) + '</li>';
       });
       html += '</ul></section>';
     });

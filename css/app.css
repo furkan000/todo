@@ -836,10 +836,35 @@ tbody tr.done .task-title { color: var(--ink-3); text-decoration: line-through; 
 }
 .log-day ul { list-style: none; margin: 0; padding: 0; }
 .log-day li {
+  position: relative;
   display: flex; align-items: baseline; gap: 10px;
   padding: 4px 6px; border-radius: 6px;
 }
 .log-day li:hover { background: var(--panel); }
+
+/* the remove control: last in the row so it never indents the reading, and
+   transparent rather than absent so revealing it moves nothing */
+.log-del {
+  flex: none; border: 0; background: none; color: var(--ink-3);
+  font-size: 15px; line-height: 1; padding: 0 4px; border-radius: 4px;
+  opacity: 0; transition: opacity .15s ease, color .15s ease, background-color .15s ease;
+}
+.log-day li:hover .log-del, .log-del:focus-visible { opacity: 1; }
+.log-del:hover { color: var(--bad); background: var(--line-2); }
+
+/* a removed row, waiting out its grace */
+.log-gone { color: var(--ink-3); }
+.log-gone .log-title s { text-decoration-color: var(--ink-3); opacity: .75; }
+.log-gone-note { font-size: 11px; color: var(--ink-3); flex: none; }
+.log-undo { flex: none; color: var(--accent); font-weight: 600; }
+.log-grace {
+  position: absolute; left: 6px; right: 6px; bottom: 0; height: 1.5px;
+  border-radius: 2px; background: var(--ink-3); opacity: .45;
+  transform-origin: left center;
+  animation: drain linear forwards;
+}
+@keyframes drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .log-grace { animation: none; opacity: .25; } }
 .log-time {
   font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
   font-variant-numeric: tabular-nums; flex: none; width: 42px;

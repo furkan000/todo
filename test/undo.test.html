@@ -1,0 +1,77 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow;
+ try{
+  var U=w.Undo;
+  U.settle();               // nothing left over from boot
+
+  // --- staging and the grace period ---
+  var log1=[];
+  U.stage({id:'a', at:1000, grace:5000,
+           commit:function(){log1.push('commit');}, revert:function(){log1.push('revert');}});
+  ok('a staged action is pending', U.is('a'));
+  ok('it has not been committed yet', log1.length===0, log1);
+  ok('remaining counts down from the grace', U.remaining('a',1000)===5000, U.remaining('a',1000));
+  ok('remaining shrinks with the clock', U.remaining('a',3500)===2500, U.remaining('a',3500));
+
+  ok('a sweep before the grace ends commits nothing', U.sweep(5999)===0);
+  ok('and it is still pending', U.is('a'));
+  ok('a sweep at the grace commits it', U.sweep(6000)===1);
+  ok('commit ran, revert did not', log1.join()==='commit', log1);
+  ok('and it is no longer pending', !U.is('a'));
+  ok('remaining is 0 for something not staged', U.remaining('a')===0);
+  ok('sweeping again does nothing', U.sweep(9e9)===0);
+
+  // --- undoing ---
+  var log2=[];
+  U.stage({id:'b', at:0, grace:1000, commit:function(){log2.push('commit');}, revert:function(){log2.push('revert');}});
+  ok('undo reports it took something back', U.undo('b')===true);
+  ok('revert ran and commit did not', log2.join()==='revert', log2);
+  ok('undoing again finds nothing', U.undo('b')===false);
+  ok('a reverted action never commits later', U.sweep(9e9)===0 && log2.join()==='revert', log2);
+
+  // --- settling early ---
+  var log3=[];
+  U.stage({id:'c', at:0, grace:9e9, commit:function(){log3.push('commit');}});
+  ok('settle commits without waiting', U.settle('c')===1 && log3.join()==='commit', log3);
+  ok('and it is gone from the queue', !U.is('c'));
+
+  // --- dropping ---
+  var log4=[];
+  U.stage({id:'d', at:0, grace:9e9, commit:function(){log4.push('commit');}, revert:function(){log4.push('revert');}});
+  ok('drop removes it', U.drop('d')===true && !U.is('d'));
+  ok('drop runs neither callback', log4.length===0, log4);
+
+  // --- one id, one truth ---
+  var log5=[];
+  U.stage({id:'e', at:0, grace:9e9, commit:function(){log5.push('first');}});
+  U.stage({id:'e', at:0, grace:9e9, commit:function(){log5.push('second');}});
+  ok('re-staging an id commits the one it replaces', log5.join()==='first', log5);
+  ok('only one is pending', U.pending().filter(function(i){return i.id==='e';}).length===1);
+  U.settle('e');
+  ok('and the replacement commits on its own terms', log5.join()==='first,second', log5);
+
+  // --- listeners ---
+  var beats=0;
+  U.onchange(function(){beats++;});
+  U.stage({id:'f', at:0, grace:9e9, revert:function(){}});
+  ok('staging alone does not notify', beats===0, beats);
+  U.undo('f');
+  ok('an undo notifies', beats===1, beats);
+
+  // --- several at once, each on its own clock ---
+  var out=[];
+  U.stage({id:'g', at:0, grace:100, commit:function(){out.push('g');}});
+  U.stage({id:'h', at:0, grace:300, commit:function(){out.push('h');}});
+  U.sweep(150);
+  ok('the earlier one commits first', out.join()==='g' && U.is('h'), out);
+  U.sweep(300);
+  ok('the later one follows', out.join()==='g,h', out);
+  ok('nothing is left staged', U.pending().length===0, U.pending());
+ }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
+ document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

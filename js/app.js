@@ -27,6 +27,8 @@
     var saved = null;
     try { saved = localStorage.getItem(STORE); } catch (e) {}
     Log.init();
+    // when a staged removal's grace runs out, the page saying so is stale
+    Undo.onchange(function () { if (state.view === 'log') render(); });
     els.editor.value = saved === null ? SAMPLE : saved;
     try {
       var p = JSON.parse(localStorage.getItem(PREFS) || '{}');
@@ -271,8 +273,13 @@
   function onClick(e) {
     var pop = document.getElementById('settings-menu');
     if (pop && !pop.hidden && !e.target.closest('.menu')) closeMenu();
-    var el = e.target.closest ? e.target.closest('[data-view],[data-layout],[data-filter],[data-group],[data-sort],[data-q],[data-month],[data-goto],[data-act],[data-now],[data-rank],[data-theme-set],.dot[data-toggle]') : null;
+    var el = e.target.closest ? e.target.closest('[data-view],[data-layout],[data-filter],[data-group],[data-sort],[data-q],[data-month],[data-goto],[data-act],[data-now],[data-rank],[data-theme-set],[data-log-remove],[data-log-undo],.dot[data-toggle]') : null;
     if (!el) return;
+
+    // The log is not the text, so its rows cannot ride the browser's undo stack.
+    // They are staged instead: gone at once, and reversible until the grace lapses.
+    if (el.dataset.logRemove) { Log.remove(el.dataset.logRemove); return render(); }
+    if (el.dataset.logUndo) { Log.restore(el.dataset.logUndo); return render(); }
 
     if (el.dataset.now !== undefined) { e.preventDefault(); e.stopPropagation(); return markNow(+el.dataset.now); }
     if (el.dataset.rank !== undefined) { e.preventDefault(); e.stopPropagation(); return bumpRank(+el.dataset.rank); }

@@ -256,6 +256,14 @@ contains done todos records nothing, since none of that happened just now.
 The **Log** tab shows it grouped by day. Export it as Markdown or CSV from the
 export menu, and it rides inside the main JSON export too, so it round-trips.
 
+A line you did not mean to record — a todo ticked by a slipped click, a session
+you did not really run — can be taken out: hover the row and press the **×** at
+its end. The entry goes at once, but it does not vanish out from under the
+pointer that removed it. It stays where it was, struck through, with **Undo**
+beside it and a hairline draining along the bottom to say how long that offer
+stands. Let the drain run out and it is permanent; so is closing the tab, since
+what gets written to storage is what the log would export.
+
 If finished work in the text is what distracts you, the **Open** filter now hides
 done todos in the document view as well — the lines stay in your text, they just
 stop competing for attention, and a footnote says how many are hidden.
@@ -408,6 +416,7 @@ js/views.js     document / table / calendar / discovery renderers
 js/overlay.js   pins the editor's layers to its text box
 js/highlight.js syntax colouring, painted from the parse result
 js/log.js       activity log: watches parses for open -> done, records sessions
+js/undo.js      actions that cannot ride the text's undo stack, held reversible
 js/archive.js   moves finished todos into a Done section
 js/subtasks.js  the indent tree, ticking that follows it, and Tab authoring
 js/focus.js     the [>] "working on it" state

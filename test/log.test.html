@@ -85,6 +85,50 @@ document.getElementById('f').addEventListener('load',function(){
   click($('[data-filter="all"]'));
   ok('no note when nothing is hidden', $('.hidden-note')===null);
 
+  // --- removing an entry, with a way back ---
+  L.clear();
+  type('- [ ] one\n- [ ] two');
+  type('- [x] one\n- [x] two');
+  click($('[data-view="log"]'));
+  ok('two entries to work with', L.count()===2, L.all());
+  ok('every row offers a remove', $$('.log-day li .log-del').length===2, $$('.log-del').length);
+
+  var gone=L.all()[0].id, kept=L.all()[1].title;
+  click($('[data-log-remove="'+gone+'"]'));
+  ok('removing drops the count', L.count()===1, L.all());
+  ok('the other entry is untouched', L.all()[0].title===kept, L.all());
+  ok('the row stays put, struck through', $$('.log-gone').length===1, $$('.log-gone').length);
+  ok('and offers the way back', !!$('.log-gone [data-log-undo="'+gone+'"]'), $('.log-gone').innerHTML);
+  ok('the day count only counts what is left', $('.log-day h3 b').textContent==='1', $('.log-day h3 b').textContent);
+  ok('storage already has it gone', JSON.parse(w.localStorage.getItem('ptt.log.v1')).length===1);
+  ok('an export leaves it out', L.toMarkdown().indexOf('one')===-1, L.toMarkdown());
+
+  click($('[data-log-undo="'+gone+'"]'));
+  ok('undo puts it back', L.count()===2, L.all());
+  ok('the strike-through is gone', $$('.log-gone').length===0);
+  ok('and so is the undo offer', $('[data-log-undo]')===null);
+  ok('storage has it again', JSON.parse(w.localStorage.getItem('ptt.log.v1')).length===2);
+  ok('it kept its place in the day', $$('.log-day li')[1].textContent.indexOf('one')!==-1, $$('.log-day li')[1].textContent);
+
+  // once the grace runs out it is permanent
+  click($('[data-log-remove="'+gone+'"]'));
+  ok('it is staged with Undo', w.Undo.is('log:'+gone));
+  w.Undo.settle('log:'+gone);
+  click($('[data-view="log"]'));
+  ok('after the grace it is really gone', L.count()===1 && $$('.log-day li').length===1, L.all());
+  ok('and there is nothing left to undo', L.restore(gone)===false);
+  ok('storage agrees', JSON.parse(w.localStorage.getItem('ptt.log.v1')).length===1);
+
+  // focus sessions are entries too
+  L.clear();
+  L.record({event:'focus', title:'deep work', minutes:25});
+  click($('[data-view="log"]'));
+  ok('a focus session can be removed too', !!$('.log-focus .log-del'), $('.log-focus').innerHTML);
+  click($('.log-focus .log-del'));
+  ok('and it goes the same way', L.count()===0 && $$('.log-gone').length===1, L.all());
+  L.clear();
+  ok('clearing forgets what was waiting', w.Undo.pending().length===0, w.Undo.pending());
+
   // clearing
   L.clear();
   ok('clear empties the log', L.count()===0);
