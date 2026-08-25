@@ -151,6 +151,79 @@ document.getElementById('f').addEventListener('load',function(){
   ok('the log view marks it as a session', d.querySelectorAll('li.log-focus').length===1, d.querySelectorAll('li.log-focus').length);
   ok('and counts sessions apart from completions', /focus session/.test($('.log-head').textContent), $('.log-head').textContent);
   w.Log.clear();
+
+  // ---- the day tally, which is kept on the state so it survives the log being off
+  var day=P.make({work:25});
+  var noon=new Date(2026,7,25,12,0,0).getTime();
+  ok('nothing today to start with', P.today(day,noon).n===0, P.today(day,noon));
+  day.cfg.log=false;
+  P.start(day,noon);
+  P.tick(day,noon+25*MIN);
+  ok('a finished focus session counts', P.today(day,noon+25*MIN).n===1, day.today);
+  ok('and carries its minutes', P.today(day,noon+25*MIN).min===25, day.today);
+  P.skip(day,noon+25*MIN);          // out of the break
+  P.start(day,noon+30*MIN);
+  P.tick(day,noon+55*MIN);
+  ok('a second one adds up', P.today(day,noon+55*MIN).n===2 && P.today(day,noon+55*MIN).min===50, day.today);
+  var tomorrow=noon+24*3600000;
+  ok('yesterday does not count towards today', P.today(day,tomorrow).n===0, P.today(day,tomorrow));
+  ok('breaks are not pomodoros', (function(){
+     var b=P.make({work:1,short:1}); P.start(b,noon); P.tick(b,noon+MIN);   // work -> short, auto-started
+     P.tick(b,noon+2*MIN);                                                  // short -> work
+     return P.today(b,noon+2*MIN).n===1;
+  })(), 'break counted');
+  ok('skipping a focus session does not count it', (function(){
+     var k=P.make({work:5}); P.start(k,noon); P.skip(k,noon+MIN);
+     return P.today(k,noon+MIN).n===0;
+  })(), 'skip counted');
+
+  // ---- the full view, from a clean clock (the log section above left one mid-set)
+  var live=P.state();
+  live.phase='work'; live.round=1; live.task=''; live.today={day:'',n:0,min:0};
+  P.reset(live); P.step();
+
+  ok('there is a tab for it', !!$('[data-view="focus"]') &&
+     $('[data-view="focus"]').textContent==='Focus', $('[data-view="focus"]').textContent);
+  click($('[data-view="focus"]'));
+  ok('it renders the big face', !!$('.pomo-view') && !!$('.pv-ring') && !!$('.pv-time'));
+  ok('the stage knows which view it is', $('.stage').classList.contains('view-focus'), $('.stage').className);
+  ok('the big time is painted straight away, not on the next tick',
+     $('.pv-time').textContent===$('.pomo-time').textContent, $('.pv-time').textContent);
+  ok('the status bar chip is still there beside it', !!$('.statusbar .pomo'));
+  ok('an empty day says so', /Nothing finished yet today/.test($('.pv-today').textContent), $('.pv-today').textContent);
+
+  P.state().today={day:P.dayOf(Date.now()),n:3,min:75};
+  P.step();
+  ok('the tally reads out', /3/.test($('.pv-today').textContent) && /pomodoros today/.test($('.pv-today').textContent),
+     $('.pv-today').textContent);
+  ok('and the minutes with it', /75 min/.test($('.pv-today').textContent), $('.pv-today').textContent);
+  P.state().today={day:P.dayOf(Date.now()),n:1,min:25};
+  P.step();
+  ok('one is singular', /1 pomodoro today/.test($('.pv-today').textContent), $('.pv-today').textContent);
+
+  ok('it offers to start', $('.pv-actions [data-pomo="toggle"]').textContent==='Start',
+     $('.pv-actions [data-pomo="toggle"]').textContent);
+  click($('.pv-face'));
+  ok('the big face starts the same clock', P.state().running===true);
+  ok('and the word changes', $('.pv-actions [data-pomo="toggle"]').textContent==='Pause',
+     $('.pv-actions [data-pomo="toggle"]').textContent);
+  ok('both faces agree', $('.pv-time').textContent===$('.pomo-time').textContent,
+     $('.pv-time').textContent+' vs '+$('.pomo-time').textContent);
+  ok('the phase is named in full', $('.pv-name').textContent==='Focus', $('.pv-name').textContent);
+  ok('and marked on the element', $('.pomo-view').dataset.phase==='work' && $('.pomo-view').classList.contains('running'),
+     $('.pomo-view').className);
+  click($('.pv-actions [data-pomo="skip"]'));
+  ok('skip works from here too', P.state().phase==='short' && $('.pv-name').textContent==='Short break',
+     $('.pv-name').textContent);
+  click($('.pv-actions [data-pomo="reset"]'));
+  ok('so does restart', P.state().running===false && $('.pomo-view').classList.contains('idle'),
+     $('.pomo-view').className);
+  ok('nothing about the page is boxed', w.getComputedStyle($('.pomo-view')).borderTopWidth==='0px',
+     w.getComputedStyle($('.pomo-view')).borderTopWidth);
+
+  click($('[data-view="doc"]'));
+  ok('leaving the view takes the big face with it', $('.pomo-view')===null);
+  ok('and the chip carries on alone', !!$('.statusbar .pomo'));
  }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
  document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';
 });

@@ -131,9 +131,12 @@
       : state.view === 'table' ? Views.table(doc, ctx)
       : state.view === 'cal' ? Views.calendar(doc, ctx)
       : state.view === 'log' ? Views.log(doc, ctx)
+      // the timer owns its own markup; the stage only gives it the room
+      : state.view === 'focus' ? Pomodoro.panelHTML()
       : Views.discovery(doc, ctx);
     els.stage.className = 'stage view-' + state.view;
     els.stage.innerHTML = html;
+    if (state.view === 'focus') Pomodoro.step();   // fill the fresh markup now, not in 250ms
     Highlight.paint(doc);
     Occurrences.refresh();
 
@@ -430,7 +433,7 @@
       return markNow(v.slice(0, els.editor.selectionStart).split('\n').length - 1);
     }
     if (!(e.metaKey || e.ctrlKey)) return;
-    var map = { '2': 'doc', '3': 'table', '4': 'cal', '5': 'tags', '6': 'log' };
+    var map = { '2': 'doc', '3': 'table', '4': 'cal', '5': 'tags', '6': 'log', '7': 'focus' };
     if (e.key === '1') { e.preventDefault(); setLayout('text'); }
     else if (map[e.key]) { e.preventDefault(); showView(map[e.key]); }
     else if (e.key === 'k') { e.preventDefault(); els.search.focus(); els.search.select(); }

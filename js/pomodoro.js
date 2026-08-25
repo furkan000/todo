@@ -69,8 +69,28 @@
       running: false,
       endsAt: null,      // absolute ms while running
       left: null,        // ms banked while paused
-      task: ''           // what you said you were working on when you started
+      task: '',          // what you said you were working on when you started
+      today: { day: '', n: 0, min: 0 }   // sessions finished today, and their minutes
     };
+  }
+
+  function dayOf(now) {
+    var d = new Date(now);
+    return d.getFullYear() + '-' + (d.getMonth() < 9 ? '0' : '') + (d.getMonth() + 1) +
+      '-' + (d.getDate() < 10 ? '0' : '') + d.getDate();
+  }
+
+  // The tally is kept here rather than counted out of the log, because the log
+  // is something you can switch off and the count should hold either way. It
+  // rolls over on its own: a stamp from another day reads as nothing yet today.
+  function today(s, now) {
+    var t = s.today || (s.today = { day: '', n: 0, min: 0 });
+    return t.day === dayOf(now) ? t : { day: dayOf(now), n: 0, min: 0 };
+  }
+
+  function countToday(s, now, minutes) {
+    var t = today(s, now);
+    s.today = { day: t.day, n: t.n + 1, min: t.min + minutes };
   }
 
   function duration(s) { return s.cfg[s.phase] * MIN; }
@@ -122,7 +142,7 @@
   function advance(s, now, natural) {
     var was = s.phase;
     var next = nextPhase(s);
-    if (was === 'work' && natural) s.done++;
+    if (was === 'work' && natural) { s.done++; countToday(s, now, s.cfg.work); }
     s.phase = next.phase;
     s.round = next.round;
     reset(s);
@@ -155,6 +175,9 @@
       s.round = clampNum(raw.round, [1, s.cfg.rounds], 1);
       s.done = clampNum(raw.done, [0, 9999], 0);
       s.task = typeof raw.task === 'string' ? raw.task : '';
+      if (raw.today && typeof raw.today.day === 'string') {
+        s.today = { day: raw.today.day, n: clampNum(raw.today.n, [0, 9999], 0), min: clampNum(raw.today.min, [0, 99999], 0) };
+      }
       // A running timer survives a reload because the end is an absolute moment,
       // not a countdown someone has to keep feeding.
       if (raw.running && typeof raw.endsAt === 'number') { s.running = true; s.endsAt = raw.endsAt; }
@@ -260,6 +283,62 @@
     return out;
   }
 
+  /* ---------- the full view ---------- */
+  /* The same clock, given the room to be read from across the desk. It is one
+     column down the middle of an otherwise empty page: ring, time, phase, and
+     what today came to. No panel, no border, no card — the less there is on it,
+     the less it asks of you while you are meant to be working on something
+     else. Every control here is the one already in the status bar. */
+
+  var BIG_RING = '<svg class="pv-ring" viewBox="0 0 120 120" aria-hidden="true">' +
+    '<circle class="track" cx="60" cy="60" r="54"/>' +
+    '<circle class="fill" cx="60" cy="60" r="54"/></svg>';
+
+  function panelHTML() {
+    return '<div class="pomo-view" data-phase="work">' +
+      '<button class="pv-face" data-pomo="toggle">' + BIG_RING +
+        '<span class="pv-time">0:00</span></button>' +
+      '<div class="pv-phase"><span class="pv-name">Focus</span><span class="pv-dots"></span></div>' +
+      '<div class="pv-task"></div>' +
+      '<div class="pv-actions">' +
+        '<button class="link" data-pomo="toggle">Start</button>' +
+        '<button class="link" data-pomo="reset">Restart</button>' +
+        '<button class="link" data-pomo="skip">Skip</button>' +
+      '</div>' +
+      '<div class="pv-today"></div>' +
+    '</div>';
+  }
+
+  function tally(s, now) {
+    var t = today(s, now);
+    if (!t.n) return 'Nothing finished yet today';
+    return '<b>' + t.n + '</b> pomodoro' + (t.n === 1 ? '' : 's') + ' today' +
+      (t.min ? ' <span>·</span> ' + t.min + ' min' : '');
+  }
+
+  function paintPanel(now) {
+    var v = document.querySelector('.pomo-view');
+    if (!v) return;
+    var s = ui.state, text = format(remaining(s, now));
+    v.dataset.phase = s.phase;
+    v.classList.toggle('running', s.running);
+    v.classList.toggle('idle', !s.running && s.left === null);
+    var time = v.querySelector('.pv-time');
+    if (time.textContent !== text) time.textContent = text;
+    v.querySelector('.pv-ring .fill').style.strokeDashoffset = String(340 * (1 - progress(s, now)));
+    v.querySelector('.pv-name').textContent = PHASE_NAME[s.phase];
+    var d = dots(s), dotsEl = v.querySelector('.pv-dots');
+    if (dotsEl.innerHTML !== d) dotsEl.innerHTML = d;
+    var task = s.phase === 'work' && s.task ? s.task : '';
+    var taskEl = v.querySelector('.pv-task');
+    if (taskEl.textContent !== task) taskEl.textContent = task;
+    var start = v.querySelector('.pv-actions [data-pomo="toggle"]');
+    var word = s.running ? 'Pause' : s.left === null ? 'Start' : 'Resume';
+    if (start.textContent !== word) start.textContent = word;
+    var t = tally(s, now), tEl = v.querySelector('.pv-today');
+    if (tEl.innerHTML !== t) tEl.innerHTML = t;
+  }
+
   function label(s, now) {
     var left = format(remaining(s, now));
     if (!s.running && s.left === null) return PHASE_NAME[s.phase] + ' — ' + left + ', click to start (Ctrl+;)';
@@ -281,6 +360,8 @@
     ui.face.setAttribute('aria-label', ui.face.title);
     var d = dots(s);
     if (ui.dots.innerHTML !== d) ui.dots.innerHTML = d;
+
+    paintPanel(now);
 
     var base = ui.baseTitle;
     var want = s.cfg.inTitle && s.running ? text + ' · ' + PHASE_NAME[s.phase] + ' · ' + base : base;
@@ -391,10 +472,12 @@
       onFinish: opts.onFinish,
       audio: null
     };
-    ui.ring.style.strokeDasharray = '60';
+    ui.ring.style.strokeDasharray = '60';   // 2πr for r=9.5, rounded up
 
-    root.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-pomo],[data-preset]');
+    // one handler for every face of the timer: the chip, its settings panel, and
+    // the full view, which is rendered and thrown away on each render()
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('[data-pomo],[data-preset]') : null;
       if (!b) return;
       e.preventDefault();
       if (b.dataset.preset !== undefined) {
@@ -421,6 +504,7 @@
   global.Pomodoro = {
     DEFAULTS: DEFAULTS, LIMITS: LIMITS, PRESETS: PRESETS, PHASE_NAME: PHASE_NAME, KEY: KEY,
     make: make, normalize: normalize, duration: duration, remaining: remaining, progress: progress,
+    today: today, dayOf: dayOf, panelHTML: panelHTML,
     start: start, pause: pause, toggle: toggle, reset: reset, skip: skip, tick: tick,
     nextPhase: nextPhase, format: format, read: read, write: write,
     init: init, act: act, step: step, openConfig: openConfig,

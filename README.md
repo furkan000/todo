@@ -283,6 +283,22 @@ Starting a focus session pins whatever you have marked as in flight, so the log
 entry can say what the time went to rather than only that it went. Finished
 sessions appear in the **Log** beside your completions, counted separately.
 
+### The Focus tab
+
+The same clock, given the room to be read from across the desk: a **Focus** tab
+(`Ctrl+7`) showing one column down the middle of an otherwise empty page — ring,
+time, phase, what you are on, and what today came to. No card, no border,
+nothing boxed; the point of the page is that there is nothing on it to look at
+while you are meant to be looking at something else. The controls are words
+rather than buttons for the same reason, and they are the same three the chip
+has, driving the same clock — start it here and the status bar agrees instantly.
+
+The day's tally lives on the timer's own state rather than being counted out of
+the log, because the log is something you can switch off and the count should
+hold either way. It rolls over on its own: a stamp from another day reads as
+nothing yet today. Breaks are not pomodoros, and neither is a session you
+skipped — only one that ran out counts.
+
 ## Selection echo
 
 Select any text in the editor and every other copy of it is boxed, so you can see
@@ -330,7 +346,7 @@ tagged plain text.
 | | |
 | --- | --- |
 | `Ctrl+1` | Text |
-| `Ctrl+2..6` | Document / Table / Calendar / Tags / Log |
+| `Ctrl+2..7` | Doc / Table / Calendar / Tags / Log / Focus |
 | `Ctrl+K` | search / filter by tag |
 | `Ctrl+F` | find & replace in the text |
 | `Ctrl+\` | open/close the editor |

@@ -250,6 +250,55 @@ code { font-family: var(--mono); font-size: .92em; }
 .pomo-restore { width: 100%; border: 0; background: none; color: var(--ink-3); font-size: 12px; padding: 5px; border-radius: 6px; text-align: left; }
 .pomo-restore:hover { color: var(--accent); background: var(--accent-soft); }
 
+/* The full view: one column down the middle of an empty page. No card, no
+   border, nothing boxed — the point of the page is that there is nothing on it
+   to look at while you are meant to be looking at something else. The colour
+   is the phase's, held back to the ring and a single word. */
+.stage.view-focus { display: grid; place-items: center; padding: 24px; }
+.pomo-view {
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+  color: var(--ink-3); text-align: center;
+}
+.pv-face {
+  position: relative; display: grid; place-items: center;
+  width: 232px; height: 232px; border: 0; background: none; padding: 0;
+  color: var(--ink-3); transition: color .2s;
+}
+.pv-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.pv-ring circle { fill: none; stroke-width: 2.5; }
+.pv-ring .track { stroke: var(--line); }
+.pv-ring .fill {
+  stroke: currentColor; stroke-linecap: round;
+  stroke-dasharray: 340; stroke-dashoffset: 340; transition: stroke-dashoffset .25s linear;
+}
+.pv-time {
+  font-size: 54px; font-weight: 300; letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums; color: var(--ink);
+}
+.pomo-view.idle .pv-face { opacity: .75; }
+.pv-face:hover { opacity: 1; }
+.pomo-view.running { color: var(--now); }
+.pomo-view.running[data-phase="short"], .pomo-view.running[data-phase="long"] { color: var(--accent); }
+
+.pv-phase { display: flex; align-items: center; gap: 10px; margin-top: -4px; }
+.pv-name { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; font-weight: 650; }
+.pomo-view.running .pv-name { color: currentColor; }
+.pv-dots { display: flex; align-items: center; gap: 4px; }
+.pv-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--line); }
+.pv-dots i.past { background: var(--ink-3); }
+.pv-dots i.at { background: currentColor; }
+.pv-task { font-size: 13px; color: var(--ink-2); max-width: 340px; margin-top: -12px; }
+.pv-task:empty { display: none; }
+
+/* the controls are words, not buttons: nothing here should catch your eye */
+.pv-actions { display: flex; gap: 4px; }
+.pv-actions .link { font-size: 12.5px; padding: 4px 10px; }
+.pv-actions .link:first-child { color: var(--ink-2); font-weight: 550; }
+
+.pv-today { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+.pv-today b { color: var(--ink-2); font-weight: 650; }
+.pv-today span { opacity: .5; margin: 0 3px; }
+
 .log-pomo { width: 12px; height: 12px; flex: none; fill: none; stroke: var(--now); stroke-width: 1.4; margin-right: 6px; vertical-align: -1px; }
 .log-focus .log-title { color: var(--ink-2); }
 .log-mins { font-size: 11.5px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
