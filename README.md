@@ -75,14 +75,22 @@ character wide and the raw text keeps its column alignment:
 
 Set the marker with the **▸** beside any task, or with `Ctrl+.` on the line the
 caret is in. Numbering is optional: click the **–** that appears beside a marked
-task to cycle it through 1…9 and back to unnumbered. Marked rows are tinted and
-barred in the document, the table and the calendar, the editor colours the box to
-match, and the status bar counts what is in flight.
+task to cycle it through 1…9 and back to unnumbered.
+
+Marked rows are tinted in the document, the table and the calendar, the editor
+colours the box to match, and the status bar counts what is in flight.
 
 The **Now** filter turns the document into a queue rather than a document: one
 flat list, numbered work first in its own order, then the rest in the order the
 text has it, each item carrying the section it came from. In the table the
 marker rides with the task itself rather than taking a column of its own.
+
+Sorting by that number needs no column either. The number is written inside the
+checkbox and printed in the Task cell, so its control is a small **1→9** chip in
+the Task header — click it to order the table by the queue: numbered work in its
+number, then the rest of what is in flight, then everything still open, then
+what is finished. It cycles the same three ways every header does, and it only
+appears when something in view is actually in flight.
 
 Finishing an in-flight task simply overwrites the marker with a tick, so nothing
 else — the subtask cascade, archiving, the log — needed a special case for it.

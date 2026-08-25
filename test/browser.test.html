@@ -85,6 +85,38 @@ document.getElementById('f').addEventListener('load', function () {
   ok('priority sorts high first', $$('tbody tr')[0].querySelector('.col-select .chip').textContent === 'high', $$('tbody tr')[0].textContent);
   var lastRow = $$('tbody tr').slice(-1)[0];
   ok('no-priority rows sink', lastRow.querySelector('.col-select').textContent === '—', lastRow.textContent);
+  // --- sorting by the number, with no column to hold it
+  ed.value = '- [ ] alpha\n- [3] gamma\n- [ ] beta\n- [1] delta\n- [>] epsilon\n- [x] zeta\n- [2] eta\n';
+  ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  var heads = $$('th').map(function (h) { return h.textContent; });
+  ok('no column was added for it', $$('th').length === 3, heads);
+  var chip = $('.col-title .rank-sort');
+  ok('the control rides in the Task header', !!chip && chip.closest('th').dataset.sort === 'title',
+     chip && chip.closest('th').className);
+  ok('it is off to begin with', !chip.classList.contains('on'), chip.className);
+  function titles() { return $$('.task-title').map(function (e) { return e.textContent; }); }
+  ok('document order until asked', titles()[0] === 'alpha', titles());
+  click($('.rank-sort'));
+  ok('numbers come first, in their number',
+     titles().slice(0, 3).join() === 'delta,eta,gamma', titles());
+  ok('then what is in flight but unnumbered', titles()[3] === 'epsilon', titles());
+  ok('then the rest, in document order', titles()[4] === 'alpha' && titles()[5] === 'beta', titles());
+  ok('and what is done sinks', titles().slice(-1)[0] === 'zeta', titles());
+  ok('the control lights up', $('.rank-sort').classList.contains('on'), $('.rank-sort').className);
+  ok('and no column header claims the sort', $$('th.sorted').length === 0, $$('th.sorted').length);
+  click($('.rank-sort'));
+  ok('a second click reverses it', titles()[0] === 'zeta' && titles().slice(-1)[0] === 'delta', titles());
+  click($('.rank-sort'));
+  ok('a third goes back to document order', titles()[0] === 'alpha', titles());
+  ok('and the control goes dark', !$('.rank-sort').classList.contains('on'), $('.rank-sort').className);
+
+  // it only earns its place when something is actually in flight
+  ed.value = '- [ ] alpha\n- [ ] beta\n';
+  ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  ok('nothing in flight, no control', $('.rank-sort') === null);
+  ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
+  click($('[data-group="0"]'));
+
   // booleans render as yes/no, never blank
   ok('bool column has explicit no', $$('.flag.no').length > 0, $$('.flag.no').length);
   ok('bool column has yes', $$('.flag.yes').length === 5, $$('.flag.yes').length);

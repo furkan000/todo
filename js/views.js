@@ -233,10 +233,27 @@
     return '';
   }
 
+  // The queue order. It belongs to the checkbox rather than to any column — the
+  // number is written inside the box, `- [2] thing` — which is why sorting by it
+  // needs no column of its own: numbered work in its number, then the rest of
+  // what is in flight, then everything still open, then what is finished.
+  function rankKey(t) {
+    if (t.done) return 12;
+    if (t.order) return t.order;
+    return t.active ? 10 : 11;
+  }
+
   // No column chosen means the document's own order — the text is the source of
   // truth, so the order you wrote things in is the one to fall back to.
   function sortTodos(todos, cols, sort) {
     if (!sort || !sort.col) return todos.slice();
+    if (sort.col === 'rank') {
+      var rd = sort.dir === 'desc' ? -1 : 1;
+      return todos.slice().sort(function (a, b) {
+        var ka = rankKey(a), kb = rankKey(b);
+        return ka !== kb ? (ka - kb) * rd : a.line - b.line;
+      });
+    }
     var col = cols.filter(function (c) { return c.id === sort.col; })[0];
     if (!col) return todos.slice();
     var dir = sort.dir === 'desc' ? -1 : 1;
@@ -289,9 +306,22 @@
     }).join('');
   }
 
+  // The rank sort rides in the Task header, next to the label, because that is
+  // the cell the number is printed in. It appears only when something in view is
+  // actually in flight — the same rule the Sub column follows.
+  function rankSortHTML(sort) {
+    var on = sort.col === 'rank';
+    var next = !on ? 'sort by it' : sort.dir === 'asc' ? 'reverse it' : 'go back to document order';
+    return '<button class="rank-sort' + (on ? ' on ' + sort.dir : '') + '" data-sort="rank" tabindex="-1"' +
+      ' title="Working on it, in the order you numbered it — click to ' + next + '">' +
+      (on && sort.dir === 'desc' ? '9→1' : '1→9') + '</button>';
+  }
+
   function oneTable(doc, todos, ctx) {
     var cols = columns(doc, todos);
     var rows = sortTodos(todos, cols, ctx.sort);
+    // keep it while it is the active sort, so the control cannot vanish under you
+    var anyActive = ctx.sort.col === 'rank' || ctx.visible.some(function (t) { return t.active; });
 
     var html = '<div class="table-wrap"><table><thead><tr>';
     cols.forEach(function (c) {
@@ -301,7 +331,8 @@
         ' title="' + attr((c.label || 'Done') + ' — click to ' + next) + '"' +
         (c.width ? ' style="width:' + c.width + '"' : '') + '>' +
         '<span>' + esc(c.label) + '</span>' +
-        '<b class="arrow">' + (on ? (ctx.sort.dir === 'desc' ? '↓' : '↑') : '↕') + '</b></th>';
+        '<b class="arrow">' + (on ? (ctx.sort.dir === 'desc' ? '↓' : '↑') : '↕') + '</b>' +
+        (c.id === 'title' && anyActive ? rankSortHTML(ctx.sort) : '') + '</th>';
     });
     html += '</tr></thead><tbody>';
 
@@ -551,6 +582,6 @@
   global.Views = {
     document: renderDocument, table: renderTable, calendar: renderCalendar,
     discovery: renderDiscovery, log: renderLog,
-    columns: columns, esc: esc, sectionCount: sectionCount
+    columns: columns, esc: esc, sectionCount: sectionCount, rankKey: rankKey
   };
 })(typeof window !== 'undefined' ? window : globalThis);
