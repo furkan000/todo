@@ -1,0 +1,90 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var R=w.Resume, M=w.Music;
+  function $(s){return d.querySelector(s);}
+  function $$(s){return [].slice.call(d.querySelectorAll(s));}
+  M.silence();          // never the network; the positions are what is under test
+  M.clear();
+  R.forgetAll();
+
+  // ---- keeping a position
+  ok('nothing is remembered to begin with', R.get('v:one')===null, R.get('v:one'));
+  var m=R.mark('v:one',{t:124.7,duration:600});
+  ok('a position is kept, to the second', !!m && m.t===124, m);
+  ok('and reads back', R.get('v:one').t===124, R.get('v:one'));
+  ok('it survives a reload', (R.reload(), R.get('v:one').t===124), R.get('v:one'));
+
+  // ---- the two rules that decide whether it is worth keeping
+  ok('a few seconds in is not a position', R.mark('v:two',{t:3,duration:600})===null, R.get('v:two'));
+  ok('and it forgets the one it had',
+     (R.mark('v:one',{t:2,duration:600}), R.get('v:one')===null), R.get('v:one'));
+  ok('nearly finished counts as finished', R.mark('v:three',{t:595,duration:600})===null, R.get('v:three'));
+  ok('exactly at the end too', R.mark('v:three',{t:600,duration:600})===null);
+  ok('but a minute out is still a position', R.mark('v:three',{t:540,duration:600}).t===540);
+  ok('an unknown duration is never near its end', R.mark('v:four',{t:9000,duration:0}).t===9000);
+
+  // ---- what is not a position at all
+  ok('nonsense is ignored', R.mark('v:five',{t:'later'})===null && R.mark('v:five',null)===null && R.mark(null,{t:9})===null);
+  ok('so is a negative one', R.mark('v:five',{t:-30,duration:600})===null, R.get('v:five'));
+
+  // ---- a playlist keeps its place and its seconds apart
+  var pm=R.mark('p:list',{t:2,duration:300,index:4,videoId:'dQw4w9WgXcQ'});
+  ok('a playlist that has only just started a track keeps the track', !!pm && pm.index===4, pm);
+  ok('and drops the seconds, which were not worth it', pm.t===0, pm);
+  ok('with the video it was on', pm.videoId==='dQw4w9WgXcQ', pm);
+  ok('further in it keeps both', (function(){var x=R.mark('p:list',{t:65.9,duration:300,index:4});return x.t===65&&x.index===4;})(), R.get('p:list'));
+  ok('the first track and no seconds is nothing to come back to',
+     R.mark('p:none',{t:1,duration:300,index:0})!==null && R.get('p:none').t===0, R.get('p:none'));
+
+  // ---- housekeeping
+  ok('forgetting one takes it out', R.forget('v:three')===true && R.get('v:three')===null);
+  ok('forgetting what is not there is a no-op', R.forget('v:three')===false);
+  R.mark('v:keep',{t:100,duration:600});
+  R.mark('v:drop',{t:100,duration:600});
+  ok('marks for rows that are gone are pruned', R.keep(['v:keep'])>=1 && R.get('v:drop')===null && R.get('v:keep').t===100, R.all());
+
+  // ---- reading it out
+  ok('a time reads as one', R.format(204)==='3:24', R.format(204));
+  ok('padded under a minute', R.format(9)==='0:09', R.format(9));
+  ok('and grows an hour when it needs one', R.format(3723)==='1:02:03', R.format(3723));
+  ok('nothing formats as nothing', R.format('x')==='' && R.format(-1)==='');
+
+  // ---- what the player would be told
+  R.forgetAll();
+  M.clear();
+  var a=M.add('https://youtu.be/dQw4w9WgXcQ');
+  ok('a new row starts at the start', M.resumeAt(a).t===0 && M.resumeAt(a).index===0, M.resumeAt(a));
+  R.mark(a.key,{t:204,duration:600});
+  ok('one you left mid-track picks up there', M.resumeAt(a).t===204, M.resumeAt(a));
+  var p=M.add('https://www.youtube.com/playlist?list=PLabcdefghij123');
+  R.mark(p.key,{t:65,duration:300,index:3,videoId:'dQw4w9WgXcQ'});
+  ok('a playlist comes back to the track it was on', M.resumeAt(p).index===3 && M.resumeAt(p).t===65, M.resumeAt(p));
+  ok('a video never carries a track number', M.resumeAt(a).index===0, M.resumeAt(a));
+
+  // ---- and what the catalogue says about it
+  w.PTT.showView('music');
+  var row=$('.mu-row[data-music-play="'+a.key+'"] .mu-at');
+  ok('the row says where you left it', !!row && /3:24/.test(row.textContent), row&&row.textContent);
+  var prow=$('.mu-row[data-music-play="'+p.key+'"] .mu-at');
+  ok('a playlist row names the track as well', !!prow && /track 4/.test(prow.textContent) && /1:05/.test(prow.textContent),
+     prow&&prow.textContent);
+  M.play(a.key);
+  w.PTT.showView('music');
+  ok('the row that is playing does not show a stale one',
+     !!$('.mu-row.on') && $('.mu-row.on .mu-at')===null, $('.mu-row.on')&&$('.mu-row.on').innerHTML.slice(0,200));
+
+  // ---- forgetting follows the catalogue
+  ok('removing a row forgets where you were in it', M.remove(p.key)===true && R.get(p.key)===null, R.all());
+  M.clear();
+  ok('and clearing the catalogue forgets all of it', R.get(a.key)===null && Object.keys(R.all()).length===0, R.all());
+  R.forgetAll();
+  w.PTT.showView('doc');
+ }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
+ document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

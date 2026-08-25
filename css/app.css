@@ -343,6 +343,7 @@ code { font-family: var(--mono); font-size: .92em; }
   background: var(--line-2); color: var(--ink-2); font-size: 9.5px; font-weight: 700;
   text-transform: uppercase; letter-spacing: .06em; vertical-align: 1px;
 }
+.mu-at { color: var(--ink-3); font-variant-numeric: tabular-nums; }
 .mu-on { flex: none; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; font-weight: 650; color: var(--now); }
 .mu-del { flex: none; border: 0; background: none; color: var(--ink-3); font-size: 17px; line-height: 1; padding: 2px 6px; border-radius: 5px; opacity: 0; }
 .mu-row:hover .mu-del { opacity: 1; }

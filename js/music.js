@@ -15,6 +15,11 @@
    - two faces, like the timer: the full catalogue in its own tab, and a
      transport in the status bar that is there in every view.
 
+   Where you were in each of them is remembered too, in `js/resume.js` — a
+   position is volatile data written every few seconds, so it is kept apart from
+   the catalogue rather than rewriting it that often. Nothing plays by itself on
+   a reload; the next press of play picks up where the last one left off.
+
    The IFrame Player API is fetched from YouTube the first time you press play —
    not at boot — so the app still starts, parses and renders with no network at
    all. Every call into the player is guarded; if the script never arrives you
@@ -126,11 +131,16 @@
     var before = lib.length;
     lib = lib.filter(function (e) { return e.key !== key; });
     if (active === key) { active = null; stop(); }
+    if (global.Resume) global.Resume.forget(key);
     write();
     return lib.length !== before;
   }
 
-  function clear() { lib = []; active = null; stop(); write(); }
+  function clear() {
+    lib = []; active = null; stop();
+    if (global.Resume) global.Resume.forgetAll();
+    write();
+  }
 
   // The library is the queue: when a single video ends, the next row plays.
   function neighbour(key, step) {
@@ -194,11 +204,16 @@
     return sink;
   }
 
-  function vars(entry) {
+  // One trap worth naming: `getPlaylistIndex()` and `loadPlaylist({index})` are
+  // 0-based, but the `index` player *parameter* is 1-based. We store what the
+  // player reports — 0-based — and add the one only here.
+  function vars(entry, at) {
     var v = { autoplay: 1, rel: 0, modestbranding: 1, playsinline: 1 };
+    if (at && at.t) v.start = at.t;
     if (entry.kind === 'playlist') {
       v.list = entry.playlistId;
       if (!entry.videoId) v.listType = 'playlist';
+      if (at && at.index) v.index = at.index + 1;
     }
     return v;
   }
@@ -208,10 +223,11 @@
     if (disabled) return;
     if (!global.YT || !global.YT.Player) return loadApi();
     ensureSink();
+    var at = resumeAt(entry);
     if (yt && yt.loadVideoById) {
       try {
-        if (entry.kind === 'playlist') yt.loadPlaylist({ list: entry.playlistId, index: 0 });
-        else yt.loadVideoById(entry.videoId);
+        if (entry.kind === 'playlist') yt.loadPlaylist({ list: entry.playlistId, index: at.index, startSeconds: at.t });
+        else yt.loadVideoById({ videoId: entry.videoId, startSeconds: at.t });
         return;
       } catch (e) { /* fall through and rebuild it */ }
     }
@@ -221,7 +237,7 @@
       yt = new global.YT.Player('music-frame', {
         host: EMBED, width: '320', height: '180',
         videoId: entry.kind === 'playlist' ? undefined : entry.videoId,
-        playerVars: vars(entry),
+        playerVars: vars(entry, at),
         events: {
           onReady: function (e) { state.ready = true; try { e.target.playVideo(); } catch (x) {} notify(); },
           onStateChange: onPlayerState,
@@ -234,6 +250,8 @@
   function onPlayerState(e) {
     var S = global.YT && global.YT.PlayerState;
     state.playing = !!S && e.data === S.PLAYING;
+    capture();
+    watch(state.playing);
     try {
       var d = e.target.getVideoData && e.target.getVideoData();
       if (d && d.title) state.track = d.title;
@@ -247,6 +265,46 @@
       }
     }
     notify();
+  }
+
+  /* ---------- where you were ---------- */
+
+  var beat = null;
+
+  // Where this entry left off, in the shape mount() needs. Inside a playlist
+  // the track and the seconds into it are two separate facts, and either can be
+  // remembered without the other.
+  function resumeAt(entry) {
+    var R = global.Resume, m = R && R.get(entry.key);
+    if (!m) return { t: 0, index: 0 };
+    return {
+      t: m.t > 0 ? m.t : 0,
+      index: entry.kind === 'playlist' && typeof m.index === 'number' && m.index > 0 ? m.index : 0
+    };
+  }
+
+  // Read out of the player rather than counted alongside it — the bargain the
+  // timer makes with the clock. Whatever the iframe really did while the tab was
+  // throttled, backgrounded or skipped through, this is the truth of it.
+  function capture() {
+    var R = global.Resume, cur = current();
+    if (!R || !cur || !yt || typeof yt.getCurrentTime !== 'function') return;
+    try {
+      var pos = { t: yt.getCurrentTime(), duration: yt.getDuration ? yt.getDuration() : 0 };
+      if (cur.kind === 'playlist') {
+        var d = yt.getVideoData && yt.getVideoData();
+        pos.videoId = d && d.video_id;
+        pos.index = yt.getPlaylistIndex ? yt.getPlaylistIndex() : null;
+      }
+      R.mark(cur.key, pos);
+    } catch (e) {}
+  }
+
+  // The interval runs only while something is playing: a paused position is
+  // already written and is not going anywhere on its own.
+  function watch(on) {
+    if (on && !beat) beat = setInterval(capture, 5000);
+    if (!on && beat) { clearInterval(beat); beat = null; }
   }
 
   function call(name) {
@@ -315,8 +373,23 @@
 
   function esc(s) { return global.Views ? global.Views.esc(s) : String(s); }
 
+  // A row that has a position says so, quietly, and only when it is not the row
+  // playing — on that one the number would be stale the moment it was painted.
+  function whereAt(e) {
+    var R = global.Resume, m = R && R.get(e.key);
+    if (!m) return '';
+    var track = e.kind === 'playlist' && m.index > 0 ? 'track ' + (m.index + 1) : '';
+    var time = m.t > 0 ? R.format(m.t) : '';
+    if (!track && !time) return '';
+    return 'Left at ' + (track && time ? track + ', ' + time : track || time);
+  }
+
   function rowHTML(e) {
     var on = e.key === active;
+    var where = on ? '' : whereAt(e);
+    var sub = [];
+    if (e.author) sub.push(esc(e.author));
+    if (where) sub.push('<span class="mu-at">' + esc(where) + '</span>');
     return '<li class="mu-row' + (on ? ' on' : '') + '" data-music-play="' + esc(e.key) + '">' +
       (e.thumbnail ? '<img class="mu-thumb" src="' + esc(e.thumbnail) + '" alt="" loading="lazy">'
                    : '<span class="mu-thumb blank"></span>') +
@@ -324,7 +397,7 @@
         '<span class="mu-title">' + esc(e.title) + '</span>' +
         '<span class="mu-sub">' +
           (e.kind === 'playlist' ? '<b class="mu-kind">Playlist</b>' : '') +
-          esc(e.author || '') +
+          sub.join(' · ') +
         '</span>' +
       '</span>' +
       (on ? '<span class="mu-on">' + (state.playing ? 'Playing' : 'Paused') + '</span>' : '') +
@@ -453,6 +526,15 @@
       if (b) { e.preventDefault(); act(b.dataset.music); }
     });
 
+    // positions for rows that are no longer here have nothing to come back to
+    if (global.Resume) global.Resume.keep(lib.map(function (e) { return e.key; }));
+
+    // the last few seconds before the tab goes: `pagehide` covers a reload and a
+    // close, `visibilitychange` covers a phone being locked, which often never
+    // fires anything else
+    global.addEventListener('pagehide', capture);
+    document.addEventListener('visibilitychange', function () { if (document.hidden) capture(); });
+
     paintBar();
     return true;
   }
@@ -464,6 +546,7 @@
     read: read, write: write, activeKey: activeKey, current: current,
     play: play, stop: stop, toggle: toggle, step: step, volume: volume,
     playing: playing, track: track,
+    resumeAt: resumeAt, capture: capture,
     catalogueHTML: catalogueHTML, barHTML: barHTML, paintBar: paintBar,
     init: init, act: act,
     // a seam for the tests: they exercise the catalogue, never the network

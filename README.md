@@ -344,6 +344,22 @@ play rather than at boot, so the app still starts, parses and renders with no
 network at all; without it you have your catalogue and no sound, and nothing
 else notices.
 
+It remembers where you were. Reload the page, come back tomorrow, and pressing
+play picks the track up at the second you left it rather than at the beginning —
+and inside a playlist it comes back to the track you were on, not to the first
+one. The catalogue says so before you press anything: a row you left partway
+through reads *Left at 3:24*, a playlist *Left at track 4, 1:05*.
+
+Two rules keep that from being annoying. A position within ten seconds of the
+end is not kept, since coming back to the last ten seconds is worse than
+starting the thing over; and neither is one in the first five, which is noise
+rather than a memory. A playlist keeps its track either way, so a playlist that
+has only just begun its fifth item still comes back to the fifth.
+
+Nothing plays by itself when the page loads — browsers would refuse anyway, and
+a document that starts making noise on open is not what you want. The position
+is waiting, that is all.
+
 One caveat worth knowing: auto-generated mixes (`RD…`) are built per viewer and
 often refuse to embed. Adding one says so.
 
@@ -424,6 +440,7 @@ js/lines.js     moving lines, and cutting one whole
 js/scrollbars.js  shows a scrollbar only while it is in use
 js/pomodoro.js  the focus timer: a wall-clock state machine + its status-bar chip
 js/music.js     the catalogue, the unseen YouTube player, and its transport
+js/resume.js    where you were in a track, kept apart from the catalogue
 js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/app.js       state, text write-back, import/export
