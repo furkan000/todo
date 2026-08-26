@@ -6,6 +6,8 @@ document.getElementById('f').addEventListener('load',function(){
  var w=this.contentWindow,d=this.contentDocument;
  try{
   var ed=d.getElementById('editor'), btn=d.getElementById('archive-btn');
+  // stamps are the done-date feature's business, not this suite's
+  function plain(){return ed.value.replace(/ #done:\d{4}-\d{2}-\d{2}/g,'');}
   function type(v){ed.value=v;ed.dispatchEvent(new w.Event('input',{bubbles:true}));}
   function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
   w.Log.clear();
@@ -36,19 +38,19 @@ document.getElementById('f').addEventListener('load',function(){
   ok('button reappears', btn.textContent==='Archive done (1)', btn.textContent);
   click(btn);
   ok('merges into the existing subsection',
-     /## Shipping\n\n- \[x\] Scanner @2026-08-18 !high\n- \[x\] Resolver\n/.test(ed.value), ed.value);
+     /## Shipping\n\n- \[x\] Scanner @2026-08-18 !high\n- \[x\] Resolver\n/.test(plain()), ed.value);
   ok('and keeps a blank line before the next heading',
-     /- \[x\] Resolver\n\n## Client work/.test(ed.value), ed.value);
+     /- \[x\] Resolver\n\n## Client work/.test(plain()), ed.value);
 
   // a brand new section gets its own subsection
   type(ed.value.replace('# Studio','# Studio\n\n## Errands\n\n- [x] Parcel'));
   click(btn);
-  ok('new sections are added under Done', /## Errands\n\n- \[x\] Parcel/.test(ed.value), ed.value);
+  ok('new sections are added under Done', /## Errands\n\n- \[x\] Parcel/.test(plain()), ed.value);
 
   // todos with no heading at all
   type('- [x] loose\n- [ ] open');
   click(btn);
-  ok('sectionless todos sit directly under Done', /# Done\n\n- \[x\] loose\n/.test(ed.value), ed.value);
+  ok('sectionless todos sit directly under Done', /# Done\n\n- \[x\] loose\n/.test(plain()), ed.value);
 
   // already-archived work is left alone
   type('## Done\n\n### Shipping\n\n- [x] old one\n');

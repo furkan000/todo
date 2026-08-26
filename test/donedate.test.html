@@ -1,0 +1,120 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  function $(s){return d.querySelector(s);}
+  function $$(s){return [].slice.call(d.querySelectorAll(s));}
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  function type(v,caret){ed.value=v;if(caret!==undefined)ed.selectionStart=ed.selectionEnd=caret;
+                        ed.dispatchEvent(new w.Event('input',{bubbles:true}));}
+  var ed=d.getElementById('editor'), L=w.Log, DD=w.DoneDate;
+  var TODAY=w.TT.isoOf(new Date()), TAG='#done:'+TODAY;
+  DD.setEnabled(true);
+  L.clear();
+
+  ok('the tag is the day, as an ordinary select', DD.tag(TODAY)===TAG, DD.tag(TODAY));
+
+  // --- a document that arrives with work already done is not dated today ---
+  type('- [x] finished last week\n- [ ] open one');
+  ok('pre-done todos are left plain', ed.value.indexOf('#done:')===-1, ed.value);
+
+  // --- ticking a checkbox ---
+  click($('[data-view="doc"]'));
+  var box=$$('.todo input[data-toggle]').filter(function(b){return !b.checked;})[0];
+  box.checked=true; box.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('ticking writes the day into the line', ed.value.indexOf('- [x] open one '+TAG)!==-1, ed.value);
+  ok('and only into that line', (ed.value.match(/#done:/g)||[]).length===1, ed.value);
+  ok('the completion is logged too', L.count()===1, L.all());
+
+  // the stamp is a real tag, so the rest of the app already understands it
+  var t=w.PTT.doc().todos.filter(function(x){return x.title==='open one';})[0];
+  ok('the parser reads it as a select', t.selects.done===TODAY, t.selects);
+  ok('and it is not part of the title', t.title==='open one', t.title);
+  ok('the chip drops the namespace for a tick, like priority drops its own',
+     !!$('.chip.done-on svg') && $('.chip.done-on').textContent===TODAY, $('.chip.done-on')&&$('.chip.done-on').outerHTML);
+  ok('DoneDate.dateOf reads it back', DD.dateOf('- [x] a '+TAG)===TODAY, DD.dateOf('- [x] a '+TAG));
+
+  // --- reopening takes it away again ---
+  box=$$('.todo input[data-toggle]')[1];
+  box.checked=false; box.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('reopening strips the date', ed.value.indexOf('#done:')===-1, ed.value);
+  ok('and leaves the line otherwise intact', /- \[ \] open one$/m.test(ed.value), ed.value);
+
+  // --- typing the x by hand: the space has to go first, so the todo is not a
+  //     todo for one keystroke. Both the log and the stamp must survive that. ---
+  L.clear();
+  type('- [ ] by hand');
+  var before=L.count();
+  type('- [] by hand');            // the space deleted
+  type('- [x] by hand', 4);        // and the x typed in its place
+  ok('typing the x by hand is logged', L.count()===before+1, L.all());
+  ok('and it names the right todo', L.all()[0].title==='by hand', L.all()[0]);
+  ok('typing the x by hand is dated', ed.value.indexOf('- [x] by hand '+TAG)!==-1, ed.value);
+  ok('the caret keeps its place in the line', ed.selectionStart===4, ed.selectionStart);
+
+  // retyping the whole box loses the line for several keystrokes
+  L.clear();
+  type('- [ ] rebuilt');
+  type('-  rebuilt'); type('- [ rebuilt'); type('- [x rebuilt');
+  type('- [x] rebuilt');
+  ok('retyping the whole box is still caught', L.count()===1, L.all());
+  ok('and still dated', ed.value.indexOf('- [x] rebuilt '+TAG)!==-1, ed.value);
+
+  // a todo that simply goes away is not a completion
+  L.clear();
+  type('- [ ] typo\n- [ ] keeper');
+  type('- [ ] keeper');
+  ok('deleting a todo logs nothing', L.count()===0, L.all());
+
+  // --- the date lands after the tags already on the line ---
+  L.clear();
+  type('- [ ] tagged @2026-09-01 !high #proj:atlas');
+  type('- [x] tagged @2026-09-01 !high #proj:atlas');
+  ok('the date goes at the end of the line',
+     ed.value==='- [x] tagged @2026-09-01 !high #proj:atlas '+TAG, ed.value);
+  ok('the other tags are untouched',
+     w.PTT.doc().todos[0].selects.proj==='atlas' && w.PTT.doc().todos[0].due==='2026-09-01', w.PTT.doc().todos[0]);
+
+  // --- a subtask cascade dates everything it finishes ---
+  L.clear();
+  type('# L\n\n- [ ] Parent\n  - [ ] One\n  - [ ] Two\n');
+  click($('[data-view="doc"]'));
+  $$('.todo input[data-toggle]')[0].dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('the cascade dates every line it closed', (ed.value.match(/#done:/g)||[]).length===3, ed.value);
+  ok('and logs every one of them', L.count()===3, L.all());
+
+  // --- two days of dates are two days, not a typo ---
+  type('- [x] a #done:2026-08-25\n- [x] b #done:2026-08-26');
+  var issues=w.TT.findSuspects(w.PTT.doc().vocab).filter(function(i){return i.kind==='value';});
+  ok('near-identical dates are not flagged as typos', issues.length===0, issues);
+  type('- [ ] a #status:"in progress"\n- [ ] b #status:"in progres"');
+  ok('but real near-duplicates still are',
+     w.TT.findSuspects(w.PTT.doc().vocab).filter(function(i){return i.kind==='value';}).length===1,
+     w.TT.findSuspects(w.PTT.doc().vocab));
+
+  // --- the switch ---
+  DD.setEnabled(false);
+  ok('the setting sticks', w.localStorage.getItem('ptt.donedate.v1')==='0');
+  L.clear();
+  type('- [ ] unstamped');
+  type('- [x] unstamped');
+  ok('switched off, nothing is written', ed.value==='- [x] unstamped', ed.value);
+  ok('but the log still records it', L.count()===1, L.all());
+  type('- [x] left alone #done:2026-01-01\n- [ ] reopened #done:2026-01-01');
+  ok('switched off, existing dates are left alone',
+     (ed.value.match(/#done:/g)||[]).length===2, ed.value);
+
+  click($('[data-act="menu"]'));
+  ok('the cog shows which way it is set', $('[data-donedate="off"]').classList.contains('on'));
+  click($('[data-donedate="on"]'));
+  ok('turning it back on takes', DD.enabled() && $('[data-donedate="on"]').classList.contains('on'));
+  ok('turning it on does not backdate what was already done',
+     ed.value.indexOf('#done:'+TODAY)===-1, ed.value);
+  L.clear();
+ }catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
+ document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

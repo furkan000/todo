@@ -334,6 +334,8 @@
   }
 
   /* ---------- typo catcher ---------- */
+  var ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
+
   function levenshtein(a, b) {
     if (a === b) return 0;
     if (Math.abs(a.length - b.length) > 2) return 9;
@@ -364,6 +366,8 @@
       for (var i = 0; i < keys.length; i++) {
         for (var j = i + 1; j < keys.length; j++) {
           if (Math.min(keys[i].length, keys[j].length) < 4) continue;
+          // two dates a day apart are not a typo, they are two days
+          if (ISO_RE.test(keys[i]) && ISO_RE.test(keys[j])) continue;
           if (levenshtein(keys[i], keys[j]) <= 2) {
             var lo = vals.get(keys[i]).count <= vals.get(keys[j]).count ? keys[i] : keys[j];
             var hi = lo === keys[i] ? keys[j] : keys[i];

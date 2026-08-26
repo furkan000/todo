@@ -27,6 +27,7 @@
     var saved = null;
     try { saved = localStorage.getItem(STORE); } catch (e) {}
     Log.init();
+    DoneDate.init();
     // when a staged removal's grace runs out, the page saying so is stale
     Undo.onchange(function () { if (state.view === 'log') render(); });
     els.editor.value = saved === null ? SAMPLE : saved;
@@ -132,7 +133,7 @@
       group: state.group, filter: state.filter
     };
 
-    Log.observe(doc);          // catches open -> done however it happened
+    var finished = Log.observe(doc);   // catches open -> done however it happened
     ctx.log = Log.byDay();
 
     var html = state.view === 'doc' ? Views.document(doc, ctx)
@@ -185,6 +186,58 @@
       '<button data-group="1"' + (state.group ? ' class="on"' : '') + '>by section</button>' +
       '<span class="sep">/</span>' +
       '<button data-group="0"' + (state.group ? '' : ' class="on"') + '>one</button>';
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-donedate]'), function (b) {
+      b.classList.toggle('on', (b.dataset.donedate === 'on') === DoneDate.enabled());
+    });
+
+    // Last, because it edits the text: the page is already painted, and the
+    // write it may make re-renders over the top of it.
+    stampDates(finished);
+  }
+
+  /* The text's own record of when something was finished. It is written after
+     the parse that noticed, rather than by each of the places you can tick a
+     box, so the x you type by hand is stamped exactly like the checkbox you
+     click. One re-render follows; the second pass sees the todo as already done
+     and stops there. */
+  var stamping = false;
+
+  function stampDates(finished) {
+    if (stamping) return;
+    var next = DoneDate.sync(els.editor.value, doc, finished, TT.isoOf(new Date()));
+    if (next === null) return;
+    stamping = true;
+    try { writeStamps(next); } finally { stamping = false; }
+  }
+
+  // Stamps only ever land at the end of a line, so a caret keeps its line and
+  // column even when the line above it grew.
+  function caretAcross(before, after, pos) {
+    var head = before.slice(0, pos).split('\n');
+    var row = head.length - 1, col = head[row].length;
+    var lines = after.split('\n');
+    if (row >= lines.length) return after.length;
+    var at = 0;
+    for (var i = 0; i < row; i++) at += lines[i].length + 1;
+    return at + Math.min(col, lines[row].length);
+  }
+
+  function writeStamps(next) {
+    var caret = caretAcross(els.editor.value, next, els.editor.selectionStart);
+    // if you are typing, the stamp joins the edit you are making rather than
+    // throwing away the undo history behind it
+    if (document.activeElement === els.editor) {
+      els.editor.setSelectionRange(0, els.editor.value.length);
+      var ok = false;
+      try { ok = document.execCommand('insertText', false, next); } catch (e) { ok = false; }
+      if (ok) {
+        els.editor.setSelectionRange(caret, caret);
+        queueSave();
+        return render();
+      }
+    }
+    setText(next, caret);
   }
 
   /* ---------- text mutation ---------- */
@@ -273,7 +326,7 @@
   function onClick(e) {
     var pop = document.getElementById('settings-menu');
     if (pop && !pop.hidden && !e.target.closest('.menu')) closeMenu();
-    var el = e.target.closest ? e.target.closest('[data-view],[data-layout],[data-filter],[data-group],[data-sort],[data-q],[data-month],[data-goto],[data-act],[data-now],[data-rank],[data-theme-set],[data-log-remove],[data-log-undo],.dot[data-toggle]') : null;
+    var el = e.target.closest ? e.target.closest('[data-view],[data-layout],[data-filter],[data-group],[data-sort],[data-q],[data-month],[data-goto],[data-act],[data-now],[data-rank],[data-theme-set],[data-donedate],[data-log-remove],[data-log-undo],.dot[data-toggle]') : null;
     if (!el) return;
 
     // The log is not the text, so its rows cannot ride the browser's undo stack.
@@ -285,6 +338,7 @@
     if (el.dataset.rank !== undefined) { e.preventDefault(); e.stopPropagation(); return bumpRank(+el.dataset.rank); }
     if (el.matches('.dot[data-toggle]')) { e.stopPropagation(); return toggleLine(+el.dataset.toggle); }
     if (el.dataset.themeSet) { state.theme = el.dataset.themeSet; applyTheme(); return savePrefs(); }
+    if (el.dataset.donedate) { DoneDate.setEnabled(el.dataset.donedate === 'on'); return render(); }
     if (el.dataset.view) return showView(el.dataset.view);
     if (el.dataset.layout) return setLayout(el.dataset.layout);
     if (el.dataset.group) { state.group = el.dataset.group === '1'; savePrefs(); return render(); }

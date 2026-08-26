@@ -19,6 +19,8 @@
       .replace(/\bhttps?:\/\/[^\s<]+/g, function (u) { return '<a href="' + attr(u) + '" target="_blank" rel="noopener">' + esc(u) + '</a>'; });
   }
 
+  var TICK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5 6.5 12 13 4.5"/></svg>';
+
   /* ---------- chips ---------- */
   function chipHTML(t, ctx) {
     var q, cls, body, title, styleAttr = '';
@@ -29,8 +31,14 @@
       cls = 'chip select ns-' + slug(ns);
       if (ns === 'priority') cls += ' prio-' + (TT.canonicalPriority(val) || 'x');
       // priority is built in and its values speak for themselves — "high" needs
-      // no "priority:" in front of it, and the chip is colour-coded besides
-      body = (ns === 'priority' ? '' : '<i>' + esc(ns) + '</i>') + esc(val);
+      // no "priority:" in front of it, and the chip is colour-coded besides.
+      // A completion date says the same twice over on a row whose box is ticked,
+      // so it wears a tick instead of the word — and the tick is what tells it
+      // apart from the due date sitting next to it.
+      body = ns === 'priority' ? esc(val)
+        : ns === 'done' ? TICK + esc(val)
+        : '<i>' + esc(ns) + '</i>' + esc(val);
+      if (ns === 'done') cls += ' done-on';
       styleAttr = hueStyle(ns);
       if (t.kind === 'bare') {
         cls += ' taught';

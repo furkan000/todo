@@ -9,8 +9,11 @@
   var KEY = 'ptt.log.v1';
   var CAP = 5000;
 
+  var GHOST_MS = 30000;  // how long a todo that vanished mid-edit is remembered
+
   var entries = [];      // newest last
   var prev = null;       // todo snapshot from the previous parse
+  var ghosts = [];       // todos that were there and then weren't, kept briefly
   var skip = false;
   var removed = {};      // id -> true: taken out, but still inside its undo grace
   var seq = 0;
@@ -65,17 +68,36 @@
     return false;
   }
 
-  // Called after every parse. The first call only establishes a baseline: todos
-  // that are already done when the document loads were not done *now*.
-  function observe(doc) {
-    var now = snapshot(doc);
-    if (skip) { skip = false; prev = now; return 0; }
-    if (!prev) { prev = now; return 0; }
+  function has(list, title) {
+    for (var i = 0; i < list.length; i++) if (list[i].title === title) return true;
+    return false;
+  }
 
-    var added = 0;
+  /* Called after every parse; returns the todos that were just finished.
+
+     The first call only establishes a baseline: todos that are already done when
+     the document loads were not done *now*.
+
+     Typing the x by hand is the awkward case. Turning "- [ ] thing" into
+     "- [x] thing" means deleting the space first, and "- []" is not a todo at
+     all — so for one keystroke the todo is not in the parse, and the naive diff
+     compares the finished line against a document that never had it. A todo
+     that disappears is therefore remembered for half a minute rather than
+     forgotten, so the completion at the end of an edit still has a before. */
+  function observe(doc) {
+    var now = snapshot(doc), at = Date.now();
+    if (skip) { skip = false; prev = now; ghosts = []; return []; }
+    if (!prev) { prev = now; return []; }
+
+    // the previous parse, plus whatever went missing in the parses before it
+    var fresh = ghosts.filter(function (g) { return at - g.at < GHOST_MS; });
+    var before = prev.concat(fresh.filter(function (g) { return !has(prev, g.title); }));
+
+    var finished = [];
     doc.todos.forEach(function (t) {
       if (!t.done) return;
-      if (!wasOpen(prev, t)) return;
+      if (!wasOpen(before, t)) return;
+      finished.push(t);
       entries.push({
         id: uid(),
         ts: Date.now(),
@@ -87,11 +109,18 @@
         due: t.due || '',
         priority: t.priority || ''
       });
-      added++;
     });
+
+    // a todo that has come back needs no ghost; one that just left gets one
+    var missing = prev.filter(function (e) { return !has(now, e.title); })
+      .map(function (e) { return { line: e.line, title: e.title, done: e.done, at: at }; });
+    ghosts = fresh.filter(function (g) {
+      return !has(now, g.title) && !has(missing, g.title);
+    }).concat(missing);
+
     prev = now;
-    if (added) save();
-    return added;
+    if (finished.length) save();
+    return finished;
   }
 
   // Wholesale replacements (import, sample, clear) are not acts of completing work
@@ -170,6 +199,7 @@
 
   function clear() {
     forgetPending();
+    ghosts = [];
     entries = [];
     save();
   }

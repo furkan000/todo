@@ -70,6 +70,15 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
           </div>
         </div>
         <div class="menu-sep"></div>
+        <div class="menu-label">Finished todos</div>
+        <div class="menu-row">
+          <div class="segmented" role="group" aria-label="Write the day a todo was finished into its line">
+            <button data-donedate="on">Date them</button>
+            <button data-donedate="off">Leave plain</button>
+          </div>
+        </div>
+        <div class="menu-hint">a <code>#done:</code> tag on the line, written when you tick it</div>
+        <div class="menu-sep"></div>
         <div class="menu-label">Document</div>
         <button data-act="import"><b>Import a file…</b><span>.md, .txt, .json or .csv</span></button>
         <button data-act="copy"><b>Copy to clipboard</b><span>the raw text</span></button>
@@ -168,6 +177,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
 <script src="js/views.js"></script>
 <script src="js/undo.js"></script>
 <script src="js/log.js"></script>
+<script src="js/donedate.js"></script>
 <script src="js/archive.js"></script>
 <script src="js/subtasks.js"></script>
 <script src="js/focus.js"></script>

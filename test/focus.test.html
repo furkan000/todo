@@ -6,6 +6,8 @@ document.getElementById('f').addEventListener('load',function(){
  var w=this.contentWindow,d=this.contentDocument;
  try{
   var ed=d.getElementById('editor');
+  // stamps are the done-date feature's business, not this suite's
+  function plain(){return ed.value.replace(/ #done:\d{4}-\d{2}-\d{2}/g,'');}
   function type(v){ed.value=v;ed.dispatchEvent(new w.Event('input',{bubbles:true}));}
   function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
   function key(o){o.bubbles=true;o.cancelable=true;ed.dispatchEvent(new w.KeyboardEvent('keydown',o));}
@@ -26,10 +28,10 @@ document.getElementById('f').addEventListener('load',function(){
   var btn=d.querySelector('.todo [data-now="2"]');
   ok('every open todo offers the marker', !!btn, '');
   click(btn);
-  ok('clicking it writes [>] into the text', /- \[>\] one/.test(ed.value), ed.value);
+  ok('clicking it writes [>] into the text', /- \[>\] one/.test(plain()), ed.value);
   ok('the row is marked active', !!d.querySelector('.todo.active'), '');
   click(d.querySelector('.todo [data-now="2"]'));
-  ok('clicking again clears it', /- \[ \] one/.test(ed.value), ed.value);
+  ok('clicking again clears it', /- \[ \] one/.test(plain()), ed.value);
   ok('a done todo has no marker', !d.querySelector('.todo [data-now="4"]'), '');
 
   /* ---- Ctrl+. on the caret's line ---- */
@@ -37,12 +39,12 @@ document.getElementById('f').addEventListener('load',function(){
   var at=ed.value.indexOf('- [ ] two')+3;
   ed.focus(); ed.setSelectionRange(at,at);
   d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'.',ctrlKey:true,bubbles:true,cancelable:true}));
-  ok('Ctrl+. marks the line the caret is on', /- \[ \] one\n- \[>\] two/.test(ed.value), ed.value);
+  ok('Ctrl+. marks the line the caret is on', /- \[ \] one\n- \[>\] two/.test(plain()), ed.value);
 
   /* ---- ticking it off ---- */
   var cb=d.querySelector('input[data-toggle="3"]');
   cb.checked=true; cb.dispatchEvent(new w.Event('change',{bubbles:true}));
-  ok('finishing an active task replaces the arrow with a tick', /- \[x\] two/.test(ed.value), ed.value);
+  ok('finishing an active task replaces the arrow with a tick', /- \[x\] two/.test(plain()), ed.value);
   ok('and it is no longer active', todos()[1].active===false, todos()[1]);
 
   /* ---- the Now filter ---- */
@@ -73,28 +75,28 @@ document.getElementById('f').addEventListener('load',function(){
   /* ---- the rank control ---- */
   type('# L\n\n- [>] one\n');
   click(d.querySelector('[data-rank="2"]'));
-  ok('clicking the rank numbers it', /- \[1\] one/.test(ed.value), ed.value);
+  ok('clicking the rank numbers it', /- \[1\] one/.test(plain()), ed.value);
   click(d.querySelector('[data-rank="2"]'));
-  ok('clicking again advances it', /- \[2\] one/.test(ed.value), ed.value);
+  ok('clicking again advances it', /- \[2\] one/.test(plain()), ed.value);
   type(ed.value.replace('[2]','[9]'));
   click(d.querySelector('[data-rank="2"]'));
-  ok('past the last number it drops back to unranked', /- \[>\] one/.test(ed.value), ed.value);
+  ok('past the last number it drops back to unranked', /- \[>\] one/.test(plain()), ed.value);
   ok('an unmarked todo offers no rank control', !d.querySelector('[data-rank="0"]'), '');
 
   type('# L\n\n- [3] ranked\n');
   click(d.querySelector('[data-now="2"]'));
-  ok('unsetting a ranked task clears the number too', /- \[ \] ranked/.test(ed.value), ed.value);
+  ok('unsetting a ranked task clears the number too', /- \[ \] ranked/.test(plain()), ed.value);
 
   /* ---- subtasks and archiving still behave ---- */
   type('# L\n\n- [ ] Parent\n  - [>] One\n  - [ ] Two\n');
   var box=d.querySelector('input[data-toggle="2"]');
   box.checked=true; box.dispatchEvent(new w.Event('change',{bubbles:true}));
-  ok('the cascade overwrites an in-flight subtask', /- \[x\] Parent\n  - \[x\] One\n  - \[x\] Two/.test(ed.value), ed.value);
+  ok('the cascade overwrites an in-flight subtask', /- \[x\] Parent\n  - \[x\] One\n  - \[x\] Two/.test(plain()), ed.value);
   type('# L\n\n- [>] busy\n- [4] also busy\n');
   ok('in-flight work is not archivable', w.Archive.pending(w.PTT.doc()).length===0, ed.value);
   var cb2=d.querySelector('input[data-toggle="3"]');
   cb2.checked=true; cb2.dispatchEvent(new w.Event('change',{bubbles:true}));
-  ok('finishing ranked work overwrites the number with a tick', /- \[x\] also busy/.test(ed.value), ed.value);
+  ok('finishing ranked work overwrites the number with a tick', /- \[x\] also busy/.test(plain()), ed.value);
 
   /* ---- Enter continues an active line as a plain one ---- */
   ed.value='- [>] first'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));

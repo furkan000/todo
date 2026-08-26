@@ -6,6 +6,8 @@ document.getElementById('f').addEventListener('load',function(){
  var w=this.contentWindow,d=this.contentDocument;
  try{
   var ed=d.getElementById('editor'), btn=d.getElementById('archive-btn');
+  // stamps are the done-date feature's business, not this suite's
+  function plain(){return ed.value.replace(/ #done:\d{4}-\d{2}-\d{2}/g,'');}
   function type(v){ed.value=v;ed.dispatchEvent(new w.Event('input',{bubbles:true}));}
   function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
   function tick(line){var b=d.querySelector('[data-toggle="'+line+'"]');b.checked=!b.checked;b.dispatchEvent(new w.Event('change',{bubbles:true}));}
@@ -26,25 +28,25 @@ document.getElementById('f').addEventListener('load',function(){
   tick(2);
   ok('ticking a parent finishes the whole subtree',
      (ed.value.match(/\[x\]/g)||[]).length===4, ed.value);
-  ok('and leaves a todo outside it alone', /- \[ \] Loner/.test(ed.value), ed.value);
+  ok('and leaves a todo outside it alone', /- \[ \] Loner/.test(plain()), ed.value);
   tick(2);
   ok('un-ticking it reopens them all', (ed.value.match(/\[x\]/g)||[]).length===0, ed.value);
 
   /* ---- ticking up ---- */
   type('# L\n\n- [ ] Parent\n  - [ ] One\n  - [ ] Two\n');
   tick(3);
-  ok('one child done leaves the parent open', /- \[ \] Parent\n  - \[x\] One\n  - \[ \] Two/.test(ed.value), ed.value);
+  ok('one child done leaves the parent open', /- \[ \] Parent\n  - \[x\] One\n  - \[ \] Two/.test(plain()), ed.value);
   ok('and the parent reads as partial', todos()[0].partial===true && todos()[0].subDone===1, todos()[0]);
   tick(4);
-  ok('the last child finishes the parent', /- \[x\] Parent\n  - \[x\] One\n  - \[x\] Two/.test(ed.value), ed.value);
+  ok('the last child finishes the parent', /- \[x\] Parent\n  - \[x\] One\n  - \[x\] Two/.test(plain()), ed.value);
   tick(3);
-  ok('reopening a child reopens the parent', /- \[ \] Parent\n  - \[ \] One\n  - \[x\] Two/.test(ed.value), ed.value);
+  ok('reopening a child reopens the parent', /- \[ \] Parent\n  - \[ \] One\n  - \[x\] Two/.test(plain()), ed.value);
 
   // and up more than one level
   type('# L\n\n- [ ] A\n  - [ ] B\n    - [ ] C\n');
   tick(4);
   ok('finishing the deepest child rolls all the way up',
-     /- \[x\] A\n  - \[x\] B\n    - \[x\] C/.test(ed.value), ed.value);
+     /- \[x\] A\n  - \[x\] B\n    - \[x\] C/.test(plain()), ed.value);
 
   /* ---- the document view ---- */
   type('# L\n\n- [ ] Parent\n  - [x] One\n  - [ ] Two\n');
@@ -68,8 +70,8 @@ document.getElementById('f').addEventListener('load',function(){
   ok('a finished item counts once, not once per line', btn.textContent==='Archive done (1)', btn.textContent);
   click(btn);
   ok('the subtasks travel with it',
-     /## Ship\n\n- \[x\] Parent\n  - \[x\] One\n  - \[x\] Two/.test(ed.value), ed.value);
-  ok('and leave their old home', /## Ship\n\n- \[ \] Open one/.test(ed.value), ed.value);
+     /## Ship\n\n- \[x\] Parent\n  - \[x\] One\n  - \[x\] Two/.test(plain()), ed.value);
+  ok('and leave their old home', /## Ship\n\n- \[ \] Open one/.test(plain()), ed.value);
 
   type('# L\n\n- [ ] Parent\n  - [x] Done child\n');
   ok('a done subtask of open work is not archivable on its own',
@@ -85,10 +87,10 @@ document.getElementById('f').addEventListener('load',function(){
   var at=ed.value.indexOf('- [ ] second')+3;
   ed.setSelectionRange(at,at);
   ed.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true}));
-  ok('Tab on a todo indents the whole line', /- \[ \] first\n  - \[ \] second/.test(ed.value), ed.value);
+  ok('Tab on a todo indents the whole line', /- \[ \] first\n  - \[ \] second/.test(plain()), ed.value);
   ok('which makes it a subtask', todos()[1].parent===todos()[0], '');
   ed.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true,cancelable:true}));
-  ok('Shift+Tab promotes it back out', /- \[ \] first\n- \[ \] second/.test(ed.value), ed.value);
+  ok('Shift+Tab promotes it back out', /- \[ \] first\n- \[ \] second/.test(plain()), ed.value);
   ok('and it is nobody\'s child again', todos()[1].parent===null, '');
 
   /* ---- the log ---- */

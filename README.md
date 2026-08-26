@@ -247,8 +247,16 @@ the document, the table or the calendar, or the letter `x` typed straight into t
 text: the app diffs each parse against the last and catches the open → done
 transition either way.
 
+Typing the `x` by hand is the awkward case, and it is handled. Turning `- [ ]`
+into `- [x]` means deleting the space first, and `- []` is not a todo at all —
+so for a keystroke or two the line is not in the parse and a naive diff would
+compare the finished line against a document that never had it. A todo that
+disappears is remembered for half a minute instead, so the completion at the end
+of an edit still has a *before*. Retyping the whole checkbox works for the same
+reason.
+
 The log lives beside the document rather than inside it, so finished lines do not
-accumulate stamps. Each entry keeps a snapshot — time, task, section, due date,
+accumulate the time of day. Each entry keeps a snapshot — time, task, section, due date,
 priority — so later edits to the document never rewrite history. Reopening a todo
 is not an event; finishing it again is. Loading or importing a file that already
 contains done todos records nothing, since none of that happened just now.
@@ -267,6 +275,36 @@ what gets written to storage is what the log would export.
 If finished work in the text is what distracts you, the **Open** filter now hides
 done todos in the document view as well — the lines stay in your text, they just
 stop competing for attention, and a footnote says how many are hidden.
+
+## The day it was finished
+
+Ticking a todo also writes the date into the line:
+
+```markdown
+- [x] Rewrite the tag scanner @2026-08-18 !high #proj:atlas #done:2026-08-26
+```
+
+No new syntax was needed. `#done:2026-08-26` is an ordinary namespaced select,
+so the parser already read it, the table already gives it a column, the Tags view
+already lists it, and clicking one already filters the document to that day. It
+travels with the line — through an export, through an archive, into any other
+editor you open the file in — which is the half of the record that belongs to
+the text. The log keeps the same fact with the time attached.
+
+It is written whichever way you tick: a checkbox in any view, a subtask cascade,
+or the `x` typed straight into the source. Reopening a todo takes the date off
+again, because an open task wearing a completion date is simply wrong.
+
+The date is only ever added at the moment something is finished, never on load —
+opening a file full of finished work must not date all of it today.
+
+On a ticked row the word `done` says what the tick already said, so the chip
+wears a **✓** instead — which is also what tells it apart from the due date
+beside it. Two dates a day apart are two days, so the Tags view stops calling
+them a possible typo.
+
+Turn it off under the cog (**Finished todos → Leave plain**) and nothing is
+written; dates already in your text are left where they are.
 
 ## Focus timer
 
@@ -433,6 +471,7 @@ js/overlay.js   pins the editor's layers to its text box
 js/highlight.js syntax colouring, painted from the parse result
 js/log.js       activity log: watches parses for open -> done, records sessions
 js/undo.js      actions that cannot ride the text's undo stack, held reversible
+js/donedate.js  writes #done:<date> into a line as it is ticked, strips it back
 js/archive.js   moves finished todos into a Done section
 js/subtasks.js  the indent tree, ticking that follows it, and Tab authoring
 js/focus.js     the [>] "working on it" state

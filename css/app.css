@@ -160,6 +160,8 @@ code { font-family: var(--mono); font-size: .92em; }
   border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow);
 }
 .menu-label { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); padding: 6px 9px 4px; font-weight: 650; }
+.menu-hint { font-size: 11px; color: var(--ink-3); padding: 2px 9px 6px; line-height: 1.4; }
+.menu-hint code { font-family: var(--mono); font-size: 10.5px; }
 .menu-pop button {
   display: block; width: 100%; text-align: left; border: 0; background: none;
   padding: 6px 9px; border-radius: 6px;
@@ -562,6 +564,8 @@ code { font-family: var(--mono); font-size: .92em; }
 .chip.bool { background: transparent; color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, transparent); }
 .chip.date { background: var(--panel-2); color: var(--ink-2); border-color: var(--line); }
 .chip.date svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1.4; opacity: .65; }
+/* the completion date wears a tick where every other select wears its namespace */
+.chip.done-on svg { width: 10px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1.8; opacity: .8; margin-right: 1px; }
 .chip.date.overdue { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 35%, transparent); }
 .chip.date.bad { color: var(--bad); border-style: dashed; text-decoration: underline wavy; text-underline-offset: 3px; }
 .chip.prio-high { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); border-color: color-mix(in srgb, var(--bad) 32%, transparent); }
