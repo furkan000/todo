@@ -63,6 +63,38 @@ document.getElementById('f').addEventListener('load',function(){
   ok('retyping the whole box is still caught', L.count()===1, L.all());
   ok('and still dated', ed.value.indexOf('- [x] rebuilt '+TAG)!==-1, ed.value);
 
+  // --- a title that exists twice. A recurring task has a finished copy of
+  //     itself in the archive, and ticking the new one by hand passes through
+  //     a state where only the old one is in the document. ---
+  L.clear();
+  type('- [ ] weekly review\n\n# Done\n\n- [x] weekly review #done:2026-01-05');
+  type('- [] weekly review\n\n# Done\n\n- [x] weekly review #done:2026-01-05');
+  type('- [x] weekly review\n\n# Done\n\n- [x] weekly review #done:2026-01-05', 4);
+  ok('a task with a finished twin is still logged', L.count()===1, L.all());
+  ok('and still dated', ed.value.indexOf('- [x] weekly review '+TAG+'\n')===0, ed.value);
+  ok('the twin keeps its own date', ed.value.indexOf('- [x] weekly review #done:2026-01-05')!==-1, ed.value);
+
+  L.clear();
+  type('- [ ] call max\n- [ ] call max');
+  type('- [ ] call max\n- [] call max');
+  type('- [ ] call max\n- [x] call max');
+  ok('with an open twin, the one that was ticked is the one dated',
+     ed.value==='- [ ] call max\n- [x] call max '+TAG, ed.value);
+  ok('and logged once', L.count()===1, L.all());
+
+  // writing a finished line that matches an open one elsewhere finishes nothing
+  L.clear();
+  type('- [ ] buy milk\n');
+  type('- [ ] buy milk\n- [x] buy milk');
+  ok('a new done line is not the open one being finished', L.count()===0 && ed.value.indexOf('#done:')===-1, ed.value);
+
+  // a line inserted above moves every todo down; that is not a disappearance
+  L.clear();
+  type('- [ ] alpha\n- [ ] beta');
+  type('intro\n- [ ] alpha\n- [ ] beta');
+  type('intro\n- [ ] alpha\n- [x] beta');
+  ok('a shifted todo is still recognised when ticked', L.count()===1 && ed.value==='intro\n- [ ] alpha\n- [x] beta '+TAG, ed.value);
+
   // a todo that simply goes away is not a completion
   L.clear();
   type('- [ ] typo\n- [ ] keeper');
