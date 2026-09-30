@@ -53,24 +53,33 @@
     });
   }
 
-  // A todo is "the same todo" across two parses if it sits on the same line with
-  // the same words, or — when a line was inserted above it — if its words are
-  // unique in both. Anything vaguer would invent completions.
-  function wasOpen(before, todo) {
-    var i, exact = null, byTitle = [], hit;
-    for (i = 0; i < before.length; i++) {
-      hit = before[i];
-      if (hit.line === todo.line && hit.title === todo.title) exact = hit;
-      if (hit.title === todo.title) byTitle.push(hit);
-    }
-    if (exact) return exact.done === false;
-    if (byTitle.length === 1) return byTitle[0].done === false;
-    return false;
+  function tally(list, title) {
+    for (var i = 0, n = 0; i < list.length; i++) if (list[i].title === title) n++;
+    return n;
   }
 
-  function has(list, title) {
-    for (var i = 0; i < list.length; i++) if (list[i].title === title) return true;
-    return false;
+  function at(list, e) {
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].line === e.line && list[i].title === e.title) return list[i];
+    }
+    return null;
+  }
+
+  // A todo is "the same todo" across two parses if it sits on the same line with
+  // the same words. Failing that — a line was inserted above it — it is the one
+  // earlier todo with those words that nothing else in the document now
+  // accounts for. Titles repeat: a recurring task has finished copies of itself
+  // in the archive, and those are themselves, not this one's past. Anything
+  // vaguer would invent completions.
+  function wasOpen(before, now, todo) {
+    var exact = at(before, todo);
+    if (exact) return exact.done === false;
+    var loose = before.filter(function (hit) {
+      if (hit.title !== todo.title) return false;
+      var still = at(now, hit);
+      return !still || still.line === todo.line;
+    });
+    return loose.length === 1 && loose[0].done === false;
   }
 
   /* Called after every parse; returns the todos that were just finished.
@@ -85,18 +94,20 @@
      that disappears is therefore remembered for half a minute rather than
      forgotten, so the completion at the end of an edit still has a before. */
   function observe(doc) {
-    var now = snapshot(doc), at = Date.now();
+    var now = snapshot(doc), when = Date.now();
     if (skip) { skip = false; prev = now; ghosts = []; return []; }
     if (!prev) { prev = now; return []; }
 
     // the previous parse, plus whatever went missing in the parses before it
-    var fresh = ghosts.filter(function (g) { return at - g.at < GHOST_MS; });
-    var before = prev.concat(fresh.filter(function (g) { return !has(prev, g.title); }));
+    // and had not come back by then
+    var was = prev;
+    var fresh = ghosts.filter(function (g) { return when - g.at < GHOST_MS; });
+    var before = was.concat(fresh.filter(function (g) { return tally(was, g.title) < g.n; }));
 
     var finished = [];
     doc.todos.forEach(function (t) {
       if (!t.done) return;
-      if (!wasOpen(before, t)) return;
+      if (!wasOpen(before, now, t)) return;
       finished.push(t);
       entries.push({
         id: uid(),
@@ -111,11 +122,17 @@
       });
     });
 
-    // a todo that has come back needs no ghost; one that just left gets one
-    var missing = prev.filter(function (e) { return !has(now, e.title); })
-      .map(function (e) { return { line: e.line, title: e.title, done: e.done, at: at }; });
+    // A todo that has come back needs no ghost; one that just left gets one.
+    // "Left" is counted, not looked up by its words: the document has one fewer
+    // todo saying this than it had, and this is the one no longer where it was.
+    // `n` is how many there were, which is how its return is recognised.
+    var missing = was.filter(function (e) {
+      return !at(now, e) && tally(now, e.title) < tally(was, e.title);
+    }).map(function (e) {
+      return { line: e.line, title: e.title, done: e.done, at: when, n: tally(was, e.title) };
+    });
     ghosts = fresh.filter(function (g) {
-      return !has(now, g.title) && !has(missing, g.title);
+      return tally(now, g.title) < g.n && !at(missing, g);
     }).concat(missing);
 
     prev = now;
