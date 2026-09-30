@@ -69,6 +69,24 @@ document.getElementById('f').addEventListener('load',function(){
   type('- [ ] keeper');
   ok('deleting a todo logs nothing', L.count()===0, L.all());
 
+  // --- with the editor focused the stamp is typed in through the editor, and
+  //     one insertText is two input events per line it inserts. Each used to be
+  //     a full parse and render, which hung the page on a long document. ---
+  L.clear();
+  var long='- [ ] first\n';
+  for(var i=0;i<300;i++) long+='- [ ] filler '+i+'\n';
+  type(long);
+  ed.focus();
+  var parses=0, observe=L.observe;
+  L.observe=function(doc){parses++;return observe(doc);};
+  type(long.replace('- [ ] first','- [x] first'), 4);
+  L.observe=observe;
+  ok('a focused stamp is still written', ed.value.indexOf('- [x] first '+TAG+'\n- [ ] filler 0\n')===0, ed.value.slice(0,60));
+  ok('and the rest of the document is untouched', ed.value.length===long.length+TAG.length+1, ed.value.length);
+  ok('stamping a long document costs a parse or two, not one per line', parses<=2, parses);
+  ok('the caret stays put when the stamp is typed in', ed.selectionStart===4, ed.selectionStart);
+  ed.blur();
+
   // --- the date lands after the tags already on the line ---
   L.clear();
   type('- [ ] tagged @2026-09-01 !high #proj:atlas');

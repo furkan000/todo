@@ -39,7 +39,7 @@
       ['view', 'filter', 'sort', 'layout', 'theme', 'group', 'split'].forEach(function (k) { if (p[k] !== undefined) state[k] = p[k]; });
     } catch (e) {}
 
-    els.editor.addEventListener('input', function () { queueSave(); render(); });
+    els.editor.addEventListener('input', function () { if (typing) return; queueSave(); render(); });
     els.editor.addEventListener('keydown', onEditorKey);
     els.editor.addEventListener('cut', onCut);
     els.search.addEventListener('input', function () { state.query = els.search.value; render(); });
@@ -224,14 +224,18 @@
   }
 
   function writeStamps(next) {
-    var caret = caretAcross(els.editor.value, next, els.editor.selectionStart);
+    var was = els.editor.value;
+    var caret = caretAcross(was, next, els.editor.selectionStart);
     // if you are typing, the stamp joins the edit you are making rather than
     // throwing away the undo history behind it
     if (document.activeElement === els.editor) {
-      els.editor.setSelectionRange(0, els.editor.value.length);
-      var ok = false;
-      try { ok = document.execCommand('insertText', false, next); } catch (e) { ok = false; }
-      if (ok) {
+      // only the span that differs is retyped: a stamp is a few characters, and
+      // the cost of typing text in grows much faster than its length
+      var a = 0, z = 0, max = Math.min(was.length, next.length);
+      while (a < max && was.charCodeAt(a) === next.charCodeAt(a)) a++;
+      while (z < max - a && was.charCodeAt(was.length - 1 - z) === next.charCodeAt(next.length - 1 - z)) z++;
+      els.editor.setSelectionRange(a, was.length - z);
+      if (typeInto(next.slice(a, next.length - z)) && els.editor.value === next) {
         els.editor.setSelectionRange(caret, caret);
         queueSave();
         return render();
@@ -241,6 +245,22 @@
   }
 
   /* ---------- text mutation ---------- */
+  /* Type a string in at the selection, through the editor itself, so the
+     browser's own undo stack survives. One call is not one input event: Chrome
+     fires two for every line of what it inserts, and each used to be a full
+     parse and render of a half-written document — a stamp on a few hundred
+     lines froze the page for seconds. The listener is deaf while this runs;
+     every caller saves and renders once, itself, when the text is whole. */
+  var typing = false;
+
+  function typeInto(str) {
+    var ok = false;
+    typing = true;
+    try { ok = document.execCommand('insertText', false, str); } catch (e) { ok = false; }
+    typing = false;
+    return ok;
+  }
+
   function setText(next, caret) {
     var sel = caret !== undefined ? caret : els.editor.selectionStart;
     var top = els.editor.scrollTop;
@@ -257,9 +277,7 @@
   function replaceSpan(from, to, str, selStart, selEnd) {
     els.editor.focus();
     els.editor.setSelectionRange(from, to);
-    var ok = false;
-    try { ok = document.execCommand('insertText', false, str); } catch (e) { ok = false; }
-    if (!ok) {
+    if (!typeInto(str)) {
       var v = els.editor.value;
       els.editor.value = v.slice(0, from) + str + v.slice(to);
     }
@@ -273,9 +291,7 @@
   function replaceKeepingUndo(next) {
     els.editor.focus();
     els.editor.setSelectionRange(0, els.editor.value.length);
-    var ok = false;
-    try { ok = document.execCommand('insertText', false, next); } catch (e) { ok = false; }
-    if (!ok) return setText(next, 0);
+    if (!typeInto(next)) return setText(next, 0);
     els.editor.setSelectionRange(0, 0);
     queueSave();
     render();
