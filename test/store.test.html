@@ -1,0 +1,181 @@
+<!doctype html><meta charset="utf-8"><body><div id="slot"></div><pre id="out">running</pre>
+<script src="../js/store.js"></script>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+try{
+ var S=window.Store;
+
+ // --- a stand-in for the server: same rules, answers held until released ---
+ function Server(){
+  var self=this; self.keys={}; self.down=false; self.held=[]; self.hold=false; self.puts=[];
+  function answer(fn){ if(self.hold) self.held.push(fn); else fn(); }
+  self.release=function(){var h=self.held;self.held=[];h.forEach(function(f){f();});};
+  self.write=function(k,v){var r=(self.keys[k]?self.keys[k].rev:0)+1;self.keys[k]={rev:r,value:v};return r;};
+  self.load=function(name,cb){answer(function(){
+    if(self.down) return cb(new Error('down'));
+    cb(null,JSON.parse(JSON.stringify(self.keys)));});};
+  self.revs=function(name,cb){answer(function(){
+    if(self.down) return cb(new Error('down'));
+    var o={};Object.keys(self.keys).forEach(function(k){o[k]=self.keys[k].rev;});cb(null,o);});};
+  self.put=function(name,key,value,rev,keepalive,cb){
+    self.puts.push({key:key,value:value,rev:rev,keepalive:keepalive});
+    answer(function(){
+      if(self.down) return cb(new Error('down'));
+      var have=self.keys[key]?self.keys[key].rev:0;
+      if(rev!==null && rev!==have) return cb(null,false,have);
+      cb(null,true,self.write(key,value));});};
+ }
+ function Local(init){var m=init||{};return{
+  getItem:function(k){return Object.prototype.hasOwnProperty.call(m,k)?m[k]:null;},
+  setItem:function(k,v){m[k]=String(v);}, key:function(i){return Object.keys(m)[i];},
+  get length(){return Object.keys(m).length;}, raw:m};}
+ var DOC='ptt.doc.v1';
+
+ // --- the name in the address bar ---
+ function at(protocol,pathname){return S.userFrom({protocol:protocol,pathname:pathname});}
+ ok('a file has no name', at('file:','/home/furkan/todo/index.html')===null);
+ ok('the root has no name', at('http:','/')===null);
+ ok('a path is the name', at('http:','/furkan')==='furkan', at('http:','/furkan'));
+ ok('one spelling per name', at('https:','/Furkan')==='furkan');
+ ok('index.html is the app, not a person', at('http:','/index.html')===null);
+ ok('the app\'s own folders are not people', at('http:','/js')===null && at('http:','/api')===null);
+ ok('nothing nested is a name', at('http:','/a/b')===null);
+ ok('this page itself runs local', S.user()===null && S.status()==='local');
+
+ // --- local mode is localStorage and nothing else ---
+ var loc=Local({'ptt.doc.v1':'- [ ] local'}), srv=new Server();
+ S.configure({transport:srv,storage:loc});
+ var went=false; S.ready(function(){went=true;});
+ ok('local mode is ready at once', went);
+ ok('and reads the browser', S.getItem(DOC)==='- [ ] local');
+ S.setItem(DOC,'- [x] local');
+ ok('and writes the browser', loc.raw[DOC]==='- [x] local' && srv.puts.length===0, srv.puts);
+ ok('no chip when local', S.chipHTML()==='');
+
+ // --- loading a name ---
+ srv=new Server(); srv.write(DOC,'- [ ] theirs'); srv.write('ptt.prefs.v1','{}');
+ S.configure({user:'ann',transport:srv,storage:Local({'ptt.doc.v1':'- [ ] local'})});
+ S.guard(DOC);
+ went=false; S.ready(function(){went=true;});
+ ok('ready after the record arrives', went);
+ ok('reads come from the server\'s record', S.getItem(DOC)==='- [ ] theirs', S.getItem(DOC));
+ ok('a missing key reads as null, like localStorage', S.getItem('ptt.nope.v1')===null);
+ ok('an existing record is not seeded from the browser', !S.seeded());
+ ok('and it is saved', S.status()==='saved');
+
+ // --- saving ---
+ S.setItem(DOC,'- [ ] a'); S.setItem(DOC,'- [ ] ab');
+ ok('an edit is unsaved until sent', S.status()==='saving' && srv.puts.length===0);
+ S.flush();
+ ok('two edits are one request', srv.puts.length===1 && srv.puts[0].value==='- [ ] ab', srv.puts);
+ ok('the text is written against the revision it was read at', srv.puts[0].rev===1, srv.puts[0]);
+ ok('then it is saved', S.status()==='saved' && srv.keys[DOC].value==='- [ ] ab');
+ S.setItem(DOC,'- [ ] ab'); S.flush();
+ ok('writing the same value sends nothing', srv.puts.length===1);
+ S.setItem('ptt.prefs.v1','{"theme":"dark"}'); S.flush();
+ ok('other keys are written unconditionally', srv.puts[1].rev===null, srv.puts[1]);
+
+ // an edit made while its save is in flight goes out afterwards, once
+ srv.hold=true;
+ S.setItem(DOC,'one'); S.flush();
+ S.setItem(DOC,'two'); S.flush();
+ ok('one request per key at a time', srv.puts.length===3, srv.puts.length);
+ srv.hold=false; srv.release();
+ ok('still unsaved: the newer edit is waiting', S.status()==='saving');
+ S.flush();
+ ok('the edit made in flight is sent after', srv.keys[DOC].value==='two' && S.status()==='saved', srv.keys[DOC]);
+
+ // --- the server going away ---
+ srv.down=true;
+ S.setItem(DOC,'offline edit'); S.flush();
+ ok('a failed save says so', S.status()==='offline');
+ ok('and keeps the edit', S.getItem(DOC)==='offline edit');
+ ok('losing the tab now would lose the text', S.atRisk());
+ srv.down=false; S.flush();
+ ok('it goes out when the server is back', srv.keys[DOC].value==='offline edit' && S.status()==='saved');
+ ok('and nothing is at risk', !S.atRisk());
+
+ // --- a second device ---
+ var seen=[]; S.onremote(function(k){seen=seen.concat(k);});
+ srv.write(DOC,'from the phone');
+ S.check();
+ ok('an untouched key takes the other device\'s text', S.getItem(DOC)==='from the phone', S.getItem(DOC));
+ ok('and the app is told which key', seen.join()===DOC, seen);
+ seen=[]; S.check();
+ ok('checking again with nothing new is silent', seen.length===0);
+ S.setItem(DOC,'and edited here'); S.flush();
+ ok('the next save builds on the revision taken in', srv.keys[DOC].value==='and edited here' && S.status()==='saved');
+
+ // the settle hook: text the app is still holding back counts as edited
+ var pending='typed a moment ago';
+ S.settle(function(){ if(pending!==null){ S.setItem(DOC,pending); pending=null; } });
+ srv.write(DOC,'phone again');
+ seen=[]; S.check();
+ ok('text still being typed is not replaced from the server', S.getItem(DOC)==='typed a moment ago' && seen.length===0, S.getItem(DOC));
+
+ // --- both sides edited: the server refuses, and the chip asks ---
+ S.flush();
+ ok('a stale save is refused, not applied', srv.keys[DOC].value==='phone again', srv.keys[DOC]);
+ ok('and that is a conflict', S.status()==='conflict');
+ ok('mine is still what this tab shows', S.getItem(DOC)==='typed a moment ago');
+ S.setItem(DOC,'typed more'); S.flush();
+ ok('nothing more is sent while the question is open', srv.keys[DOC].value==='phone again');
+ S.mount(document.getElementById('slot'));
+ ok('the chip offers both answers', !!document.querySelector('#slot [data-sync="mine"]') && !!document.querySelector('#slot [data-sync="theirs"]'), document.getElementById('slot').innerHTML);
+ ok('and names whose record it is', document.getElementById('slot').textContent.indexOf('ann')===0);
+
+ document.querySelector('#slot [data-sync="mine"]').dispatchEvent(new MouseEvent('click',{bubbles:true}));
+ ok('keep mine writes over theirs', srv.keys[DOC].value==='typed more' && S.status()==='saved', srv.keys[DOC]);
+ ok('and the chip goes quiet again', !document.querySelector('#slot [data-sync]'));
+
+ srv.write(DOC,'phone, third time');
+ S.setItem(DOC,'loser'); S.flush();
+ ok('a second conflict', S.status()==='conflict');
+ seen=[]; S.resolve('theirs');
+ ok('load theirs drops mine', S.getItem(DOC)==='phone, third time' && S.status()==='saved', S.getItem(DOC));
+ ok('and tells the app to redraw', seen.join()===DOC, seen);
+ S.setItem(DOC,'after'); S.flush();
+ ok('saving works again afterwards', srv.keys[DOC].value==='after');
+
+ // --- an unguarded key never conflicts: last write wins ---
+ srv.write('ptt.prefs.v1','{"theme":"light"}');
+ S.setItem('ptt.prefs.v1','{"theme":"auto"}'); S.flush();
+ ok('prefs are last-write-wins', srv.keys['ptt.prefs.v1'].value==='{"theme":"auto"}' && S.status()==='saved');
+
+ // --- leaving ---
+ S.setItem(DOC,'small'); S.flush(true);
+ ok('a last save asks to outlive the page', srv.puts[srv.puts.length-1].keepalive===true);
+ var big=new Array(70001).join('x');
+ srv.hold=true; S.setItem(DOC,big); S.flush(true);
+ ok('text too big for that is sent plainly', srv.puts[srv.puts.length-1].keepalive===false);
+ ok('and leaving then is worth a warning', S.atRisk());
+ srv.hold=false; srv.release();
+ ok('until it lands', !S.atRisk() && S.status()==='saved');
+
+ // --- a new name starts from what the browser had ---
+ srv=new Server();
+ S.configure({user:'new',transport:srv,storage:Local({'ptt.doc.v1':'- [ ] mine','ptt.log.v1':'[]','ptt.u.ann.theme':'dark','other':'x'})});
+ S.guard(DOC); S.ready(function(){});
+ ok('an empty record is seeded from the browser', S.seeded() && S.getItem(DOC)==='- [ ] mine');
+ S.flush();
+ ok('and sent up', srv.keys[DOC] && srv.keys[DOC].value==='- [ ] mine' && srv.keys['ptt.log.v1'].value==='[]', srv.keys);
+ ok('only the app\'s own keys, not another name\'s notes', !srv.keys['ptt.u.ann.theme'] && !srv.keys.other, Object.keys(srv.keys));
+ srv=new Server();
+ S.configure({user:'fresh',transport:srv,storage:Local()});
+ S.ready(function(){});
+ ok('with nothing in the browser there is nothing to seed', !S.seeded() && S.getItem(DOC)===null && S.status()==='saved');
+
+ // --- a server that cannot be reached must not boot the app ---
+ srv=new Server(); srv.down=true;
+ S.configure({user:'ann',transport:srv,storage:Local({'ptt.doc.v1':'- [ ] local'})});
+ var booted=false, failed=false;
+ S.ready(function(){booted=true;},function(){failed=true;});
+ ok('a failed load does not start the app', failed && !booted);
+ S.setItem(DOC,'sample'); S.flush();
+ ok('and nothing can be written over the real record', srv.puts.length===0, srv.puts);
+
+ S.configure();
+}catch(e){fails++;log.push('FAIL threw: '+e.message+' @ '+String(e.stack).split('\n')[1]);}
+document.getElementById('out').textContent=log.join('\n')+'\n\n'+(log.length-fails)+' passed, '+fails+' failed';
+</script>

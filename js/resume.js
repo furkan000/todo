@@ -43,7 +43,7 @@
     if (marks) return marks;
     marks = {};
     try {
-      var raw = JSON.parse(localStorage.getItem(KEY) || 'null');
+      var raw = JSON.parse(Store.getItem(KEY) || 'null');
       if (raw && typeof raw === 'object') {
         Object.keys(raw).forEach(function (k) {
           var m = raw[k];
@@ -63,7 +63,7 @@
       keys.sort(function (a, b) { return (m[b].at || 0) - (m[a].at || 0); })
           .slice(CAP).forEach(function (k) { delete m[k]; });
     }
-    try { localStorage.setItem(KEY, JSON.stringify(m)); } catch (e) {}
+    try { Store.setItem(KEY, JSON.stringify(m)); } catch (e) {}
   }
 
   function get(key) {

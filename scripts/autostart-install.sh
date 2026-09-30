@@ -7,6 +7,7 @@
 #   scripts/autostart-install.sh               localhost only (default)
 #   scripts/autostart-install.sh --lan         reachable from other devices
 #   scripts/autostart-install.sh --port 8080   a different port
+#   scripts/autostart-install.sh --data /srv/todo   where the data is kept
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)"
@@ -15,13 +16,15 @@ UNIT_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 UNIT="$UNIT_DIR/$SERVICE.service"
 PORT=3111
 HOST=127.0.0.1
+DATA="$APP_DIR/data"
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --lan)  HOST=0.0.0.0 ;;
     --host) HOST="$2"; shift ;;
     --port) PORT="$2"; shift ;;
-    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    --data) DATA="$(readlink -f "$2")"; shift ;;
+    -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
     *) echo "unknown option: $1" >&2; exit 1 ;;
   esac
   shift
@@ -32,6 +35,7 @@ command -v systemctl >/dev/null || { echo "This machine does not use systemd; se
 PYTHON="$(command -v python3 || true)"
 [ -n "$PYTHON" ] || { echo "python3 not found — it serves the files." >&2; exit 1; }
 [ -f "$APP_DIR/index.html" ] || { echo "index.html not found in $APP_DIR" >&2; exit 1; }
+[ -f "$APP_DIR/server/server.py" ] || { echo "server/server.py not found in $APP_DIR" >&2; exit 1; }
 
 if (ss -ltn 2>/dev/null || netstat -ltn 2>/dev/null) | grep -q "[:.]$PORT[[:space:]]"; then
   if ! systemctl --user is-active --quiet "$SERVICE"; then
@@ -44,14 +48,14 @@ fi
 mkdir -p "$UNIT_DIR"
 cat > "$UNIT" <<UNIT_EOF
 [Unit]
-Description=Plain Text Todo (static server on port $PORT)
+Description=Plain Text Todo (port $PORT, data in $DATA)
 Documentation=file://$APP_DIR/README.md
 After=network-online.target
 
 [Service]
 Type=simple
 WorkingDirectory=$APP_DIR
-ExecStart=$PYTHON -m http.server $PORT --bind $HOST --directory $APP_DIR
+ExecStart=$PYTHON $APP_DIR/server/server.py --host $HOST --port $PORT --data $DATA
 Restart=on-failure
 RestartSec=3
 
@@ -76,7 +80,8 @@ fi
 sleep 1
 if systemctl --user is-active --quiet "$SERVICE"; then
   echo
-  echo "Running: http://${HOST/0.0.0.0/$(hostname -I 2>/dev/null | awk '{print $1}')}:$PORT/"
+  echo "Running: http://${HOST/0.0.0.0/$(hostname -I 2>/dev/null | awk '{print $1}')}:$PORT/<name>"
+  echo "Data:    $DATA"
   echo "It will come back automatically after a reboot."
   echo
   echo "  status:     systemctl --user status $SERVICE"

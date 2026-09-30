@@ -7,6 +7,11 @@ fail=0
 echo "── parser ──"
 node parse.test.js || fail=1
 
+echo
+echo "── server ──"
+python3 server.test.py 2>&1 | tail -3 | grep -v '^$' || true
+python3 server.test.py >/dev/null 2>&1 || fail=1
+
 chrome=$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)
 for suite in *.test.html; do
   echo

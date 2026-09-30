@@ -24,7 +24,7 @@
 
   function init() {
     try {
-      var raw = localStorage.getItem(KEY);
+      var raw = Store.getItem(KEY);
       if (raw !== null) on = raw === '1';
     } catch (e) {}
     return on;
@@ -34,7 +34,7 @@
 
   function setEnabled(v) {
     on = !!v;
-    try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (e) {}
+    try { Store.setItem(KEY, on ? '1' : '0'); } catch (e) {}
     return on;
   }
 

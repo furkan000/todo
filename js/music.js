@@ -84,7 +84,7 @@
 
   function read() {
     try {
-      var raw = JSON.parse(localStorage.getItem(KEY) || 'null');
+      var raw = JSON.parse(Store.getItem(KEY) || 'null');
       if (!raw) return { items: [], active: null };
       var items = (raw.items || []).filter(function (e) { return e && e.key && (e.videoId || e.playlistId); });
       return { items: items, active: typeof raw.active === 'string' ? raw.active : null };
@@ -92,7 +92,7 @@
   }
 
   function write() {
-    try { localStorage.setItem(KEY, JSON.stringify({ items: lib, active: active })); } catch (e) {}
+    try { Store.setItem(KEY, JSON.stringify({ items: lib, active: active })); } catch (e) {}
   }
 
   function all() { return lib.slice(); }
