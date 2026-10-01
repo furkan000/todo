@@ -168,7 +168,7 @@
 
   function read() {
     try {
-      var raw = JSON.parse(localStorage.getItem(KEY) || 'null');
+      var raw = JSON.parse(Store.getItem(KEY) || 'null');
       if (!raw) return make();
       var s = make(raw.cfg);
       s.phase = PHASE_NAME[raw.phase] ? raw.phase : 'work';
@@ -187,7 +187,7 @@
   }
 
   function write(s) {
-    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+    try { Store.setItem(KEY, JSON.stringify(s)); } catch (e) {}
   }
 
   /* ---------- the chip ---------- */

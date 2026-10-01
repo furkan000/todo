@@ -544,6 +544,24 @@ code { font-family: var(--mono); font-size: .92em; }
 #status-tools button:hover { color: var(--accent); }
 #status-tools button.on { color: var(--ink-2); font-weight: 600; }
 
+/* whose record this is, and whether it has reached the server. At rest it is a
+   name and a dot at the weight of the counts beside it; it only takes a colour
+   when something needs you. */
+#sync-slot:empty { display: none; }
+.sync { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.statusbar .sync, .statusbar .sync * { opacity: 1; margin: 0; }
+.sync i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); border: 1px solid var(--ink-3); opacity: .6; }
+.sync-saving i { background: none; }
+.sync em { font-style: normal; }
+.sync-offline, .sync-conflict { color: var(--bad); }
+.sync-offline i, .sync-conflict i { background: var(--bad); border-color: var(--bad); opacity: 1; }
+.sync u { text-decoration: none; opacity: .35; color: var(--ink-3); }
+.sync button {
+  border: 0; background: none; padding: 1px 2px; font-size: 11.5px;
+  color: var(--ink-2); font-weight: 600; border-radius: 4px;
+}
+.sync button:hover { color: var(--accent); }
+
 /* ---------- chips ---------- */
 .chip {
   display: inline-flex; align-items: center; gap: 4px; vertical-align: baseline;

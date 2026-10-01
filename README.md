@@ -8,16 +8,67 @@ discovered from what you type.
 Open `index.html` in a browser. No build step, no dependencies, no server.
 The text is saved to `localStorage` as you type.
 
-## Running it as a local server
+Or host it, and have the server keep the data — see the next two sections.
 
-`scripts/serve.sh` serves the app on <http://127.0.0.1:3111/> (Ctrl+C to stop). It uses
-`python3 -m http.server` — nothing to install.
+## Running it as a server
+
+`scripts/serve.sh` serves the app on <http://127.0.0.1:3111/> (Ctrl+C to stop). It runs
+`server/server.py`, which is Python's standard library and nothing else — nothing
+to install.
 
 ```bash
-scripts/serve.sh                 # localhost, port 3111
-PORT=8080 scripts/serve.sh       # another port
-HOST=0.0.0.0 scripts/serve.sh    # reachable from your phone on the same network
+scripts/serve.sh                      # localhost, port 3111
+PORT=8080 scripts/serve.sh            # another port
+HOST=0.0.0.0 scripts/serve.sh         # reachable from your phone on the same network
+DATA_DIR=/srv/todo scripts/serve.sh   # where the data is kept (default: data/)
 ```
+
+## Storage on the server
+
+Put a name after the address and that name's data lives on the server instead
+of in the browser:
+
+```
+http://127.0.0.1:3111/furkan      Furkan's todos, kept on the server
+http://127.0.0.1:3111/anna        Anna's, entirely separate
+http://127.0.0.1:3111/            no name: kept in this browser, as before
+```
+
+A name is up to 40 letters, digits, `-` and `_`, and case does not matter. There
+is nothing to create first — a name exists from the first time something is
+saved under it. Everything the app remembers goes with it: the text, the log,
+the settings, the music catalogue and where you were in a track, the timer.
+
+**There is no login.** A name is an address, not a secret: anyone who can reach
+the server and knows or guesses a name can read it and write over it. That is
+fine on your own machine or a network you trust, and not fine on the open
+internet without something in front of it.
+
+The status bar says whose record you are in, with a dot that is solid when the
+server has everything and hollow for the moment it does not. If the server
+cannot be reached the chip says so, keeps your edits in the tab and keeps
+trying; if it cannot be reached when the page *loads*, the app does not start at
+all, because starting empty would save the sample over your real text.
+
+**A name nobody has used yet starts from what this browser already had** under
+the bare address — so moving your existing todos onto the server is opening
+`/yourname` once, in the browser that has them. A browser with nothing in it
+starts a new name on the sample.
+
+**Two devices on one name.** The page asks the server what changed whenever it
+comes back into view and every fifteen seconds while it is open, and takes in
+anything it has not itself edited. The text gets more care than that, because
+it is the thing you cannot afford to lose: it is only ever saved against the
+version it was loaded from. If it changed somewhere else in the meantime the
+server refuses the save, nothing is overwritten, and the chip asks — **load
+theirs** or **keep mine**. Everything that is not the text is last-write-wins.
+
+On disk it is as plain as the rest: `data/<name>/` holds one file per thing the
+app stores, and `ptt.doc.v1` in there is your text, readable and editable as it
+is. `data/` is gitignored. Back it up by copying it.
+
+The server serves `index.html`, `css/` and `js/` and nothing else, so the data
+folder, the git history and your notes are not reachable over HTTP.
 
 To have it come back on its own after a reboot:
 
@@ -25,6 +76,7 @@ To have it come back on its own after a reboot:
 scripts/autostart-install.sh              # localhost only
 scripts/autostart-install.sh --lan        # reachable from other devices
 scripts/autostart-install.sh --port 8080
+scripts/autostart-install.sh --data /srv/todo   # keep the data somewhere else
 ```
 
 That installs a systemd **user** service — no root needed — and enables lingering
@@ -34,12 +86,15 @@ so it starts at boot rather than at login. Undo it with:
 scripts/autostart-uninstall.sh
 ```
 
-Note that `localStorage` is per-origin, so `http://127.0.0.1:3111` and a file you
-opened directly keep **separate** documents. Pick one and stay with it, or move
-your text across with the settings menu's import/export.
+If you installed the autostart before the server kept data, run the install
+again: the old unit starts a plain file server, which has no `/<name>`.
 
-Serving on `0.0.0.0` puts your todos on the local network with no password. Only
-use `--lan` on a network you trust.
+Note that `localStorage` is per-origin, so the bare `http://127.0.0.1:3111/` and a
+file you opened directly keep **separate** documents. A name on the server has
+no such problem — it is the same record from any browser that can reach it.
+
+Serving on `0.0.0.0` puts every name's todos on the local network with no
+password. Only use `--lan` on a network you trust.
 
 ## Writing
 
@@ -464,6 +519,8 @@ tagged plain text.
 
 ```
 index.html      shell and toolbar
+server/server.py  serves the app and keeps each name's data as plain files
+js/store.js     where the app keeps things: the browser, or a name on the server
 css/app.css     all styling, light and dark
 js/parse.js     scanner, two-pass resolver, date parsing, typo detection
 js/views.js     document / table / calendar / discovery renderers
@@ -484,8 +541,8 @@ js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/app.js       state, text write-back, import/export
 scripts/        serve.sh and the systemd autostart install/uninstall
-test/run.sh     parser suite (node) + browser suites (headless chrome);
-                every test/*.test.html is picked up automatically
+test/run.sh     parser suite (node) + server suite (python) + browser suites
+                (headless chrome); every test/*.test.html is picked up automatically
 ```
 
 Run the tests with `./test/run.sh`.

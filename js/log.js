@@ -28,7 +28,7 @@
 
   function init() {
     try {
-      var raw = localStorage.getItem(KEY);
+      var raw = Store.getItem(KEY);
       if (raw) entries = identify(JSON.parse(raw) || []);
     } catch (e) { entries = []; }
   }
@@ -37,7 +37,7 @@
   // already gone from storage: closing the tab is one way of meaning it.
   function save() {
     if (entries.length > CAP) entries = entries.slice(entries.length - CAP);
-    try { localStorage.setItem(KEY, JSON.stringify(all())); } catch (e) {}
+    try { Store.setItem(KEY, JSON.stringify(all())); } catch (e) {}
   }
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }

@@ -25,14 +25,19 @@
       els[id.replace(/-(\w)/g, function (_, c) { return c.toUpperCase(); })] = document.getElementById(id);
     });
     var saved = null;
-    try { saved = localStorage.getItem(STORE); } catch (e) {}
+    try { saved = Store.getItem(STORE); } catch (e) {}
+    // the text is the one thing two devices must never silently overwrite
+    Store.guard(STORE);
+    Store.settle(saveNow);
+    Store.onremote(onRemote);
+    Store.mount(document.getElementById('sync-slot'));
     Log.init();
     DoneDate.init();
     // when a staged removal's grace runs out, the page saying so is stale
     Undo.onchange(function () { if (state.view === 'log') render(); });
     els.editor.value = saved === null ? SAMPLE : saved;
     try {
-      var p = JSON.parse(localStorage.getItem(PREFS) || '{}');
+      var p = JSON.parse(Store.getItem(PREFS) || '{}');
       // the table used to sort by due date out of the box; one-time, drop that
       // stored choice so the new default — document order — actually shows up
       if (p.sortV !== 2) delete p.sort;
@@ -83,17 +88,63 @@
       }
     });
     render();
+    rememberTheme();
+    if (Store.seeded()) flash('Started “' + Store.user() + '” from what this browser had');
+  }
+
+  // The server could not be asked for the record. Starting anyway would show
+  // the sample, and the first keystroke would save it over the real text.
+  function unreachable() {
+    document.getElementById('editor').disabled = true;
+    document.getElementById('stage').innerHTML =
+      '<div class="empty"><b>The server did not answer.</b>' +
+      '<span>Nothing was loaded for “' + Views.esc(Store.user()) + '”, so nothing is shown and nothing will be saved.</span>' +
+      '<button class="link" onclick="location.reload()">Try again</button></div>';
   }
 
   function queueSave() {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(function () {
-      try { localStorage.setItem(STORE, els.editor.value); } catch (e) {}
-    }, 250);
+    saveTimer = setTimeout(saveNow, 250);
   }
+  // Also what Store calls before it sends or compares anything, so text typed
+  // in the last quarter second is never mistaken for text that was not edited.
+  function saveNow() {
+    if (saveTimer === null) return;
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    try { Store.setItem(STORE, els.editor.value); } catch (e) {}
+  }
+
+  // Another device changed something under this name. The text and the log are
+  // taken in where they stand; the rest is read again the next time the page
+  // loads, which is when those modules read anything.
+  function onRemote(keys) {
+    if (keys.indexOf('ptt.log.v1') !== -1) Log.init();
+    if (keys.indexOf(STORE) !== -1) {
+      var next = Store.getItem(STORE);
+      if (next !== null && next !== els.editor.value) {
+        Log.suppress();   // it was finished over there, and logged over there
+        var sel = els.editor.selectionStart, top = els.editor.scrollTop;
+        els.editor.value = next;
+        els.editor.selectionStart = els.editor.selectionEnd = Math.min(sel, next.length);
+        els.editor.scrollTop = top;
+        flash('Updated from another device');
+      }
+    }
+    render();
+  }
+
+  // The theme is resolved before first paint, which is before the server has
+  // been asked anything — so this browser keeps its own note of it per name.
+  function rememberTheme() {
+    if (!Store.user()) return;
+    try { localStorage.setItem('ptt.u.' + Store.user() + '.theme', state.theme); } catch (e) {}
+  }
+
   function savePrefs() {
+    rememberTheme();
     try {
-      localStorage.setItem(PREFS, JSON.stringify({
+      Store.setItem(PREFS, JSON.stringify({
         view: state.view, filter: state.filter, sort: state.sort,
         layout: state.layout, theme: state.theme, group: state.group,
         split: state.split, sortV: 2
@@ -878,6 +929,8 @@
     showView: showView, setLayout: setLayout, setSplit: setSplit
   };
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  function boot() { Store.ready(init, unreachable); }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 })();

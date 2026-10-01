@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Plain Text Todo</title>
 <script>/* resolved before first paint so the theme never flashes */
-try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.theme || 'auto';
+try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(location.pathname),
+          p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'),
+          t = (u ? localStorage.getItem('ptt.u.' + u[1].toLowerCase() + '.theme') : p.theme) || 'auto';
       document.documentElement.dataset.theme = t !== 'auto' ? t
         : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); } catch (e) {}</script>
 <link rel="stylesheet" href="css/app.css">
@@ -163,6 +165,9 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
     <div id="stats"></div>
     <div class="spacer-flex"></div>
     <div id="status-tools"></div>
+    <!-- whose record this is and whether it has reached the server; empty when
+         the text is kept in this browser -->
+    <div id="sync-slot"></div>
     <!-- the transport for whatever is playing; empty until there is a catalogue -->
     <div id="music-bar" class="music-bar idle"></div>
     <!-- the timer is mounted here: the status bar is on screen in every view and
@@ -173,6 +178,7 @@ try { var p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'), t = p.th
   <input type="file" id="file" accept=".md,.txt,.markdown,.json,.csv,text/*" hidden>
 </div>
 
+<script src="js/store.js"></script>
 <script src="js/parse.js"></script>
 <script src="js/views.js"></script>
 <script src="js/undo.js"></script>
