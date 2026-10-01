@@ -65,7 +65,24 @@ theirs** or **keep mine**. Everything that is not the text is last-write-wins.
 
 On disk it is as plain as the rest: `data/<name>/` holds one file per thing the
 app stores, and `ptt.doc.v1` in there is your text, readable and editable as it
-is. `data/` is gitignored. Back it up by copying it.
+is. `data/` is gitignored.
+
+**Backups happen on their own.** Once an hour, if anything was saved since the
+last one, the server copies every name to `data/.backups/<date>T<hh-mm>/`.
+Snapshots older than three days are deleted, except the newest, which is kept
+however old — a week of not touching anything must not leave you with no backup.
+To restore, stop the server and copy a name's folder back out of a snapshot:
+
+```bash
+systemctl --user stop todo-app
+cp -a data/.backups/2026-10-01T15-50/furkan/. data/furkan/
+systemctl --user start todo-app
+```
+
+`--backup-every 30` (minutes) and `--backup-keep 168` (hours) change the
+schedule; `--backup-every 0` turns it off. The backups sit on the same disk as
+the data, so they cover mistakes, not a dead disk — copy `data/` elsewhere for
+that.
 
 The server serves `index.html`, `css/` and `js/` and nothing else, so the data
 folder, the git history and your notes are not reachable over HTTP.

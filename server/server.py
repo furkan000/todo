@@ -20,9 +20,17 @@ under it. Run it on a network you trust, or put something in front of it.
 
 A revision is a per-key counter. It is what lets a second device notice that the
 text changed underneath it rather than quietly overwrite it.
+
+Backups: once an hour, if anything was saved since the last one, the whole data
+folder is copied to DATA_DIR/.backups/<YYYY-MM-DDTHH-MM>/. Snapshots older than
+three days are deleted, except the newest, which is always kept — a quiet week
+must not leave you with no backup at all. To restore, copy a name's folder back
+out of a snapshot while the server is stopped.
 """
 import argparse
 import json
+import shutil
+import time
 import mimetypes
 import os
 import re
@@ -42,6 +50,8 @@ STATIC_DIRS = ('css', 'js')          # everything else in the repo stays private
 MAX_BODY = 5 * 1024 * 1024
 MAX_KEYS = 32
 REVS = 'revs.json'
+BACKUPS = '.backups'                 # a dot, so it can never be anyone's name
+STAMP = '%Y-%m-%dT%H-%M'
 
 lock = threading.Lock()              # one process, a handful of people: one lock
 
@@ -112,6 +122,98 @@ class Store:
             self._write(os.path.join(self._dir(name), REVS),
                         json.dumps(revs, sort_keys=True).encode('utf-8'))
             return True, have + 1
+
+
+class Backups:
+    """Hourly snapshots of the data folder, taken only when something changed.
+
+    What changed is read off the revision files: every save bumps one, so the
+    revisions of every name together are a fingerprint of the whole store. A
+    snapshot carries the fingerprint it was taken at, and the next one is only
+    taken when the store's differs. `run(now)` takes the moment as an argument,
+    so the tests can drive three days in no time."""
+
+    def __init__(self, data, keep_s=3 * 24 * 3600):
+        self.data = data
+        self.dir = os.path.join(data, BACKUPS)
+        self.keep_s = keep_s
+
+    def _names(self):
+        try:
+            return sorted(n for n in os.listdir(self.data)
+                          if valid_name(n) and os.path.isdir(os.path.join(self.data, n)))
+        except OSError:
+            return []
+
+    def fingerprint(self):
+        out = {}
+        for n in self._names():
+            try:
+                with open(os.path.join(self.data, n, REVS), encoding='utf-8') as f:
+                    out[n] = json.load(f)
+            except (OSError, ValueError):
+                pass
+        return json.dumps(out, sort_keys=True)
+
+    def snapshots(self):
+        """[(taken_at, path)], oldest first. Anything not named by a stamp is ignored."""
+        out = []
+        try:
+            entries = os.listdir(self.dir)
+        except OSError:
+            return out
+        for e in entries:
+            try:
+                out.append((time.mktime(time.strptime(e, STAMP)), os.path.join(self.dir, e)))
+            except ValueError:
+                pass
+        return sorted(out)
+
+    def _last_fingerprint(self):
+        snaps = self.snapshots()
+        if not snaps:
+            return None
+        try:
+            with open(os.path.join(snaps[-1][1], 'fingerprint.json'), encoding='utf-8') as f:
+                return f.read()
+        except OSError:
+            return None
+
+    def run(self, now=None):
+        """Take a snapshot if anything changed, then prune. Returns its path or None."""
+        now = time.time() if now is None else now
+        taken = None
+        with lock:                    # no save lands halfway through the copy
+            fp = self.fingerprint()
+            if fp != '{}' and fp != self._last_fingerprint():
+                final = os.path.join(self.dir, time.strftime(STAMP, time.localtime(now)))
+                if not os.path.exists(final):
+                    tmp = os.path.join(self.dir, '.tmp-' + os.path.basename(final))
+                    shutil.rmtree(tmp, ignore_errors=True)
+                    os.makedirs(tmp)
+                    for n in self._names():
+                        shutil.copytree(os.path.join(self.data, n), os.path.join(tmp, n),
+                                        ignore=shutil.ignore_patterns('.tmp-*'))
+                    with open(os.path.join(tmp, 'fingerprint.json'), 'w', encoding='utf-8') as f:
+                        f.write(fp)
+                    os.rename(tmp, final)   # a snapshot is there whole, or not at all
+                    taken = final
+        self.prune(now)
+        return taken
+
+    def prune(self, now):
+        snaps = self.snapshots()
+        for at, path in snaps[:-1]:   # never the newest
+            if now - at > self.keep_s:
+                shutil.rmtree(path, ignore_errors=True)
+
+    def loop(self, every_s):
+        while True:
+            try:
+                self.run()
+            except Exception as e:    # a failed backup must not take the server down
+                print('backup failed: %s' % e, file=sys.stderr, flush=True)
+            time.sleep(every_s)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -230,9 +332,17 @@ def main():
     ap.add_argument('--data', default=os.environ.get('DATA_DIR', os.path.join(APP_DIR, 'data')),
                     help='where the data is kept (default: data/ beside the app)')
     ap.add_argument('--verbose', action='store_true', help='log every request')
+    ap.add_argument('--backup-every', type=float, default=60, metavar='MIN',
+                    help='minutes between backups, 0 to turn them off (default: 60)')
+    ap.add_argument('--backup-keep', type=float, default=72, metavar='HOURS',
+                    help='how long a backup is kept (default: 72)')
     args = ap.parse_args()
 
-    httpd = make_server(args.host, args.port, os.path.abspath(args.data), args.verbose)
+    data = os.path.abspath(args.data)
+    httpd = make_server(args.host, args.port, data, args.verbose)
+    if args.backup_every > 0:
+        backups = Backups(data, args.backup_keep * 3600)
+        threading.Thread(target=backups.loop, args=(args.backup_every * 60,), daemon=True).start()
     print('Plain Text Todo -> http://%s:%d/<name>   (data in %s)'
           % (args.host, args.port, os.path.abspath(args.data)), flush=True)
     try:

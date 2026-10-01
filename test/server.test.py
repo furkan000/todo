@@ -114,5 +114,69 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(self.req('PUT', '/api/many/ptt.k0', b'y')[0].status, 200)
 
 
+class BackupTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.data = self.tmp.name
+        self.store = server.Store(self.data)
+        self.b = server.Backups(self.data, keep_s=72 * 3600)
+        self.t = 1790000000.0                     # an arbitrary on-the-hour moment
+        self.t -= self.t % 3600
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def hour(self, n=1):
+        self.t += n * 3600
+        return self.b.run(self.t)
+
+    def snaps(self):
+        return [os.path.basename(p) for _, p in self.b.snapshots()]
+
+    def test_nothing_to_back_up_is_not_backed_up(self):
+        self.assertIsNone(self.hour())
+        self.assertEqual(self.snaps(), [])
+
+    def test_a_change_is_snapshotted_once(self):
+        self.store.put('ann', 'ptt.doc.v1', b'- [ ] one')
+        path = self.hour()
+        self.assertIsNotNone(path)
+        with open(os.path.join(path, 'ann', 'ptt.doc.v1'), encoding='utf-8') as f:
+            self.assertEqual(f.read(), '- [ ] one')
+        self.assertIsNone(self.hour(), 'nothing changed in the hour after')
+        self.store.put('ann', 'ptt.doc.v1', b'- [x] one')
+        self.assertIsNotNone(self.hour())
+        self.assertEqual(len(self.snaps()), 2)
+
+    def test_a_snapshot_does_not_move_with_the_data(self):
+        self.store.put('ann', 'ptt.doc.v1', b'before')
+        path = self.hour()
+        self.store.put('ann', 'ptt.doc.v1', b'after')
+        with open(os.path.join(path, 'ann', 'ptt.doc.v1'), encoding='utf-8') as f:
+            self.assertEqual(f.read(), 'before')
+
+    def test_every_name_is_in_it_and_nothing_else(self):
+        self.store.put('ann', 'ptt.doc.v1', b'a')
+        self.store.put('bob', 'ptt.doc.v1', b'b')
+        path = self.hour()
+        self.assertEqual(sorted(os.listdir(path)), ['ann', 'bob', 'fingerprint.json'])
+        self.store.put('ann', 'ptt.doc.v1', b'a2')
+        self.assertNotIn(server.BACKUPS, os.listdir(self.hour()), 'backups are not backed up')
+
+    def test_three_days_are_kept(self):
+        for i in range(100):                      # a change every hour for 100 hours
+            self.store.put('ann', 'ptt.doc.v1', ('v%d' % i).encode())
+            self.hour()
+        snaps = self.b.snapshots()
+        self.assertTrue(all(self.t - at <= 72 * 3600 for at, _ in snaps))
+        self.assertEqual(len(snaps), 73)
+
+    def test_the_newest_is_kept_however_old(self):
+        self.store.put('ann', 'ptt.doc.v1', b'quiet week')
+        self.hour()
+        self.hour(24 * 7)
+        self.assertEqual(len(self.snaps()), 1)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=0)
