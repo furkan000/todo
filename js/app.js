@@ -464,16 +464,6 @@
       return flash('Archived ' + moved + ' todo' + (moved === 1 ? '' : 's') + ' — undo with Ctrl+Z');
     }
     if (name === 'clear-search') { state.query = ''; els.search.value = ''; return render(); }
-    if (name === 'sample') {
-      if (els.editor.value.trim() && !confirm('Replace the current text with the sample document?')) return;
-      Log.suppress();
-      return setText(SAMPLE, 0);
-    }
-    if (name === 'new') {
-      if (els.editor.value.trim() && !confirm('Clear all text? This cannot be undone.')) return;
-      Log.suppress();
-      return setText('# Untitled\n\n- [ ] first thing @today\n', 0);
-    }
   }
 
   function onFile(e) {
