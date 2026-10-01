@@ -249,6 +249,10 @@ These are the non-obvious part, and they hold exactly:
   edit away from a real typed value, and dates that did not parse.
 
 Every view writes back to the text: ticking a checkbox anywhere rewrites its line.
+Every one of those writes is an ordinary edit to the editor, so `Ctrl+Z` takes it
+back — a tick, a subtask indent, a change that came in from another device. A
+tick is two steps: the first `Ctrl+Z` removes the date it wrote, the second the
+tick itself.
 Click any tag to filter; click it again to clear.
 
 ## Layout and theme

@@ -286,10 +286,11 @@
   function chipHTML() {
     if (!user) return '';
     var s = status(), name = esc(user);
-    // saving is the dot going hollow and nothing else: it happens every time
-    // you pause typing, and a word appearing that often would be a distraction
-    var tip = s === 'saved' ? 'Saved on the server as “' + name + '”'
-      : s === 'saving' ? 'Saving to the server as “' + name + '”…'
+    // saving is drawn as saved — the markup does not change at all: it happens
+    // every time you pause typing, and anything that changes that often
+    // flickers. Only trouble shows. (beforeunload still warns if it matters.)
+    if (s === 'saving') s = 'saved';
+    var tip = s === 'saved' ? 'Kept on the server as “' + name + '”'
       : s === 'offline' ? 'The server cannot be reached. Your changes are kept in this tab and will be sent when it can.'
       : 'This text was changed somewhere else since this tab loaded it.';
     var html = '<span class="sync sync-' + s + '" title="' + tip + '"><i></i>' + name;

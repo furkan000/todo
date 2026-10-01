@@ -124,10 +124,9 @@
       var next = Store.getItem(STORE);
       if (next !== null && next !== els.editor.value) {
         Log.suppress();   // it was finished over there, and logged over there
-        var sel = els.editor.selectionStart, top = els.editor.scrollTop;
-        els.editor.value = next;
-        els.editor.selectionStart = els.editor.selectionEnd = Math.min(sel, next.length);
-        els.editor.scrollTop = top;
+        // an edit like any other: Ctrl+Z takes it back, and keeps working past it
+        var sel = Math.min(els.editor.selectionStart, next.length);
+        if (!writeKeepingUndo(next, sel, sel) && els.editor.value !== next) assign(next, sel, sel);
         flash('Updated from another device');
       }
     }
@@ -275,24 +274,7 @@
   }
 
   function writeStamps(next) {
-    var was = els.editor.value;
-    var caret = caretAcross(was, next, els.editor.selectionStart);
-    // if you are typing, the stamp joins the edit you are making rather than
-    // throwing away the undo history behind it
-    if (document.activeElement === els.editor) {
-      // only the span that differs is retyped: a stamp is a few characters, and
-      // the cost of typing text in grows much faster than its length
-      var a = 0, z = 0, max = Math.min(was.length, next.length);
-      while (a < max && was.charCodeAt(a) === next.charCodeAt(a)) a++;
-      while (z < max - a && was.charCodeAt(was.length - 1 - z) === next.charCodeAt(next.length - 1 - z)) z++;
-      els.editor.setSelectionRange(a, was.length - z);
-      if (typeInto(next.slice(a, next.length - z)) && els.editor.value === next) {
-        els.editor.setSelectionRange(caret, caret);
-        queueSave();
-        return render();
-      }
-    }
-    setText(next, caret);
+    setText(next, caretAcross(els.editor.value, next, els.editor.selectionStart));
   }
 
   /* ---------- text mutation ---------- */
@@ -312,12 +294,50 @@
     return ok;
   }
 
-  function setText(next, caret) {
-    var sel = caret !== undefined ? caret : els.editor.selectionStart;
+  /* Make the editor hold `next`, as an edit the browser can undo. Assigning to
+     `value` empties Chrome's undo history, so every write the app makes —
+     ticking a box in any view, a stamp, Tab, a change from another device —
+     comes through here instead. Only the span that differs is retyped: a stamp
+     is a few characters, and the cost of typing text in grows much faster than
+     its length. The editor has to hold focus for that, so it borrows it and
+     hands it back. Returns false when it could not (the editor is hidden), and
+     the caller assigns, which is the only time history is lost. */
+  function writeKeepingUndo(next, selStart, selEnd) {
+    var ed = els.editor, was = ed.value;
+    if (was === next) { ed.setSelectionRange(selStart, selEnd); return true; }
+    var back = document.activeElement, top = ed.scrollTop;
+    if (back !== ed) {
+      try { ed.focus({ preventScroll: true }); } catch (e) { ed.focus(); }
+      if (document.activeElement !== ed) return false;
+    }
+    var a = 0, z = 0, max = Math.min(was.length, next.length);
+    while (a < max && was.charCodeAt(a) === next.charCodeAt(a)) a++;
+    while (z < max - a && was.charCodeAt(was.length - 1 - z) === next.charCodeAt(next.length - 1 - z)) z++;
+    ed.setSelectionRange(a, was.length - z);
+    var ok = typeInto(next.slice(a, next.length - z)) && ed.value === next;
+    if (!ok && ed.value !== was) ed.value = next;   // half-applied: finish it plainly
+    ed.setSelectionRange(selStart, selEnd);
+    ed.scrollTop = top;
+    if (back !== ed) {
+      // the view may have been redrawn under it; then nobody gets focus, which
+      // is where it was — never the editor, or the next keystroke lands in it
+      if (back && back.isConnected && back !== document.body) {
+        try { back.focus({ preventScroll: true }); } catch (e) { back.focus(); }
+      } else ed.blur();
+    }
+    return ok;
+  }
+
+  function assign(next, selStart, selEnd) {
     var top = els.editor.scrollTop;
     els.editor.value = next;
-    els.editor.selectionStart = els.editor.selectionEnd = Math.min(sel, next.length);
+    els.editor.setSelectionRange(selStart, selEnd);
     els.editor.scrollTop = top;
+  }
+
+  function setText(next, caret) {
+    var sel = Math.min(caret !== undefined ? caret : els.editor.selectionStart, next.length);
+    if (!writeKeepingUndo(next, sel, sel) && els.editor.value !== next) assign(next, sel, sel);
     queueSave();
     render();
   }
@@ -491,8 +511,8 @@
     var r = Subtasks.shiftLines(v, lineNo, lastNo, out);
     if (!r.delta) return;
     if (s === en) return setText(r.text, Math.max(from, s + r.firstDelta));
-    els.editor.value = r.text;
-    els.editor.setSelectionRange(Math.max(from, s + r.firstDelta), en + r.delta);
+    var s1 = Math.max(from, s + r.firstDelta), s2 = en + r.delta;
+    if (!writeKeepingUndo(r.text, s1, s2) && els.editor.value !== r.text) assign(r.text, s1, s2);
     queueSave();
     render();
   }

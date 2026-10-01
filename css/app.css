@@ -552,7 +552,6 @@ code { font-family: var(--mono); font-size: .92em; }
 .sync { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .statusbar .sync, .statusbar .sync * { opacity: 1; margin: 0; }
 .sync i { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-3); border: 1px solid var(--ink-3); opacity: .6; }
-.sync-saving i { background: none; }
 .sync em { font-style: normal; }
 .sync-offline, .sync-conflict { color: var(--bad); }
 .sync-offline i, .sync-conflict i { background: var(--bad); border-color: var(--bad); opacity: 1; }
