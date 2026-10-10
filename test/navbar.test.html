@@ -1,0 +1,75 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:500px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+function report(){document.getElementById('out').textContent=log.join('\n')+'\n'+(log.length-fails)+' passed, '+fails+' failed';}
+var f=document.getElementById('f');
+f.addEventListener('load',function(){
+ var w=f.contentWindow,d=f.contentDocument;
+ try{
+  var B=w.Navbar,bar=d.querySelector('.topbar'),filter=d.getElementById('filter'),chip=d.querySelector('.filter-chip'),more=d.querySelector('.more');
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  function width(px){f.style.width=px+'px';B.fit();}
+  function fits(){return bar.scrollWidth<=bar.clientWidth+1;}
+  function shown(v){return !d.querySelector('.tabs > [data-view="'+v+'"]').hidden;}
+  w.PTT.setLayout('split');
+  w.PTT.showView('doc');
+
+  /* ---- the order ---- */
+  var order=Array.prototype.map.call(d.querySelectorAll('.tabs > [data-view]'),function(t){return t.dataset.view;});
+  ok('tabs in order of use', order.join(' ')==='doc table notes work cal focus music tags log', order.join(' '));
+  function ctrl(k){d.dispatchEvent(new w.KeyboardEvent('keydown',{key:k,ctrlKey:true,bubbles:true,cancelable:true}));}
+  ctrl('4'); ok('Ctrl+4 is Notes', w.PTT.state.view==='notes');
+  ctrl('5'); ok('Ctrl+5 is Work', w.PTT.state.view==='work');
+  ctrl('6'); ok('Ctrl+6 is Calendar', w.PTT.state.view==='cal');
+  ctrl('0'); ok('Ctrl+0 is Log', w.PTT.state.view==='log');
+  w.PTT.setLayout('split');
+
+  /* ---- the filter is only where it filters ---- */
+  w.PTT.showView('doc');
+  ok('wide: everything is out', fits() && !filter.hidden && chip.hidden && more.hidden && B.folded().length===0, B.folded());
+  w.PTT.showView('notes');
+  ok('no filter in Notes', filter.hidden && filter.offsetWidth===0 && chip.hidden);
+  w.PTT.showView('table');
+  ok('the filter is back in Table', !filter.hidden);
+
+  /* ---- narrower: the filter folds first ---- */
+  // what the bar needs: its width less the slack the spacer takes up
+  var full=bar.clientWidth-d.querySelector('.topbar > .spacer-flex').offsetWidth;
+  width(full-60);
+  ok('a little short: only the filter folds', filter.hidden && !chip.hidden && B.folded().length===0 && fits(), [B.folded(),bar.scrollWidth,bar.clientWidth]);
+  click(chip.querySelector('[data-tb]'));
+  var pop=chip.querySelector('.tb-pop');
+  ok('its button opens the four', !pop.hidden && pop.querySelectorAll('[data-filter]').length===4);
+  click(pop.querySelector('[data-filter="open"]'));
+  ok('choosing one filters', w.PTT.state.filter==='open' && /Open/.test(chip.querySelector('[data-tb]').textContent) && pop.hidden);
+  w.PTT.state.filter='all'; w.PTT.showView('doc');
+
+  /* ---- narrower still: tabs fold from the right ---- */
+  width(700);
+  var gone=B.folded();
+  ok('tabs fold into More, least used first', gone.length>0 && gone.length<B.FOLD.length && gone[0]==='log' && !more.hidden && fits(), gone);
+  ok('in the fixed order', gone.join()===B.FOLD.slice(0,gone.length).join(), gone);
+  ok('the ones that matter stay', ['doc','table','notes'].every(shown));
+  click(more.querySelector('[data-tb]'));
+  var mp=more.querySelector('.tb-pop');
+  ok('More lists what folded', mp.querySelectorAll('[data-view]').length===gone.length);
+  click(mp.querySelector('[data-view="log"]'));
+  ok('and opens it', w.PTT.state.view==='log' && mp.hidden);
+  ok('More is named after the folded tab you are on', more.querySelector('[data-tb]').textContent==='Log' && more.querySelector('[data-tb]').classList.contains('on'));
+
+  w.PTT.showView('doc');
+  width(400);
+  ok('phone-narrow: only Text, Doc, Table, Notes and More', B.folded().length===B.FOLD.length && ['doc','table','notes'].every(shown), B.folded());
+  ok('the search icon gives way', d.querySelector('.topbar .search').hidden);
+  ok('and the filter moves into More', chip.hidden && more.querySelectorAll('.tb-pop [data-filter]').length===4);
+  var cog=d.querySelector('[data-act="menu"]').getBoundingClientRect();
+  ok('the cog stays on screen', fits() && cog.right<=bar.getBoundingClientRect().right, [bar.scrollWidth,bar.clientWidth]);
+
+  width(1400);
+  ok('wide again: all back', B.folded().length===0 && more.hidden && !d.querySelector('.topbar .search').hidden);
+  w.PTT.showView('doc');
+ }catch(e){ok('no exception',false,e.stack||String(e));}
+ report();
+});
+</script>

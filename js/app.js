@@ -41,6 +41,7 @@
     Spotlight.init({
       open: function (day, line) { showView('notes'); Notes.open(day, line); }
     });
+    Navbar.init({ bar: document.querySelector('.topbar') });
     Worklog.init({
       openNotes: function (day) { showView('notes'); Notes.open(day); }
     });
@@ -227,6 +228,7 @@
     Array.prototype.forEach.call(document.querySelectorAll('[data-filter]'), function (b) {
       b.classList.toggle('on', b.dataset.filter === state.filter);
     });
+    Navbar.update(state.view, state.layout);   // what the bar holds depends on both
 
     var open = doc.todos.filter(function (t) { return !t.done; }).length;
     var overdue = doc.todos.filter(function (t) { return !t.done && t.due && t.due < ctx.todayISO; }).length;
@@ -612,7 +614,8 @@
       return markNow(v.slice(0, els.editor.selectionStart).split('\n').length - 1);
     }
     if (!(e.metaKey || e.ctrlKey)) return;
-    var map = { '2': 'doc', '3': 'table', '4': 'cal', '5': 'tags', '6': 'log', '7': 'focus', '8': 'music', '9': 'notes', '0': 'work' };
+    // the numbers follow the tabs, left to right
+    var map = { '2': 'doc', '3': 'table', '4': 'notes', '5': 'work', '6': 'cal', '7': 'focus', '8': 'music', '9': 'tags', '0': 'log' };
     if (e.key === '1') { e.preventDefault(); setLayout('text'); }
     else if (map[e.key]) { e.preventDefault(); showView(map[e.key]); }
     else if (e.key === 'k') { e.preventDefault(); search(); }

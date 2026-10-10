@@ -158,8 +158,8 @@ document.getElementById('f').addEventListener('load', function () {
   d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'2', ctrlKey:true, bubbles:true}));
   ok('ctrl+2 switches to document', stage.className.indexOf('view-doc') !== -1, stage.className);
   ok('ctrl+2 leaves text mode', w.PTT.state.layout !== 'text', w.PTT.state.layout);
-  d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'5', ctrlKey:true, bubbles:true}));
-  ok('ctrl+5 switches to tags', stage.className.indexOf('view-tags') !== -1, stage.className);
+  d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'9', ctrlKey:true, bubbles:true}));
+  ok('ctrl+9 switches to tags', stage.className.indexOf('view-tags') !== -1, stage.className);
   d.dispatchEvent(new w.KeyboardEvent('keydown', {key:'2', ctrlKey:true, bubbles:true}));
 
   // enter continues a list

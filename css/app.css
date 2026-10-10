@@ -94,6 +94,38 @@ code { font-family: var(--mono); font-size: .92em; }
   padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 500;
 }
 .tab:hover { color: var(--ink); }
+.tabs, .segmented, .search, .menu.actions, .sidebar-btn { flex: none; }
+/* `display: flex` above would otherwise win over the hidden attribute */
+#filter[hidden], .topbar .search[hidden] { display: none; }
+.tb-sep { height: 1px; background: var(--line-2); margin: 4px 2px; }
+/* a phone: tighter, so the four tabs that never fold still fit beside the cog */
+@media (max-width: 480px) {
+  .topbar { gap: 6px; padding: 8px 8px; }
+  .tab { padding: 5px 8px; }
+}
+.spacer-flex { min-width: 0; }
+
+/* More, and the folded filter: a button with a short list under it */
+.tb-menu { position: relative; display: flex; }
+.tb-menu[hidden] { display: none; }
+.more-btn::after, .chip-btn::after { content: " \25BE"; font-size: 10px; opacity: .6; }
+.chip-btn {
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--ink-2);
+  border-radius: 7px; padding: 5px 10px; font-size: 12.5px; white-space: nowrap;
+}
+.tb-pop {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 20; min-width: 130px;
+  padding: 4px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 9px; box-shadow: var(--shadow); display: flex; flex-direction: column;
+}
+.tb-pop[hidden] { display: none; }
+.tb-pop button {
+  border: 0; background: none; color: var(--ink-2); text-align: left;
+  padding: 6px 10px; border-radius: 6px; font-size: 13px; white-space: nowrap;
+}
+.tb-pop button:hover { background: var(--line-2); color: var(--ink); }
+.tb-pop button.on { background: var(--sel); color: var(--sel-ink); font-weight: 600; }
+.tab { white-space: nowrap; }
 .tab-div { width: 1px; align-self: stretch; background: var(--line); margin: 2px 4px; }
 .tab.on { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); font-weight: 600; }
 
@@ -970,8 +1002,6 @@ tbody tr.done .task-title { color: var(--ink-3); text-decoration: line-through; 
   .app.layout-text .panes, .app.layout-view .panes { grid-template-rows: 1fr; }
   .resizer { display: none; }
   .editor-pane { border-bottom: 1px solid var(--line); }
-  .topbar { flex-wrap: wrap; }
-  .segmented, .search { order: 3; }
 }
 
 :root[data-theme="dark"] .sub-count { background: #2a2a26; }
