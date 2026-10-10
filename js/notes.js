@@ -461,6 +461,19 @@
       if (!e.shiftKey) typeIn('  ');
       return;
     }
+    // Enter while typing a heading's title, with only its time after the
+    // caret: the time stays on the heading, and the writing starts below it
+    if (e.key === 'Enter' && !e.shiftKey && ed.selectionStart === ed.selectionEnd) {
+      var hv = ed.value, hat = ed.selectionStart, hfrom = hv.lastIndexOf('\n', hat - 1) + 1;
+      var heol = hv.indexOf('\n', hat);
+      if (heol === -1) heol = hv.length;
+      if (HEAD.test(hv.slice(hfrom, heol)) && /^\s*·\s*\d{1,2}:\d{2}\s*$/.test(hv.slice(hat, heol))) {
+        e.preventDefault();
+        ed.setSelectionRange(heol, heol);
+        typeIn('\n');
+        return;
+      }
+    }
     // Enter carries a bullet on; on an empty bullet it ends the list
     if (e.key === 'Enter' && !e.shiftKey && ed.selectionStart === ed.selectionEnd) {
       var v = ed.value, at = ed.selectionStart, from = v.lastIndexOf('\n', at - 1) + 1;

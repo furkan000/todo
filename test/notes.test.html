@@ -93,6 +93,10 @@ document.getElementById('f').addEventListener('load',function(){
   d.execCommand('insertText',false,'Call with Anna #team');
   var last=N.sections(ned.value).pop();
   ok('the title lands before the time', /\n## Call with Anna #team · \d{2}:\d{2}$/.test(ned.value), ned.value);
+  ned.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));
+  ok('Enter keeps the time on the heading', /\n## Call with Anna #team · \d{2}:\d{2}\n$/.test(ned.value), ned.value);
+  ok('and starts the line below it', ned.selectionStart===ned.value.length);
+  d.execCommand('undo');
   ok('and reads as title and time', last.title==='Call with Anna' && /^\d{2}:\d{2}$/.test(last.time), [last.title,last.time]);
   var lay=d.querySelector('.notes-layer .nl-time');
   ok('tags in a note are coloured', !!d.querySelector('.notes-layer .hl-label') && /#team/.test(d.querySelector('.notes-layer').innerHTML));
