@@ -43,6 +43,24 @@ document.getElementById('f').addEventListener('load',function(){
   ok('topics count conversations', N.topics(notes,idx).some(function(t){return t.q==='#team'&&t.count===1;}));
 
   /* ---- the tab ---- */
+  w.PTT.setLayout('split');
+  click(d.querySelector('[data-view="notes"]'));
+  var app=d.getElementById('app');
+  ok('notes hide the todo text by default', app.classList.contains('layout-view'), app.className);
+  ok('the list of days starts folded away', !d.querySelector('.notes').classList.contains('side-open'));
+  click(d.querySelector('[data-note-side]'));
+  ok('and opens on the button', d.querySelector('.notes').classList.contains('side-open'));
+  ok('which is remembered', JSON.parse(w.localStorage.getItem('ptt.notes.v1')).side===true);
+  w.PTT.setLayout('split');
+  click(d.querySelector('[data-view="doc"]'));
+  ok('the other tabs keep their own arrangement', app.classList.contains('layout-split'));
+  w.PTT.setLayout('view');
+  click(d.querySelector('[data-view="notes"]'));
+  ok('and notes keep the todo text you brought back', app.classList.contains('layout-split'), app.className);
+  w.PTT.setLayout('view');
+  click(d.querySelector('[data-view="doc"]'));
+  ok('while the rest keep theirs', app.classList.contains('layout-view'), app.className);
+  w.PTT.setLayout('split');
   click(d.querySelector('[data-view="notes"]'));
   var ned=d.querySelector('.stage .notes-ed');
   ok('the Notes tab shows a page', !!ned);
@@ -69,9 +87,14 @@ document.getElementById('f').addEventListener('load',function(){
   click(d.querySelector('[data-view="notes"]'));
   var hit=d.querySelector('.notes-hit');
   ok('a search lists the conversations', !!hit && /Call with Vega/.test(hit.textContent), hit&&hit.textContent);
+  ok('a search shows its results even when the list is folded', d.querySelector('.notes').classList.contains('side-open'));
   w.PTT.state.query='';
   click(d.querySelector('[data-view="notes"]'));
   ok('without one the side lists days and topics', !!d.querySelector('.notes-day') && !!d.querySelector('.notes-topics [data-q="#client:vega"]'));
+
+  /* ---- export ---- */
+  var md=N.toMarkdown(N.all());
+  ok('the export carries every day under its date', /^# Notes/.test(md) && md.indexOf('# '+N.today())!==-1 && /wants CSV/.test(md), md);
 
   /* ---- a past day ---- */
   w.localStorage.setItem('ptt.note.20261001','## Old call\nold');
@@ -89,7 +112,11 @@ document.getElementById('f').addEventListener('load',function(){
   ok('a new day is a blank page', N.today()===N.dayOf(tomorrow) && ned.value==='', N.today());
   ok('yesterday is still there', /Vega/.test(w.localStorage.getItem(key)));
 
+  click(d.querySelector('[data-note-side]'));   // leave it as it started
+  w.localStorage.removeItem('ptt.notes.v1');
+  w.PTT.setLayout('split');
   click(d.querySelector('[data-view="doc"]'));
+  w.PTT.setLayout('split');
   wipe();
  }catch(e){ok('no exception',false,e.stack||String(e));}
  document.getElementById('out').textContent=log.join('\n')+'\n'+(log.length-fails)+' passed, '+fails+' failed';

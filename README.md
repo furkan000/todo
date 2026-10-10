@@ -503,10 +503,19 @@ Wants the export in CSV, not PDF.
   Notes only read that vocabulary, so nothing written in a note adds a column.
 - A `- [ ]` in a note is just text, not a todo.
 
-The left column lists the days with their conversations, newest first, and the
-topics you have used. Clicking a day or a conversation opens it, and past days
-can be edited. **Search** (`Ctrl+K`, or click a tag) lists matching
-*conversations* across every day, so a topic can be followed through the weeks.
+The page sits in a column down the middle, and the todo text is hidden while
+you are in Notes. Bring it back with `Ctrl+\` and Notes remembers that, apart
+from the arrangement the other tabs use.
+
+The list of days, with their conversations and the topics you have used, is on
+the right, folded away until you open it with the button beside the date. It
+remembers whether it was open. Clicking a day or a conversation opens it, and
+past days can be edited. **Search** (`Ctrl+K`, or click a tag) lists matching
+*conversations* across every day, so a topic can be followed through the weeks,
+and the list opens by itself while a search is in it.
+
+Notes are in the hourly server backups along with everything else, and the cog
+menu exports them all as one Markdown file.
 
 ## Selection echo
 

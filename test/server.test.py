@@ -152,6 +152,15 @@ class BackupTest(unittest.TestCase):
         self.assertIsNotNone(self.hour())
         self.assertEqual(len(self.snaps()), 2)
 
+    def test_a_day_of_notes_is_backed_up_with_the_rest(self):
+        self.store.put('ann', 'ptt.doc.v1', b'- [ ] one')
+        self.hour()
+        self.store.put('ann', 'ptt.note.20261010', b'## Call #vega')
+        path = self.hour()
+        self.assertIsNotNone(path, 'a new note is a change')
+        with open(os.path.join(path, 'ann', 'ptt.note.20261010'), encoding='utf-8') as f:
+            self.assertEqual(f.read(), '## Call #vega')
+
     def test_a_snapshot_does_not_move_with_the_data(self):
         self.store.put('ann', 'ptt.doc.v1', b'before')
         path = self.hour()

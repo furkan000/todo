@@ -15,6 +15,10 @@
     split: 40,               // editor width in split mode, as a % of the pane row
     month: new Date(),
     layout: 'split',         // 'text' | 'split' | 'view'
+    // Notes is its own page, so it keeps its own arrangement: the todo text is
+    // out of the way there until you bring it back, and each side remembers
+    notesLayout: 'view',     // 'split' | 'view', in the Notes tab
+    mainLayout: 'split',     // 'split' | 'view', everywhere else
     theme: 'auto'            // 'auto' | 'light' | 'dark'
   };
   var doc = null, saveTimer = null;
@@ -42,8 +46,11 @@
       // the table used to sort by due date out of the box; one-time, drop that
       // stored choice so the new default — document order — actually shows up
       if (p.sortV !== 2) delete p.sort;
-      ['view', 'filter', 'sort', 'layout', 'theme', 'group', 'split'].forEach(function (k) { if (p[k] !== undefined) state[k] = p[k]; });
+      ['view', 'filter', 'sort', 'layout', 'theme', 'group', 'split', 'notesLayout', 'mainLayout'].forEach(function (k) { if (p[k] !== undefined) state[k] = p[k]; });
+      // from before Notes had its own arrangement: what you had was the main one
+      if (p.mainLayout === undefined && state.layout !== 'text') state.mainLayout = state.layout;
     } catch (e) {}
+    if (state.view === 'notes' && state.layout !== 'text') state.layout = state.notesLayout;
 
     els.editor.addEventListener('input', function () { if (typing) return; queueSave(); render(); });
     els.editor.addEventListener('keydown', onEditorKey);
@@ -148,7 +155,7 @@
       Store.setItem(PREFS, JSON.stringify({
         view: state.view, filter: state.filter, sort: state.sort,
         layout: state.layout, theme: state.theme, group: state.group,
-        split: state.split, sortV: 2
+        split: state.split, notesLayout: state.notesLayout, mainLayout: state.mainLayout, sortV: 2
       }));
     } catch (e) {}
   }
@@ -475,6 +482,7 @@
     if (name === 'export-csv') return closeMenu(), save('todo.csv', 'text/csv', toCSV());
     if (name === 'log-md') return closeMenu(), save('activity-log.md', 'text/markdown', Log.toMarkdown());
     if (name === 'log-csv') return closeMenu(), save('activity-log.csv', 'text/csv', Log.toCSV());
+    if (name === 'notes-md') return closeMenu(), save('notes.md', 'text/markdown', Notes.toMarkdown(Notes.all()));
     if (name === 'clear-log') {
       if (!confirm('Clear the whole activity log? The entries cannot be recovered.')) return;
       Log.clear();
@@ -598,18 +606,18 @@
   // Asking for a view while in text-only means you want to see it — go back to
   // whichever editor arrangement you were last in.
   function showView(v) {
+    var was = state.view;
     state.view = v;
-    if (state.layout === 'text') {
-      state.layout = state.prevLayout || 'split';
-      applyLayout();
-    }
+    if (v === 'notes') state.layout = state.notesLayout;
+    else if (was === 'notes' || state.layout === 'text') state.layout = state.mainLayout;
+    applyLayout();
     savePrefs();
     render();
     if (v === 'notes') Notes.focus();   // opening the page is wanting to write on it
   }
 
   function setLayout(next) {
-    if (next !== 'text') state.prevLayout = next;
+    if (next !== 'text') state[state.view === 'notes' ? 'notesLayout' : 'mainLayout'] = next;
     state.layout = next;
     applyLayout();
     savePrefs();

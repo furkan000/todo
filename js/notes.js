@@ -173,6 +173,17 @@
     }).map(function (k) { tag[k].count = count[k]; return tag[k]; });
   }
 
+  // Every day as one Markdown file, newest first, each under its date
+  function toMarkdown(notes) {
+    var out = ['# Notes', ''];
+    notes.forEach(function (n) {
+      out.push('# ' + n.day + ' — ' + dateOf(n.day).toLocaleDateString('en-GB', { weekday: 'long' }), '');
+      out.push(n.text.replace(/\s+$/, ''), '');
+    });
+    if (!notes.length) out.push('_Nothing written yet._');
+    return out.join('\n') + '\n';
+  }
+
   /* ---------- what is kept ---------- */
 
   function read(day) {
@@ -194,6 +205,8 @@
 
   var opts = {}, root = null, ed = null, side = null, head = null;
   var today = null, current = null, query = '', lastInput = 0, sideTimer = null;
+  // the list of days is out of the way until asked for, and remembered
+  var UI = 'ptt.notes.v1', sideOpen = false;
 
   function esc(s) { return Views.esc(s); }
 
@@ -201,12 +214,12 @@
     root = document.createElement('div');
     root.className = 'notes';
     root.innerHTML =
-      '<aside class="notes-side"></aside>' +
       '<div class="notes-main">' +
         '<div class="notes-head"></div>' +
         '<textarea class="notes-ed" spellcheck="true" autocomplete="off" placeholder="' +
           esc('## Call with Vega #client:vega\nWhat was said, what was decided…\n\n## Standup #team\n…') + '"></textarea>' +
-      '</div>';
+      '</div>' +
+      '<aside class="notes-side"></aside>';
     side = root.querySelector('.notes-side');
     head = root.querySelector('.notes-head');
     ed = root.querySelector('.notes-ed');
@@ -247,7 +260,20 @@
     head.innerHTML =
       '<h2>' + esc(longLabel(current, today)) + '</h2>' +
       (past ? '<button class="link" data-note-day="' + today + '">back to today</button>'
-            : '<span class="notes-today">today</span>');
+            : '<span class="notes-today">today</span>') +
+      '<span class="spacer-flex"></span>' +
+      '<button class="icon-btn notes-side-btn' + (sideOpen ? ' on' : '') + '" data-note-side' +
+        ' aria-pressed="' + sideOpen + '" title="' + (sideOpen ? 'Hide' : 'Show') + ' the days and topics">' +
+        '<svg viewBox="0 0 16 16"><rect x="1" y="2.5" width="14" height="11" rx="1.5"/><path d="M10 2.5v11"/><path class="fill" d="M10.4 3.2h4v9.6h-4z"/></svg>' +
+      '</button>';
+    // a search is shown where its results are, whether or not the list is open
+    root.classList.toggle('side-open', sideOpen || !!query.trim());
+  }
+
+  function setSide(open) {
+    sideOpen = open;
+    try { Store.setItem(UI, JSON.stringify({ side: open })); } catch (e) {}
+    paintHead();
   }
 
   function paintSide() {
@@ -364,6 +390,7 @@
   }
 
   function onClick(e) {
+    if (e.target.closest && e.target.closest('[data-note-side]')) return setSide(!sideOpen);
     var el = e.target.closest ? e.target.closest('[data-note-day]') : null;
     if (!el || !root.contains(el)) return;
     var line = el.getAttribute('data-note-line');
@@ -418,6 +445,7 @@
   function init(o) {
     opts = o || {};
     today = dayOf(new Date());
+    try { sideOpen = !!JSON.parse(Store.getItem(UI) || '{}').side; } catch (e) { sideOpen = false; }
     // a day of notes is never written over a version this tab has not seen
     Store.keys(PREFIX).forEach(function (k) { Store.guard(k); });
     build();
@@ -446,7 +474,8 @@
     PREFIX: PREFIX,
     dayOf: dayOf, keyOf: keyOf, dayOfKey: dayOfKey, shortLabel: shortLabel,
     sections: sections, vocabulary: vocabulary, tagsOf: tagsOf, search: search, topics: topics,
-    all: all, init: init, mount: mount, open: open, tick: tick, onRemote: onRemote,
+    toMarkdown: toMarkdown, all: all, init: init, mount: mount, open: open, tick: tick, onRemote: onRemote,
+    sideOpen: function () { return sideOpen; },
     focus: function () { if (ed) ed.focus(); },
     editor: function () { return ed; },
     day: function () { return current; },

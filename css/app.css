@@ -986,14 +986,16 @@ tbody tr.done .task-title { color: var(--ink-3); text-decoration: line-through; 
 :root[data-theme="dark"] .hl-now { color: #f0ece4; }
 
 /* ---------- notes ---------- */
-/* a list of days on the left, the day's page on the right — and the page is
-   just a textarea, as plain as the todo text */
+/* the day's page, centred, with the list of days folded away on the right
+   until asked for — and the page is just a textarea, as plain as the todo text */
 .stage.view-notes { padding: 0; overflow: hidden; display: flex; }
 .notes { flex: 1; min-width: 0; display: flex; }
 .notes-side {
   flex: none; width: 250px; overflow: auto; padding: 14px 10px 30px;
-  border-right: 1px solid var(--line-2); background: var(--panel-2);
+  border-left: 1px solid var(--line-2); background: var(--panel-2);
+  display: none;
 }
+.notes.side-open .notes-side { display: block; }
 .notes-sub {
   font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
   color: var(--ink-3); margin: 4px 6px 8px;
@@ -1025,20 +1027,26 @@ div.notes-day-h { padding: 10px 8px 3px; cursor: pointer; }
 .notes-none { font-size: 12.5px; color: var(--ink-3); padding: 4px 8px; }
 
 .notes-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--panel); }
+/* the page reads as a column down the middle; the padding does the centring,
+   so the textarea itself stays full width and its scrollbar stays at the edge */
+.notes-main { --notes-gutter: max(26px, calc((100% - 760px) / 2)); }
 .notes-head {
-  flex: none; display: flex; align-items: baseline; gap: 10px;
-  padding: 16px 26px 4px;
+  flex: none; display: flex; align-items: center; gap: 10px;
+  padding: 16px var(--notes-gutter) 4px;
 }
+.notes-head .notes-side-btn { margin-right: -6px; }
+.notes-side-btn svg .fill { fill: currentColor; stroke: none; opacity: 0; transition: opacity .12s; }
+.notes-side-btn.on svg .fill { opacity: .28; }
 .notes-head h2 { margin: 0; font-size: 16px; font-weight: 640; letter-spacing: -.01em; }
 .notes-today { font-size: 12px; color: var(--ink-3); }
 .notes-ed {
   flex: 1; width: 100%; resize: none; border: 0; outline: none;
-  padding: 10px 26px 40px; background: transparent; color: var(--ink);
+  padding: 10px var(--notes-gutter) 40px; background: transparent; color: var(--ink);
   font-family: var(--mono); font-size: 13px; line-height: 1.75; tab-size: 2;
   scrollbar-gutter: stable;
 }
 .notes-ed::placeholder { color: var(--ink-3); }
 @media (max-width: 700px) {
   .notes { flex-direction: column; }
-  .notes-side { width: auto; max-height: 34%; border-right: 0; border-bottom: 1px solid var(--line-2); }
+  .notes-side { width: auto; max-height: 34%; border-left: 0; border-top: 1px solid var(--line-2); }
 }
