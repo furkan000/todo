@@ -521,7 +521,7 @@ line that matched, `Esc` closes. With nothing typed it lists the latest
 conversations. In Notes the regular todo search is left out entirely.
 
 The **+** beside *Days* in the list opens any past day, so you can write up a
-call afterwards. The day is kept once you write something in it.
+call afterwards. Pick it from the calendar, or type it and press `Enter`. The day is kept once you write something in it.
 
 Notes are in the hourly server backups along with everything else, and the cog
 menu exports them all as one Markdown file.

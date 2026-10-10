@@ -257,6 +257,7 @@
     ed.addEventListener('keydown', onKeydown);
     root.addEventListener('click', onClick);
     root.addEventListener('change', onPick);
+    root.addEventListener('keydown', onPickKey);
   }
 
   function vocab(notes) {
@@ -340,7 +341,8 @@
     }
     html += '<div class="notes-sub notes-days-h">Days' +
       '<button class="notes-add" data-note-add title="Write on a past day">+</button></div>' +
-      (adding ? '<div class="notes-pick"><input type="date" max="' + today + '" aria-label="Which day"></div>' : '');
+      (adding ? '<div class="notes-pick"><input type="date" max="' + today + '" aria-label="Which day"' +
+        ' title="Pick a day, or type one and press Enter"></div>' : '');
     notes.forEach(function (n) {
       html += '<div class="notes-day' + (n.day === current ? ' here' : '') + '">' +
         '<button class="notes-day-h" data-note-day="' + n.day + '">' + esc(shortLabel(n.day, today)) + '</button>';
@@ -431,6 +433,7 @@
   // nothing to note yet.
   function startAdding() {
     adding = !adding;
+    pickTyped = 0;
     paintSide();
     var pick = side.querySelector('.notes-pick input');
     if (!pick) return;
@@ -438,13 +441,33 @@
     try { pick.showPicker(); } catch (e) {}
   }
 
-  function onPick(e) {
-    var pick = e.target;
-    if (!pick.matches || !pick.matches('.notes-pick input') || !pick.value) return;
-    if (pick.value > today) return;
+  function isPick(el) { return el && el.matches && el.matches('.notes-pick input'); }
+
+  // A date field calls every complete date a change, and while a year is being
+  // typed "20" already is one: the year 0020. So a typed date waits for Enter,
+  // and only a date chosen from the calendar opens at once.
+  var pickTyped = 0;
+
+  function choose(pick) {
+    var v = pick.value;
+    if (!v || v > today || v < '1900') return false;
     adding = false;
-    open(pick.value);
+    open(v);
     ed.focus();
+    return true;
+  }
+
+  function onPick(e) {
+    if (!isPick(e.target)) return;
+    if (Date.now() - pickTyped < 1000) return;   // typed, not picked: wait for Enter
+    choose(e.target);
+  }
+
+  function onPickKey(e) {
+    if (!isPick(e.target)) return;
+    if (e.key === 'Enter') { e.preventDefault(); return choose(e.target); }
+    if (e.key === 'Escape') { e.stopPropagation(); adding = false; return paintSide(); }
+    pickTyped = Date.now();
   }
 
   function onClick(e) {

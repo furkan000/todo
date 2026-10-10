@@ -129,14 +129,26 @@ document.getElementById('f').addEventListener('load',function(){
   ok('the date picker follows the dark theme', w.getComputedStyle(pick).colorScheme==='dark', w.getComputedStyle(pick).colorScheme);
   w.PTT.applyTheme();
   ok('the + asks for a date', !!pick && pick.max===N.today(), pick&&pick.max);
-  pick.value='2026-09-15';
+  // typing the year: "20" is already a whole date, the year 0020
+  function pkey(k){pick.dispatchEvent(new w.KeyboardEvent('keydown',{key:k,bubbles:true,cancelable:true}));}
+  pkey('2'); pkey('0'); pick.value='0020-09-15';
   pick.dispatchEvent(new w.Event('change',{bubbles:true}));
-  ok('and opens that day, blank', N.day()==='2026-09-15' && ned.value==='', N.day());
+  ok('a year half typed opens nothing', N.day()!=='0020-09-15' && !!d.querySelector('.notes-pick input'), N.day());
+  pkey('2'); pkey('6'); pick.value='2026-09-15';
+  pick.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('nor does the whole one, until Enter', N.day()!=='2026-09-15', N.day());
+  pkey('Enter');
+  ok('Enter opens that day, blank', N.day()==='2026-09-15' && ned.value==='', N.day());
   ok('listed while it is open', !!d.querySelector('.notes-day [data-note-day="2026-09-15"]'));
   ok('but not kept until written in', w.localStorage.getItem('ptt.note.20260915')===null);
   ned.value='## Dentist';
   ned.dispatchEvent(new w.InputEvent('input',{bubbles:true}));
   ok('writing keeps it', w.localStorage.getItem('ptt.note.20260915')==='## Dentist');
+  click(d.querySelector('[data-note-add]'));
+  pick=d.querySelector('.notes-pick input');
+  pick.value='2026-09-20';
+  pick.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('a day chosen from the calendar opens at once', N.day()==='2026-09-20', N.day());
   click(d.querySelector('[data-note-side]'));
 
   /* ---- spotlight ---- */
