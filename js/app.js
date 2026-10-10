@@ -38,6 +38,9 @@
     Log.init();
     DoneDate.init();
     Notes.init({ vocab: function () { return doc && doc.vocab; } });
+    Spotlight.init({
+      open: function (day, line) { showView('notes'); Notes.open(day, line); }
+    });
     // when a staged removal's grace runs out, the page saying so is stale
     Undo.onchange(function () { if (state.view === 'log') render(); });
     els.editor.value = saved === null ? SAMPLE : saved;
@@ -468,6 +471,7 @@
 
   function action(name) {
     if (name === 'search') { els.search.focus(); return els.search.select(); }
+    if (name === 'spotlight') return Spotlight.open();
     if (name === 'sidebar') return setLayout(state.layout === 'view' ? 'split' : 'view');
     if (name === 'menu') return toggleMenu();
     if (name === 'copy') {
@@ -584,6 +588,9 @@
 
   function onKey(e) {
     if (e.key === 'Escape') { closeMenu(); if (Find.isOpen()) Find.close(); return; }
+    // Ctrl+Shift+F: every note, from anywhere
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'F' || e.key === 'f')) { e.preventDefault(); return Spotlight.open(); }
+    if (Spotlight.isOpen()) return;   // the box has the keyboard while it is up
     if ((e.metaKey || e.ctrlKey) && e.key === 'f') { e.preventDefault(); return Find.open(); }
     if ((e.metaKey || e.ctrlKey) && e.key === '.') {
       e.preventDefault();

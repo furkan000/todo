@@ -514,6 +514,16 @@ past days can be edited. **Search** (`Ctrl+K`, or click a tag) lists matching
 *conversations* across every day, so a topic can be followed through the weeks,
 and the list opens by itself while a search is in it.
 
+**Spotlight** (`Ctrl+Shift+F` from any tab, or the magnifier beside the date)
+is a full-text search over every note. Each word you type narrows it: a
+conversation is listed when it holds all of them, in any order, as text or as a
+tag, best matches first. `↑`/`↓` move, `Enter` opens the conversation on the
+line that matched, `Esc` closes. With nothing typed it lists the latest
+conversations.
+
+The **+** beside *Days* in the list opens any past day, so you can write up a
+call afterwards. The day is kept once you write something in it.
+
 Notes are in the hourly server backups along with everything else, and the cog
 menu exports them all as one Markdown file.
 
@@ -566,6 +576,7 @@ tagged plain text.
 | `Ctrl+1` | Text |
 | `Ctrl+2..9` | Doc / Table / Calendar / Tags / Log / Focus / Music / Notes |
 | `Ctrl+K` | search / filter by tag |
+| `Ctrl+Shift+F` | search all notes |
 | `Ctrl+F` | find & replace in the text |
 | `Ctrl+\` | open/close the editor |
 | `Esc` | close the settings menu |
@@ -601,6 +612,7 @@ js/resume.js    where you were in a track, kept apart from the catalogue
 js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/notes.js     a page of notes per day: conversations, tags, search
+js/spotlight.js the full-text search box over every note
 js/app.js       state, text write-back, import/export
 scripts/        serve.sh and the systemd autostart install/uninstall
 test/run.sh     parser suite (node) + server suite (python) + browser suites

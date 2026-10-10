@@ -40,6 +40,14 @@ document.getElementById('f').addEventListener('load',function(){
   ok('a namespaced tag finds the bare one', hits.length===1 && hits[0].section.title==='Call with Vega', hits.length);
   hits=N.search(notes,'vega',idx);
   ok('words find conversations across days', hits.length===2 && hits[1].day==='2026-10-09', hits.length);
+  hits=N.search(notes,'csv WANTS',idx);
+  ok('every word, in any order, any case', hits.length===1 && hits[0].line===text.split('\n').indexOf('wants CSV'), hits);
+  ok('all the words, not any', N.search(notes,'csv budget',idx).length===0);
+  hits=N.search([{day:'d',text:'## Call with Vega\nfirst\nthe budget'}],'vega budget',idx);
+  ok('the snippet is the body line, not the title again', hits[0].text==='the budget', hits[0].text);
+  ok('a word and a tag together', N.search(notes,'csv client:vega',idx).length===1);
+  ok('a title match outranks a body one', N.search([{day:'d',text:'## Budget\nx\n## Other\nthe budget'}],'budget',idx).sort(function(a,b){return b.score-a.score;})[0].section.title==='Budget');
+  ok('marks every word', N.mark('a <b> CSV wants','csv wants')==='a &lt;b&gt; <mark>CSV</mark> <mark>wants</mark>', N.mark('a <b> CSV wants','csv wants'));
   ok('topics count conversations', N.topics(notes,idx).some(function(t){return t.q==='#team'&&t.count===1;}));
 
   /* ---- the tab ---- */
@@ -106,19 +114,60 @@ document.getElementById('f').addEventListener('load',function(){
   click(d.querySelector('.notes-head [data-note-day]'));
   ok('back to today', N.day()===N.today() && /Vega/.test(ned.value));
 
+  /* ---- a past day from the + ---- */
+  if(!N.sideOpen()) click(d.querySelector('[data-note-side]'));
+  click(d.querySelector('[data-note-add]'));
+  var pick=d.querySelector('.notes-pick input');
+  ok('the + asks for a date', !!pick && pick.max===N.today(), pick&&pick.max);
+  pick.value='2026-09-15';
+  pick.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('and opens that day, blank', N.day()==='2026-09-15' && ned.value==='', N.day());
+  ok('listed while it is open', !!d.querySelector('.notes-day [data-note-day="2026-09-15"]'));
+  ok('but not kept until written in', w.localStorage.getItem('ptt.note.20260915')===null);
+  ned.value='## Dentist';
+  ned.dispatchEvent(new w.InputEvent('input',{bubbles:true}));
+  ok('writing keeps it', w.localStorage.getItem('ptt.note.20260915')==='## Dentist');
+  click(d.querySelector('[data-note-side]'));
+
+  /* ---- spotlight ---- */
+  click(d.querySelector('[data-view="doc"]'));
+  ed.focus();
+  d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'F',ctrlKey:true,shiftKey:true,bubbles:true,cancelable:true}));
+  var spot=d.querySelector('.spot'), sq=spot&&spot.querySelector('input');
+  ok('Ctrl+Shift+F opens it from any tab', !!spot && !spot.hidden && d.activeElement===sq);
+  ok('empty, it lists the latest conversations', spot.querySelectorAll('.spot-row').length>=2);
+  function skey(k){sq.dispatchEvent(new w.KeyboardEvent('keydown',{key:k,bubbles:true,cancelable:true}));}
+  skey('Escape');
+  ok('Esc closes it and gives focus back', spot.hidden && d.activeElement===ed);
+  w.Spotlight.open();
+  w.Spotlight.input().value='csv wants';
+  w.Spotlight.input().dispatchEvent(new w.Event('input'));
+  setTimeout(function(){ try{
+  var rows=spot.querySelectorAll('.spot-row');
+  ok('it finds by every word', rows.length===1 && /Call with Vega/.test(rows[0].textContent), rows.length);
+  ok('and marks them', rows[0] && rows[0].querySelectorAll('mark').length>=2);
+  skey('Enter');
+  ok('Enter opens the conversation in Notes', spot.hidden && w.PTT.state.view==='notes' && N.day()===N.today());
+  ok('on the line that matched', ned.value.slice(ned.selectionStart,ned.selectionEnd)==='wants CSV', ned.value.slice(ned.selectionStart,ned.selectionEnd));
+  finish();
+  }catch(e){ok('no exception',false,e.stack||String(e));report();} },150);
+  return;
+  function finish(){
   /* ---- the day turns over (last: it moves "today") ---- */
   var tomorrow=new Date(Date.now()+86400e3);
   N.tick(tomorrow);
   ok('a new day is a blank page', N.today()===N.dayOf(tomorrow) && ned.value==='', N.today());
   ok('yesterday is still there', /Vega/.test(w.localStorage.getItem(key)));
 
-  click(d.querySelector('[data-note-side]'));   // leave it as it started
+  if(N.sideOpen()) click(d.querySelector('[data-note-side]'));   // leave it as it started
   w.localStorage.removeItem('ptt.notes.v1');
   w.PTT.setLayout('split');
   click(d.querySelector('[data-view="doc"]'));
   w.PTT.setLayout('split');
   wipe();
- }catch(e){ok('no exception',false,e.stack||String(e));}
- document.getElementById('out').textContent=log.join('\n')+'\n'+(log.length-fails)+' passed, '+fails+' failed';
+  report();
+  }
+ }catch(e){ok('no exception',false,e.stack||String(e));report();}
 });
+function report(){document.getElementById('out').textContent=log.join('\n')+'\n'+(log.length-fails)+' passed, '+fails+' failed';}
 </script>

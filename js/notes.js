@@ -90,6 +90,7 @@
       return {
         line: s.line,
         time: tm ? tm[1] : '',
+        heading: s.heading,
         title: TT.stripTokens(rest, TT.scanTokens(rest)).trim(),
         body: body,
         text: s.lines.join('\n'),
@@ -140,17 +141,45 @@
     return out;
   }
 
-  // Search works on conversations, not days: every one whose text or tags
-  // contain the query, newest day first.
+  // The words of a query, each one a term on its own
+  function terms(query) {
+    var seen = {};
+    return String(query || '').toLowerCase().split(/\s+/).filter(function (t) {
+      if (!t || seen[t]) return false;
+      return (seen[t] = true);
+    });
+  }
+
+  function occurrences(hay, t) {
+    var n = 0, i = 0;
+    while ((i = hay.indexOf(t, i)) !== -1) { n++; i += t.length; }
+    return n;
+  }
+
+  // Full-text search over conversations, not days: every one that holds all
+  // the words of the query, in any order and on any of its lines, or as a tag.
+  // Each hit carries the line that holds the most of them, which is where
+  // opening it puts you, and a score: a word in the title counts for more
+  // than one in the body.
   function search(notes, query, idx) {
-    var q = String(query || '').trim().toLowerCase();
-    if (!q) return [];
+    var ts = terms(query);
+    if (!ts.length) return [];
     var hits = [];
     notes.forEach(function (n) {
       sections(n.text).forEach(function (s) {
         var hay = s.text.toLowerCase() + '\n' +
           tagsOf(s, idx).map(function (t) { return t.q.toLowerCase(); }).join(' ');
-        if (hay.indexOf(q) !== -1) hits.push({ day: n.day, section: s });
+        if (!ts.every(function (t) { return hay.indexOf(t) !== -1; })) return;
+        var title = s.title.toLowerCase(), score = 0;
+        ts.forEach(function (t) { score += occurrences(hay, t) + (title.indexOf(t) !== -1 ? 5 : 0); });
+        var best = s.line, most = 0, lines = s.text.split('\n');
+        lines.forEach(function (l, i) {
+          var low = l.toLowerCase(), k = 0;
+          ts.forEach(function (t) { if (low.indexOf(t) !== -1) k++; });
+          // a tie goes to the body: the title is on show anyway
+          if (k > most || (k && k === most && best === s.line && s.heading !== null)) { most = k; best = s.line + i; }
+        });
+        hits.push({ day: n.day, section: s, line: best, text: lines[best - s.line], score: score });
       });
     });
     return hits;
@@ -207,6 +236,7 @@
   var today = null, current = null, query = '', lastInput = 0, sideTimer = null;
   // the list of days is out of the way until asked for, and remembered
   var UI = 'ptt.notes.v1', sideOpen = false;
+  var adding = false;                   // the + has been pressed: a date is being picked
 
   function esc(s) { return Views.esc(s); }
 
@@ -226,6 +256,7 @@
     ed.addEventListener('input', onInput);
     ed.addEventListener('keydown', onKeydown);
     root.addEventListener('click', onClick);
+    root.addEventListener('change', onPick);
   }
 
   function vocab(notes) {
@@ -238,11 +269,26 @@
       : { kind: 'bare', name: t.name, raw: t.q });
   }
 
+  // Every place any of the words occurs, marked
   function mark(s, q) {
-    if (!q) return esc(s);
-    var i = s.toLowerCase().indexOf(q);
-    if (i === -1) return esc(s);
-    return esc(s.slice(0, i)) + '<mark>' + esc(s.slice(i, i + q.length)) + '</mark>' + esc(s.slice(i + q.length));
+    var ts = Array.isArray(q) ? q : terms(q);
+    if (!ts.length) return esc(s);
+    var re = new RegExp(ts.map(function (t) { return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|'), 'gi');
+    var out = '', at = 0, m;
+    while ((m = re.exec(s))) {
+      out += esc(s.slice(at, m.index)) + '<mark>' + esc(m[0]) + '</mark>';
+      at = m.index + m[0].length;
+    }
+    return out + esc(s.slice(at));
+  }
+
+  // A line cut down to a snippet, starting near its first match
+  function snippet(line, q, max) {
+    var ts = Array.isArray(q) ? q : terms(q), low = line.toLowerCase(), first = -1;
+    ts.forEach(function (t) { var i = low.indexOf(t); if (i !== -1 && (first === -1 || i < first)) first = i; });
+    var from = first > max / 3 ? first - 20 : 0;
+    var cut = line.slice(from, from + max);
+    return (from ? '…' : '') + mark(cut, ts) + (from + max < line.length ? '…' : '');
   }
 
   // A conversation by its time and title; one without a title by its first line
@@ -262,6 +308,9 @@
       (past ? '<button class="link" data-note-day="' + today + '">back to today</button>'
             : '<span class="notes-today">today</span>') +
       '<span class="spacer-flex"></span>' +
+      '<button class="icon-btn" data-act="spotlight" title="Search all notes (Ctrl+Shift+F)">' +
+        '<svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>' +
+      '</button>' +
       '<button class="icon-btn notes-side-btn' + (sideOpen ? ' on' : '') + '" data-note-side' +
         ' aria-pressed="' + sideOpen + '" title="' + (sideOpen ? 'Hide' : 'Show') + ' the days and topics">' +
         '<svg viewBox="0 0 16 16"><rect x="1" y="2.5" width="14" height="11" rx="1.5"/><path d="M10 2.5v11"/><path class="fill" d="M10.4 3.2h4v9.6h-4z"/></svg>' +
@@ -278,7 +327,12 @@
 
   function paintSide() {
     var notes = all();
-    if (!notes.some(function (n) { return n.day === today; })) notes.unshift({ day: today, text: '' });
+    // today, and a day just opened with the +, are listed before anything is in them
+    [today, current].forEach(function (d) {
+      if (!d || notes.some(function (n) { return n.day === d; })) return;
+      notes.push({ day: d, text: '' });
+    });
+    notes.sort(function (a, b) { return a.day < b.day ? 1 : -1; });
     var idx = vocab(notes), q = query.trim().toLowerCase(), html = '';
 
     if (q) {
@@ -290,18 +344,20 @@
           html += '<div class="notes-day-h" data-note-day="' + h.day + '">' + esc(shortLabel(h.day, today)) + '</div>';
           lastDay = h.day;
         }
-        var line = h.section.body.filter(function (l) { return l.toLowerCase().indexOf(q) !== -1; })[0] ||
-                   h.section.body.filter(function (l) { return l.trim(); })[0] || '';
+        var line = h.line !== h.section.line ? h.text
+          : h.section.body.filter(function (l) { return l.trim(); })[0] || '';
         html += '<button class="notes-hit' + (h.day === current ? ' here' : '') + '" data-note-day="' + h.day +
-          '" data-note-line="' + h.section.line + '"><b>' + sectionTitle(h.section, q) + '</b>' +
-          (line.trim() ? '<span>' + mark(line.trim().slice(0, 140), q) + '</span>' : '') + '</button>';
+          '" data-note-line="' + h.line + '"><b>' + sectionTitle(h.section, q) + '</b>' +
+          (line.trim() ? '<span>' + snippet(line.trim(), q, 140) + '</span>' : '') + '</button>';
       });
     } else {
       var tags = topics(notes, idx).slice(0, TOPICS_MAX);
       if (tags.length) {
         html += '<div class="notes-sub">Topics</div><div class="notes-topics">' + tags.map(chip).join('') + '</div>';
       }
-      html += '<div class="notes-sub">Days</div>';
+      html += '<div class="notes-sub notes-days-h">Days' +
+        '<button class="notes-add" data-note-add title="Write on a past day">+</button></div>' +
+        (adding ? '<div class="notes-pick"><input type="date" max="' + today + '" aria-label="Which day"></div>' : '');
       notes.forEach(function (n) {
         html += '<div class="notes-day' + (n.day === current ? ' here' : '') + '">' +
           '<button class="notes-day-h" data-note-day="' + n.day + '">' + esc(shortLabel(n.day, today)) + '</button>';
@@ -389,8 +445,29 @@
     }
   }
 
+  // The + asks for a date. Only one that has been: a day still to come has
+  // nothing to note yet.
+  function startAdding() {
+    adding = !adding;
+    paintSide();
+    var pick = side.querySelector('.notes-pick input');
+    if (!pick) return;
+    pick.focus();
+    try { pick.showPicker(); } catch (e) {}
+  }
+
+  function onPick(e) {
+    var pick = e.target;
+    if (!pick.matches || !pick.matches('.notes-pick input') || !pick.value) return;
+    if (pick.value > today) return;
+    adding = false;
+    open(pick.value);
+    ed.focus();
+  }
+
   function onClick(e) {
     if (e.target.closest && e.target.closest('[data-note-side]')) return setSide(!sideOpen);
+    if (e.target.closest && e.target.closest('[data-note-add]')) return startAdding();
     var el = e.target.closest ? e.target.closest('[data-note-day]') : null;
     if (!el || !root.contains(el)) return;
     var line = el.getAttribute('data-note-line');
@@ -474,6 +551,9 @@
     PREFIX: PREFIX,
     dayOf: dayOf, keyOf: keyOf, dayOfKey: dayOfKey, shortLabel: shortLabel,
     sections: sections, vocabulary: vocabulary, tagsOf: tagsOf, search: search, topics: topics,
+    terms: terms, mark: mark, snippet: snippet,
+    vocab: function (notes) { return vocab(notes); },
+    titleHTML: function (s, q) { return sectionTitle(s, q); },
     toMarkdown: toMarkdown, all: all, init: init, mount: mount, open: open, tick: tick, onRemote: onRemote,
     sideOpen: function () { return sideOpen; },
     focus: function () { if (ed) ed.focus(); },
