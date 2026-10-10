@@ -554,6 +554,7 @@
   global.Notes = {
     PREFIX: PREFIX,
     dayOf: dayOf, keyOf: keyOf, dayOfKey: dayOfKey, shortLabel: shortLabel,
+    longLabel: longLabel, shiftDay: shiftDay, dateOf: dateOf, read: read,
     sections: sections, vocabulary: vocabulary, tagsOf: tagsOf, search: search, topics: topics,
     terms: terms, mark: mark, snippet: snippet,
     vocab: function (notes) { return vocab(notes); },

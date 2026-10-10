@@ -17,7 +17,7 @@
     layout: 'split',         // 'text' | 'split' | 'view'
     // Notes is its own page, so it keeps its own arrangement: the todo text is
     // out of the way there until you bring it back, and each side remembers
-    notesLayout: 'view',     // 'split' | 'view', in the Notes tab
+    notesLayout: 'view',     // 'split' | 'view', on the day pages: Notes and Work
     mainLayout: 'split',     // 'split' | 'view', everywhere else
     theme: 'auto'            // 'auto' | 'light' | 'dark'
   };
@@ -41,6 +41,9 @@
     Spotlight.init({
       open: function (day, line) { showView('notes'); Notes.open(day, line); }
     });
+    Worklog.init({
+      openNotes: function (day) { showView('notes'); Notes.open(day); }
+    });
     // when a staged removal's grace runs out, the page saying so is stale
     Undo.onchange(function () { if (state.view === 'log') render(); });
     els.editor.value = saved === null ? SAMPLE : saved;
@@ -53,7 +56,7 @@
       // from before Notes had its own arrangement: what you had was the main one
       if (p.mainLayout === undefined && state.layout !== 'text') state.mainLayout = state.layout;
     } catch (e) {}
-    if (state.view === 'notes' && state.layout !== 'text') state.layout = state.notesLayout;
+    if (isPage(state.view) && state.layout !== 'text') state.layout = state.notesLayout;
 
     els.editor.addEventListener('input', function () { if (typing) return; queueSave(); render(); });
     els.editor.addEventListener('keydown', onEditorKey);
@@ -132,6 +135,7 @@
   function onRemote(keys) {
     if (keys.indexOf('ptt.log.v1') !== -1) Log.init();
     Notes.onRemote(keys);
+    Worklog.onRemote(keys);
     if (keys.indexOf(STORE) !== -1) {
       var next = Store.getItem(STORE);
       if (next !== null && next !== els.editor.value) {
@@ -205,11 +209,12 @@
       // the timer and the player own their own markup; the stage gives them room
       : state.view === 'focus' ? Pomodoro.panelHTML()
       : state.view === 'music' ? Music.catalogueHTML()
-      : state.view === 'notes' ? null
+      : isPage(state.view) ? null
       : Views.discovery(doc, ctx);
     els.stage.className = 'stage view-' + state.view;
     // the notes keep their own panel, so a note being typed is never redrawn
     if (state.view === 'notes') Notes.mount(els.stage);
+    else if (state.view === 'work') Worklog.mount(els.stage);
     else els.stage.innerHTML = html;
     if (state.view === 'focus') Pomodoro.step();   // fill the fresh markup now, not in 250ms
     Highlight.paint(doc);
@@ -489,6 +494,11 @@
     if (name === 'log-md') return closeMenu(), save('activity-log.md', 'text/markdown', Log.toMarkdown());
     if (name === 'log-csv') return closeMenu(), save('activity-log.csv', 'text/csv', Log.toCSV());
     if (name === 'notes-md') return closeMenu(), save('notes.md', 'text/markdown', Notes.toMarkdown(Notes.all()));
+    if (name === 'work-md') {
+      closeMenu();
+      var month = Worklog.exportMonth();
+      return save(month.name, 'text/markdown', month.text);
+    }
     if (name === 'clear-log') {
       if (!confirm('Clear the whole activity log? The entries cannot be recovered.')) return;
       Log.clear();
@@ -596,12 +606,13 @@
     if ((e.metaKey || e.ctrlKey) && e.key === 'f') { e.preventDefault(); return Find.open(); }
     if ((e.metaKey || e.ctrlKey) && e.key === '.') {
       e.preventDefault();
-      if (document.activeElement === Notes.editor()) return;   // notes have no todos
+      // the day pages have no todos
+      if (document.activeElement === Notes.editor() || document.activeElement === Worklog.editor()) return;
       var v = els.editor.value;
       return markNow(v.slice(0, els.editor.selectionStart).split('\n').length - 1);
     }
     if (!(e.metaKey || e.ctrlKey)) return;
-    var map = { '2': 'doc', '3': 'table', '4': 'cal', '5': 'tags', '6': 'log', '7': 'focus', '8': 'music', '9': 'notes' };
+    var map = { '2': 'doc', '3': 'table', '4': 'cal', '5': 'tags', '6': 'log', '7': 'focus', '8': 'music', '9': 'notes', '0': 'work' };
     if (e.key === '1') { e.preventDefault(); setLayout('text'); }
     else if (map[e.key]) { e.preventDefault(); showView(map[e.key]); }
     else if (e.key === 'k') { e.preventDefault(); search(); }
@@ -613,6 +624,9 @@
   }
 
   // Notes on screen: searching means the notes, and the todo search stays out
+  // The day pages — Notes and Work — keep their own arrangement between them
+  function isPage(v) { return v === 'notes' || v === 'work'; }
+
   function inNotes() { return state.view === 'notes' && state.layout !== 'text'; }
 
   function search() {
@@ -626,16 +640,17 @@
   function showView(v) {
     var was = state.view;
     state.view = v;
-    if (v === 'notes') state.layout = state.notesLayout;
-    else if (was === 'notes' || state.layout === 'text') state.layout = state.mainLayout;
+    if (isPage(v)) state.layout = state.notesLayout;
+    else if (isPage(was) || state.layout === 'text') state.layout = state.mainLayout;
     applyLayout();
     savePrefs();
     render();
     if (v === 'notes') Notes.focus();   // opening the page is wanting to write on it
+    if (v === 'work') Worklog.focus();
   }
 
   function setLayout(next) {
-    if (next !== 'text') state[state.view === 'notes' ? 'notesLayout' : 'mainLayout'] = next;
+    if (next !== 'text') state[isPage(state.view) ? 'notesLayout' : 'mainLayout'] = next;
     state.layout = next;
     applyLayout();
     savePrefs();

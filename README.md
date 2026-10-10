@@ -526,6 +526,30 @@ call afterwards. Pick it from the calendar, or type it and press `Enter`. The da
 Notes are in the hourly server backups along with everything else, and the cog
 menu exports them all as one Markdown file.
 
+## Work log
+
+**Work** (`Ctrl+0`) is where you write down what you did, one page per day, so
+the end of the month is a matter of exporting rather than remembering. Each day
+is its own plain text, `ptt.work.<yyyymmdd>` (one file per day on the server),
+and like Notes a day runs from 02:00 to 02:00. The todo text is hidden here
+too, and the two pages share that arrangement.
+
+`‹` and `›` beside the date step through the days, and every past day can be
+edited. The list on the right (folded until you open it, and remembered) shows
+the days you wrote something on, by month.
+
+Under the page is what else the app knows about that day:
+
+- **Finished**: every todo finished that day, from the activity log, with the
+  time. `+` copies one into the page as a line, and *add all* copies every one
+  not yet there. A todo already in the page gets a ✓.
+- **Notes**: that day's conversations, folded away until you open them, and
+  remembered either way. *open in Notes* goes there.
+
+The cog menu's **Work log → The month as Markdown** exports the month on
+screen, oldest day first: each day's page, plus any finished todos you did not
+copy in.
+
 ## Selection echo
 
 Select any text in the editor and every other copy of it is boxed, so you can see
@@ -573,7 +597,7 @@ tagged plain text.
 | | |
 | --- | --- |
 | `Ctrl+1` | Text |
-| `Ctrl+2..9` | Doc / Table / Calendar / Tags / Log / Focus / Music / Notes |
+| `Ctrl+2..9`, `Ctrl+0` | Doc / Table / Calendar / Tags / Log / Focus / Music / Notes, Work |
 | `Ctrl+K` | search / filter by tag — in Notes, search the notes |
 | `Ctrl+Shift+F` | search all notes |
 | `Ctrl+F` | find & replace in the text |
@@ -612,6 +636,7 @@ js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/notes.js     a page of notes per day: conversations, tags, search
 js/spotlight.js the full-text search box over every note
+js/worklog.js   a page per day of what you did, with that day's finished todos and notes
 js/app.js       state, text write-back, import/export
 scripts/        serve.sh and the systemd autostart install/uninstall
 test/run.sh     parser suite (node) + server suite (python) + browser suites

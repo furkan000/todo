@@ -49,9 +49,10 @@ RESERVED = {'api', 'css', 'js', 'test', 'scripts', 'server', 'data', 'temp', 'in
 STATIC_DIRS = ('css', 'js')          # everything else in the repo stays private
 MAX_BODY = 5 * 1024 * 1024
 MAX_KEYS = 32
-# a day of notes is a key of its own, so they get their own, far larger allowance
-NOTE_RE = re.compile(r'^ptt\.note\.\d{8}$')
-MAX_NOTES = 20000                    # fifty-odd years of days
+# a day's page (notes, work log) is a key of its own, so they get their own,
+# far larger allowance
+DAY_RE = re.compile(r'^ptt\.(note|work)\.\d{8}$')
+MAX_DAYS = 40000                     # fifty-odd years of days, of each kind
 REVS = 'revs.json'
 BACKUPS = '.backups'                 # a dot, so it can never be anyone's name
 STAMP = '%Y-%m-%dT%H-%M'
@@ -118,9 +119,9 @@ class Store:
             if expect is not None and expect != have:
                 return False, have
             if key not in revs:
-                note = bool(NOTE_RE.match(key))
-                same = sum(1 for k in revs if bool(NOTE_RE.match(k)) == note)
-                if same >= (MAX_NOTES if note else MAX_KEYS):
+                day = bool(DAY_RE.match(key))
+                same = sum(1 for k in revs if bool(DAY_RE.match(k)) == day)
+                if same >= (MAX_DAYS if day else MAX_KEYS):
                     raise ValueError('too many keys')
             os.makedirs(self._dir(name), exist_ok=True)
             self._write(os.path.join(self._dir(name), key), value)

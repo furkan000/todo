@@ -1,0 +1,91 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var W=w.Worklog,N=w.Notes,ed=d.getElementById('editor');
+  function wipe(){Object.keys(w.localStorage).forEach(function(k){if(/^ptt\.(work|note)\.|^ptt\.work\.v1$/.test(k))w.localStorage.removeItem(k);});}
+  function type(v){ed.value=v;ed.dispatchEvent(new w.Event('input',{bubbles:true}));}
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  wipe(); w.Log.clear();
+
+  /* ---- the day a log entry belongs to ---- */
+  ok('after 02:00 it is that day', W.dayOfStamp('2026-10-10 09:15')==='2026-10-10');
+  ok('before 02:00 it is the evening before', W.dayOfStamp('2026-10-10 01:30')==='2026-10-09');
+  var entries=[{event:'done',at:'2026-10-09 17:00',title:'Ship it'},{event:'focus',at:'2026-10-09 15:00',title:'x'},
+               {event:'done',at:'2026-10-10 00:40',title:'Late one',parent:'Release'},{event:'done',at:'2026-10-10 10:00',title:'Next day'}];
+  var f=W.finishedOn(entries,'2026-10-09');
+  ok('finished todos of a day, and only those', f.length===2 && f[0].title==='Ship it' && f[1].parent==='Release', f);
+  ok('a line in the page counts as logged', W.logged('- did a thing\n- Release › Late one',f[1]) && !W.logged('- Ship it soon',f[0]));
+
+  /* ---- the month ---- */
+  var md=W.monthMarkdown('2026-10',function(day){return day==='2026-10-09'?'- Ship it\n- reviewed Vega':'';},entries);
+  ok('the month names itself', /^# Work log — October 2026/.test(md), md);
+  ok('a day with a page is in it', /## Fri 9 Oct\n\n- Ship it\n- reviewed Vega/.test(md), md);
+  ok('finished todos not already written are added', /Finished:\n\n- Release › Late one/.test(md) && md.indexOf('Finished:\n\n- Ship it')===-1, md);
+  ok('a day with only a finished todo is in it', /## Sat 10 Oct[\s\S]*- Next day/.test(md), md);
+
+  /* ---- the tab ---- */
+  w.PTT.setLayout('split');
+  click(d.querySelector('[data-view="work"]'));
+  var wed=d.querySelector('.stage .work-ed'), app=d.getElementById('app');
+  ok('the Work tab shows a page', !!wed && d.activeElement===wed);
+  ok('without the todo text, as in Notes', app.classList.contains('layout-view'), app.className);
+  ok('the list of days starts folded', !d.querySelector('.work').classList.contains('side-open'));
+  ok('there is no day after today', d.querySelector('[data-work-step="1"]').disabled);
+  wed.value='- Reviewed the Vega export';
+  wed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  var key=W.keyOf(W.today());
+  ok('what is written is kept under the day', w.localStorage.getItem(key)==='- Reviewed the Vega export');
+
+  /* ---- finishing a todo shows up under the page ---- */
+  w.PTT.setLayout('split');
+  type('- [ ] Send the invoice\n');
+  type('- [x] Send the invoice\n');
+  ok('the page is still the same element after renders', d.querySelector('.stage .work-ed')===wed);
+  var row=d.querySelector('.work-done li');
+  ok('a todo finished today is listed', !!row && /Send the invoice/.test(row.textContent), row&&row.textContent);
+  click(row.querySelector('[data-work-add]'));
+  ok('+ copies it into the page', wed.value==='- Reviewed the Vega export\n- Send the invoice\n', wed.value);
+  ok('and it is marked as in', !!d.querySelector('.work-done li.in .work-in'));
+  ok('which is kept', w.localStorage.getItem(key)===wed.value);
+
+  /* ---- the day's notes, folded ---- */
+  w.localStorage.setItem(N.keyOf(W.today()),'## 11:00 Call with Vega\nWants CSV');
+  w.PTT.showView('work');
+  var det=d.querySelector('.work-notes');
+  ok('the day\'s notes are there, folded', !!det && !det.open && /Call with Vega/.test(det.textContent));
+  det.open=true; det.dispatchEvent(new w.Event('toggle'));
+  ok('the fold is remembered', JSON.parse(w.localStorage.getItem('ptt.work.v1')).notes===true);
+  click(d.querySelector('[data-work-notes]'));
+  ok('open in Notes goes there', w.PTT.state.view==='notes' && N.day()===W.today());
+
+  /* ---- past days ---- */
+  click(d.querySelector('[data-view="work"]'));
+  click(d.querySelector('[data-work-step="-1"]'));
+  ok('‹ steps to the day before, blank', W.day()===N.shiftDay(W.today(),-1) && wed.value==='', W.day());
+  ok('which has nothing finished', /No todos were finished/.test(d.querySelector('.work-extra').textContent));
+  wed.value='- Planning';
+  wed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  ok('and can be written in', w.localStorage.getItem(W.keyOf(W.day()))==='- Planning');
+  click(d.querySelector('[data-work-side]'));
+  ok('the list opens, and remembers', d.querySelector('.work').classList.contains('side-open') && JSON.parse(w.localStorage.getItem('ptt.work.v1')).side===true);
+  ok('it lists both days', d.querySelectorAll('.work-day').length===2, d.querySelectorAll('.work-day').length);
+  click(d.querySelector('.work-head [data-work-day]'));
+  ok('back to today', W.day()===W.today() && /Send the invoice/.test(wed.value));
+
+  /* ---- export ---- */
+  var ex=W.exportMonth();
+  ok('the month on screen exports', ex.name==='work-log-'+W.today().slice(0,7)+'.md' && /Send the invoice/.test(ex.text), ex.name);
+
+  click(d.querySelector('[data-work-side]'));
+  w.PTT.setLayout('split');
+  click(d.querySelector('[data-view="doc"]'));
+  w.PTT.setLayout('split');
+  wipe(); w.Log.clear();
+ }catch(e){ok('no exception',false,e.stack||String(e));}
+ document.getElementById('out').textContent=log.join('\n')+'\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

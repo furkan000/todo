@@ -36,6 +36,7 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
       <button data-view="music" class="tab" title="Music (Ctrl+8)">Music</button>
       <span class="tab-div" aria-hidden="true"></span>
       <button data-view="notes" class="tab" title="Notes — a blank page every day (Ctrl+9)">Notes</button>
+      <button data-view="work" class="tab" title="Work — what you did, day by day (Ctrl+0)">Work</button>
     </nav>
 
     <div class="spacer-flex"></div>
@@ -98,6 +99,9 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
         <div class="menu-sep"></div>
         <div class="menu-label">Notes</div>
         <button data-act="notes-md"><b>Notes as Markdown</b><span>every day, newest first</span></button>
+        <div class="menu-sep"></div>
+        <div class="menu-label">Work log</div>
+        <button data-act="work-md"><b>The month as Markdown</b><span>the month on screen, day by day, with what was finished</span></button>
       </div>
     </div>
   </header>
@@ -201,6 +205,7 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
 <script src="js/find.js"></script>
 <script src="js/notes.js"></script>
 <script src="js/spotlight.js"></script>
+<script src="js/worklog.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
