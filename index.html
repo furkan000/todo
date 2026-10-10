@@ -160,7 +160,9 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
         <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"
           placeholder="# My list&#10;&#10;- [ ] something to do @tomorrow !high #proj:atlas ~billable"></textarea>
       </div>
-      <!-- the Done section, folded out of the text; click to bring it back -->
+      <!-- one slim row under the editor: the folded Done section on the left,
+           the syntax cheat sheet on the right, opening over the editor -->
+      <div class="editor-foot">
       <button class="fold-bar" id="fold-bar" data-act="fold" title="Show the Done section" hidden></button>
       <details class="syntax">
         <summary>Syntax</summary>
@@ -179,6 +181,7 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
           <dt><code>#work</code></dt><dd>plain label — until <code>#ns:work</code> appears somewhere, then it resolves there</dd>
         </dl>
       </details>
+      </div>
     </section>
 
     <div class="resizer" id="resizer" role="separator" aria-orientation="vertical"
