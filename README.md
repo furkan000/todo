@@ -615,6 +615,15 @@ gap to its left absorbs the growth so nothing else on the bar moves.
 
 ## Import / export
 
+**Everything as one file:** the cog menu's *Export everything* writes every
+stored item (the todo text, the activity log, every day of notes and of the
+work log, reminders, settings, music, timer) into one `.json` file, exactly as
+stored. Give that file to *Import a file…* to restore it. It asks first and
+says what is in the file, then writes it all back and reloads. Items not in
+the file are left alone, so notes written after the backup survive a restore.
+It works the same with or without a name on the server, and it is also how to
+move everything from one name, or one browser, to another.
+
 Export as **Markdown** (the text verbatim), **JSON** (resolved todos plus the
 discovered vocabulary, with the source text embedded so it round-trips exactly),
 or **CSV** (the table, one column per namespace; multi-valued cells separate their
@@ -666,6 +675,7 @@ js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/notes.js     a page of notes per day: conversations, tags, search
 js/spotlight.js the full-text search box over every note
+js/backup.js    everything as one file, and restoring from it
 js/reminders.js the two daily reminders: a notification and a red marker that stays
 js/navbar.js    fits the toolbar to the window: folds the filter, then tabs into More
 js/worklog.js   a page per day of what you did, with that day's finished todos and notes

@@ -493,6 +493,11 @@
       else { els.editor.select(); document.execCommand('copy'); flash('Copied'); }
       return;
     }
+    if (name === 'export-all') {
+      closeMenu();
+      saveNow();   // the last quarter second of typing belongs in it
+      return save(Backup.fileName(), 'application/json', Backup.toJSON());
+    }
     if (name === 'export-md') return closeMenu(), save('todo.md', 'text/markdown', els.editor.value);
     if (name === 'export-json') return closeMenu(), save('todo.json', 'application/json', toJSON());
     if (name === 'export-csv') return closeMenu(), save('todo.csv', 'text/csv', toCSV());
@@ -922,6 +927,7 @@
     if (/\.json$/i.test(name)) {
       var data;
       try { data = JSON.parse(raw); } catch (e) { return alert('That JSON file could not be parsed.'); }
+      if (Backup.isBackup(data)) return restoreAll(name, data);
       if (Array.isArray(data.log) && data.log.length && confirm('This file carries an activity log of ' + data.log.length + ' entries. Replace the current log with it?')) {
         Log.load(data.log);
       }
@@ -944,6 +950,20 @@
     Log.suppress();
     setText(text, 0);
     flash('Imported ' + name + note);
+  }
+
+  // A whole backup: everything in it is written back, and the page reloads so
+  // every part of the app reads its share afresh
+  function restoreAll(name, data) {
+    if (!confirm('Restore everything from ' + name + '?\n\nIt was ' + Backup.describe(data) +
+        '. What is in the file replaces what is here now; anything not in it is left as it is.')) return;
+    saveNow();          // nothing typed a moment ago may land on top of it
+    Log.suppress();
+    flash('Restoring…');
+    Backup.restore(data, function (status) {
+      if (status !== 'saved' && status !== 'local') return flash('Restored here, but the server has not confirmed it yet');
+      location.reload();
+    });
   }
 
   /* ---------- sample ---------- */
@@ -987,7 +1007,7 @@
 
   // handy from the console, and what the browser tests drive
   window.PTT = {
-    toJSON: toJSON, toCSV: toCSV, importText: importText,
+    toJSON: toJSON, toCSV: toCSV, importText: importText, saveNow: saveNow,
     parseCSV: parseCSV, csvToText: csvToText,
     doc: function () { return doc; }, state: state, sample: SAMPLE,
     applyTheme: applyTheme, resolvedTheme: resolvedTheme, archive: function () { return action('archive'); },

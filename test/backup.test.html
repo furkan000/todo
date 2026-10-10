@@ -1,0 +1,58 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1300px;height:600px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+function report(){document.getElementById('out').textContent=log.join('\n')+'\n'+(log.length-fails)+' passed, '+fails+' failed';}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var B=w.Backup,ls=w.localStorage;
+  var mine=['ptt.note.20261009','ptt.work.20261009','ptt.u.someone.theme','ptt.note.20261011'];
+  function wipe(){mine.forEach(function(k){ls.removeItem(k);});}
+  wipe();
+  ls.setItem('ptt.note.20261009','## Call #vega\nhello');
+  ls.setItem('ptt.work.20261009','- did a thing');
+  ls.setItem('ptt.u.someone.theme','dark');
+  var ed=d.getElementById('editor');
+  ed.value='- [ ] the todo text'; ed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  w.PTT.saveNow();
+  w.PTT.showView('doc');   // a setting is only kept once something is set
+
+  /* ---- out ---- */
+  var data=B.collect(new Date(2026,9,10,12,0));
+  ok('it says what it is', B.isBackup(data) && data.format==='plain-text-todo-backup' && data.version===1);
+  ok('the todo text, as stored', data.keys['ptt.doc.v1']==='- [ ] the todo text', data.keys['ptt.doc.v1']);
+  ok('every day of notes and work', data.keys['ptt.note.20261009']==='## Call #vega\nhello' && data.keys['ptt.work.20261009']==='- did a thing');
+  ok('the settings', 'ptt.prefs.v1' in data.keys);
+  ok('not this browser\'s own hints', !('ptt.u.someone.theme' in data.keys));
+  ok('it round-trips as JSON', B.isBackup(JSON.parse(B.toJSON())));
+  ok('a file name with the date', /^plain-text-todo-\d{4}-\d{2}-\d{2}\.json$/.test(B.fileName()), B.fileName());
+  ok('it can describe itself', /1 day of notes, 1 day of work log/.test(B.describe(data)), B.describe(data));
+  ok('other JSON is not a backup', !B.isBackup({text:'x'}) && !B.isBackup(null));
+
+  /* ---- importing asks first ---- */
+  var asked=null; w.confirm=function(m){asked=m;return false;};
+  w.PTT.importText('backup.json', JSON.stringify(data));
+  ok('importing one asks first, and says what is in it', /Restore everything/.test(asked) && /1 day of notes/.test(asked), asked);
+  ok('saying no changes nothing', ed.value==='- [ ] the todo text');
+
+  /* ---- back in ---- */
+  ls.setItem('ptt.note.20261009','changed since');
+  ls.setItem('ptt.note.20261011','written after the backup');
+  B.restore(data,function(status){
+   try{
+    ok('restoring writes it back', ls.getItem('ptt.note.20261009')==='## Call #vega\nhello', ls.getItem('ptt.note.20261009'));
+    ok('what is not in the file is left alone', ls.getItem('ptt.note.20261011')==='written after the backup');
+    ok('locally it is done at once', status==='local', status);
+    var bad={format:'plain-text-todo-backup',keys:{'not.ours':'x','ptt.u.x.theme':'dark','ptt.ok.v1':5}};
+    B.restore(bad,function(){
+      ok('keys that are not the app\'s are not written', ls.getItem('not.ours')===null && ls.getItem('ptt.u.x.theme')===null && ls.getItem('ptt.ok.v1')===null);
+      wipe(); report();
+    });
+   }catch(e){ok('no exception',false,e.stack);report();}
+  });
+  return;
+ }catch(e){ok('no exception',false,e.stack||String(e));}
+ report();
+});
+</script>

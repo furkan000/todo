@@ -108,6 +108,10 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
         <button data-act="import"><b>Import a file…</b><span>.md, .txt, .json or .csv</span></button>
         <button data-act="copy"><b>Copy to clipboard</b><span>the raw text</span></button>
         <div class="menu-sep"></div>
+        <div class="menu-label">Everything</div>
+        <button data-act="export-all"><b>Export everything</b><span>one file: todos, log, notes, work log, settings</span></button>
+        <div class="menu-hint">To restore, give that file to <b>Import a file…</b></div>
+        <div class="menu-sep"></div>
         <div class="menu-label">Export</div>
         <button data-act="export-md"><b>Markdown</b><span>the text, exactly as written</span></button>
         <button data-act="export-json"><b>JSON</b><span>resolved todos + discovered vocabulary</span></button>
@@ -230,6 +234,7 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
 <script src="js/worklog.js"></script>
 <script src="js/navbar.js"></script>
 <script src="js/reminders.js"></script>
+<script src="js/backup.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
