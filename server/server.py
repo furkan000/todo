@@ -22,10 +22,13 @@ A revision is a per-key counter. It is what lets a second device notice that the
 text changed underneath it rather than quietly overwrite it.
 
 Backups: once an hour, if anything was saved since the last one, the whole data
-folder is copied to DATA_DIR/.backups/<YYYY-MM-DDTHH-MM>/. Snapshots older than
-three days are deleted, except the newest, which is always kept — a quiet week
-must not leave you with no backup at all. To restore, copy a name's folder back
-out of a snapshot while the server is stopped.
+folder is copied to DATA_DIR/.backups/<YYYY-MM-DDTHH-MM>/. Every snapshot is
+kept for three days. After that only the last one of each day stays, and those
+are kept for good (or --backup-days, if set): the work log is read at the end
+of the month, and a mistake can go unnoticed that long. The newest snapshot is
+always kept as well, so a quiet week never leaves you with no backup at all. To
+restore, copy a name's folder back out of a snapshot while the server is
+stopped.
 """
 import argparse
 import json
@@ -140,10 +143,11 @@ class Backups:
     taken when the store's differs. `run(now)` takes the moment as an argument,
     so the tests can drive three days in no time."""
 
-    def __init__(self, data, keep_s=3 * 24 * 3600):
+    def __init__(self, data, keep_s=3 * 24 * 3600, days=0):
         self.data = data
         self.dir = os.path.join(data, BACKUPS)
-        self.keep_s = keep_s
+        self.keep_s = keep_s          # every snapshot, this long
+        self.days = days              # then one a day, this many days; 0 is for good
 
     def _names(self):
         try:
@@ -210,9 +214,16 @@ class Backups:
 
     def prune(self, now):
         snaps = self.snapshots()
+        last_of_day = {}
+        for at, path in snaps:        # oldest first, so the last one of a day wins
+            last_of_day[time.strftime('%Y-%m-%d', time.localtime(at))] = path
         for at, path in snaps[:-1]:   # never the newest
-            if now - at > self.keep_s:
-                shutil.rmtree(path, ignore_errors=True)
+            if now - at <= self.keep_s:
+                continue
+            daily = last_of_day[time.strftime('%Y-%m-%d', time.localtime(at))] == path
+            if daily and (not self.days or now - at <= self.days * 86400):
+                continue
+            shutil.rmtree(path, ignore_errors=True)
 
     def loop(self, every_s):
         while True:
@@ -342,13 +353,15 @@ def main():
     ap.add_argument('--backup-every', type=float, default=60, metavar='MIN',
                     help='minutes between backups, 0 to turn them off (default: 60)')
     ap.add_argument('--backup-keep', type=float, default=72, metavar='HOURS',
-                    help='how long a backup is kept (default: 72)')
+                    help='how long every backup is kept (default: 72)')
+    ap.add_argument('--backup-days', type=float, default=0, metavar='DAYS',
+                    help='after that, how long the last backup of each day is kept; 0 keeps them for good (default: 0)')
     args = ap.parse_args()
 
     data = os.path.abspath(args.data)
     httpd = make_server(args.host, args.port, data, args.verbose)
     if args.backup_every > 0:
-        backups = Backups(data, args.backup_keep * 3600)
+        backups = Backups(data, args.backup_keep * 3600, args.backup_days)
         threading.Thread(target=backups.loop, args=(args.backup_every * 60,), daemon=True).start()
     print('Plain Text Todo -> http://%s:%d/<name>   (data in %s)'
           % (args.host, args.port, os.path.abspath(args.data)), flush=True)

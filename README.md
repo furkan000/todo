@@ -69,8 +69,10 @@ is. `data/` is gitignored.
 
 **Backups happen on their own.** Once an hour, if anything was saved since the
 last one, the server copies every name to `data/.backups/<date>T<hh-mm>/`.
-Snapshots older than three days are deleted, except the newest, which is kept
-however old — a week of not touching anything must not leave you with no backup.
+Every snapshot is kept for three days. After that the **last snapshot of each
+day** stays, for good, so you can always go back to how any day ended, even a
+month later when the work log gets read. The newest snapshot is always kept
+too, however old, so a quiet week never leaves you with no backup.
 To restore, stop the server and copy a name's folder back out of a snapshot:
 
 ```bash
@@ -79,8 +81,10 @@ cp -a data/.backups/2026-10-01T15-50/furkan/. data/furkan/
 systemctl --user start todo-app
 ```
 
-`--backup-every 30` (minutes) and `--backup-keep 168` (hours) change the
-schedule; `--backup-every 0` turns it off. The backups sit on the same disk as
+`--backup-every 30` (minutes) and `--backup-keep 168` (hours of every
+snapshot) change the schedule, `--backup-days 365` stops keeping the daily ones
+after a year, and `--backup-every 0` turns it all off. The data is plain text,
+so a year of daily copies takes little room. The backups sit on the same disk as
 the data, so they cover mistakes, not a dead disk — copy `data/` elsewhere for
 that.
 

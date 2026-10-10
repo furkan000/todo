@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 import threading
 import unittest
 
@@ -176,13 +177,30 @@ class BackupTest(unittest.TestCase):
         self.store.put('ann', 'ptt.doc.v1', b'a2')
         self.assertNotIn(server.BACKUPS, os.listdir(self.hour()), 'backups are not backed up')
 
-    def test_three_days_are_kept(self):
-        for i in range(100):                      # a change every hour for 100 hours
+    def day(self, at):
+        return time.strftime('%Y-%m-%d', time.localtime(at))
+
+    def test_three_days_of_every_hour_then_one_a_day_for_good(self):
+        for i in range(24 * 10):                  # a change every hour for ten days
             self.store.put('ann', 'ptt.doc.v1', ('v%d' % i).encode())
             self.hour()
         snaps = self.b.snapshots()
-        self.assertTrue(all(self.t - at <= 72 * 3600 for at, _ in snaps))
-        self.assertEqual(len(snaps), 73)
+        recent = [at for at, _ in snaps if self.t - at <= 72 * 3600]
+        older = [at for at, _ in snaps if self.t - at > 72 * 3600]
+        self.assertEqual(len(recent), 73, 'every hour of the last three days')
+        days = [self.day(at) for at in older]
+        self.assertEqual(len(days), len(set(days)), 'one a day before that')
+        self.assertGreaterEqual(len(days), 6)
+        for at in older:                          # and it is the day's last one
+            self.assertFalse(any(self.day(o) == self.day(at) and o > at for o, _ in self.b.snapshots()))
+
+    def test_daily_copies_can_be_capped(self):
+        b = server.Backups(self.data, keep_s=72 * 3600, days=5)
+        for i in range(24 * 10):
+            self.store.put('ann', 'ptt.doc.v1', ('v%d' % i).encode())
+            self.t += 3600
+            b.run(self.t)
+        self.assertTrue(all(self.t - at <= 5 * 86400 for at, _ in b.snapshots()))
 
     def test_the_newest_is_kept_however_old(self):
         self.store.put('ann', 'ptt.doc.v1', b'quiet week')
