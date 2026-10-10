@@ -1060,8 +1060,11 @@ tbody tr.done .task-title { color: var(--ink-3); text-decoration: line-through; 
 .spot {
   position: fixed; inset: 0; z-index: 50; display: flex; justify-content: center;
   align-items: flex-start; padding: 14vh 16px 16px;
-  background: color-mix(in srgb, var(--ink) 18%, transparent);
+  /* a dimmer, never the ink colour: ink is near-white in dark, and lit the page */
+  background: rgba(30, 26, 18, .18);
 }
+:root[data-theme="dark"] .spot { background: rgba(0, 0, 0, .55); }
+:root[data-theme="dark"] .spot-box { box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 .spot[hidden] { display: none; }
 .spot-box {
   width: 640px; max-width: 100%; max-height: 70vh; display: flex; flex-direction: column;
