@@ -181,6 +181,7 @@ document.getElementById('f').addEventListener('load',function(){
   var rows=spot.querySelectorAll('.spot-row');
   ok('it finds by every word', rows.length===1 && /Call with Vega/.test(rows[0].textContent), rows.length);
   ok('and marks them', rows[0] && rows[0].querySelectorAll('mark').length>=2);
+  ok('the heading\'s tags show beside the title', rows[0] && !!rows[0].querySelector('.spot-tags [data-q="#client:vega"]'), rows[0]&&rows[0].innerHTML);
   skey('Enter');
   ok('Enter opens the conversation in Notes', spot.hidden && w.PTT.state.view==='notes' && N.day()===N.today());
   ok('on the line that matched', ned.value.slice(ned.selectionStart,ned.selectionEnd)==='wants CSV', ned.value.slice(ned.selectionStart,ned.selectionEnd));

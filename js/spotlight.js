@@ -59,11 +59,14 @@
     return out;
   }
 
+  var vocab = null;   // what bare tags resolve to, for the search and the chips
+
   function find(q) {
     var notes = Notes.all();
+    vocab = Notes.vocab(notes);
     if (!Notes.terms(q).length) return { hits: recent(notes), searching: false };
     return {
-      hits: Notes.search(notes, q, Notes.vocab(notes)).sort(function (a, b) {
+      hits: Notes.search(notes, q, vocab).sort(function (a, b) {
         return b.score - a.score || (a.day < b.day ? 1 : a.day > b.day ? -1 : 0);
       }).slice(0, MAX),
       searching: true
@@ -85,6 +88,7 @@
         : h.section.body.filter(function (l) { return l.trim(); })[0] || '';
       html += '<button class="spot-row" data-spot="' + i + '" role="option">' +
         '<span class="spot-t"><b>' + Notes.titleHTML(h.section, ts) + '</b>' +
+        '<span class="spot-tags">' + Notes.headTagsHTML(h.section, vocab) + '</span>' +
         '<em>' + esc(Notes.shortLabel(h.day, today)) + '</em></span>' +
         (line.trim() ? '<span class="spot-s">' + Notes.snippet(line.trim(), ts, 120) + '</span>' : '') +
         '</button>';

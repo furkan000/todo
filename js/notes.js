@@ -605,6 +605,10 @@
     sections: sections, vocabulary: vocabulary, tagsOf: tagsOf, search: search, topics: topics,
     terms: terms, mark: mark, snippet: snippet,
     vocab: function (notes) { return vocab(notes); },
+    // the tags written on a conversation's heading, as chips
+    headTagsHTML: function (s, idx) {
+      return tagsOf({ tokens: TT.scanTokens(s.heading || '') }, idx).map(chip).join('');
+    },
     titleHTML: function (s, q) { return sectionTitle(s, q); },
     toMarkdown: toMarkdown, all: all, init: init, mount: mount, open: open, tick: tick, onRemote: onRemote,
     sideOpen: function () { return sideOpen; },
