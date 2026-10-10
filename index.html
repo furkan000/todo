@@ -131,6 +131,7 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
         <span class="pane-sub">source of truth</span>
         <div class="spacer-flex"></div>
         <button data-act="archive" class="link" id="archive-btn" hidden>Archive done</button>
+        <button data-act="fold" class="link" id="fold-btn" title="Fold the Done section out of the way" hidden>Fold done</button>
       </div>
       <div class="find" id="find" hidden>
         <div class="find-row">
@@ -159,6 +160,8 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
         <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"
           placeholder="# My list&#10;&#10;- [ ] something to do @tomorrow !high #proj:atlas ~billable"></textarea>
       </div>
+      <!-- the Done section, folded out of the text; click to bring it back -->
+      <button class="fold-bar" id="fold-bar" data-act="fold" title="Show the Done section" hidden></button>
       <details class="syntax">
         <summary>Syntax</summary>
         <dl>
@@ -211,6 +214,7 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
 <script src="js/log.js"></script>
 <script src="js/donedate.js"></script>
 <script src="js/archive.js"></script>
+<script src="js/fold.js"></script>
 <script src="js/subtasks.js"></script>
 <script src="js/focus.js"></script>
 <script src="js/lines.js"></script>

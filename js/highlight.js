@@ -24,8 +24,11 @@
       return;
     }
     wrap.classList.add('hl-on');
+    // only the lines the editor holds: a Done section folded out of it is
+    // still in the parse, and must not be painted under empty space
+    var shown = ed.value.split('\n').length;
     // the trailing newline keeps the final line scrollable in step with the textarea
-    layer.innerHTML = doc.lines.map(line).join('\n') + '\n';
+    layer.innerHTML = doc.lines.slice(0, shown).map(line).join('\n') + '\n';
     global.Overlay.sync();
   }
 

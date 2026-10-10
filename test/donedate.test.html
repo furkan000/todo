@@ -11,6 +11,7 @@ document.getElementById('f').addEventListener('load',function(){
   function type(v,caret){ed.value=v;if(caret!==undefined)ed.selectionStart=ed.selectionEnd=caret;
                         ed.dispatchEvent(new w.Event('input',{bubbles:true}));}
   var ed=d.getElementById('editor'), L=w.Log, DD=w.DoneDate;
+  w.PTT.setFold(false);   // this suite reads the raw text; folding has its own
   var TODAY=w.TT.isoOf(new Date()), TAG='#done:'+TODAY;
   DD.setEnabled(true);
   L.clear();

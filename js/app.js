@@ -20,6 +20,7 @@
     notesLayout: 'view',     // 'split' | 'view', on the day pages: Notes and Work
     mainLayout: 'split',     // 'split' | 'view', everywhere else
     tabOrder: null,          // the tabs as you dragged them; null is the order in the page
+    foldDone: true,          // the Done section folded out of the editor
     theme: 'auto'            // 'auto' | 'light' | 'dark'
   };
   var doc = null, saveTimer = null;
@@ -56,19 +57,26 @@
     Backup.init({ before: saveNow, flash: flash });
     // when a staged removal's grace runs out, the page saying so is stale
     Undo.onchange(function () { if (state.view === 'log') render(); });
-    els.editor.value = saved === null ? SAMPLE : saved;
+    var start = saved === null ? SAMPLE : saved;
     try {
       var p = JSON.parse(Store.getItem(PREFS) || '{}');
       // the table used to sort by due date out of the box; one-time, drop that
       // stored choice so the new default — document order — actually shows up
       if (p.sortV !== 2) delete p.sort;
-      ['view', 'filter', 'sort', 'layout', 'theme', 'group', 'split', 'notesLayout', 'mainLayout', 'tabOrder'].forEach(function (k) { if (p[k] !== undefined) state[k] = p[k]; });
+      ['view', 'filter', 'sort', 'layout', 'theme', 'group', 'split', 'notesLayout', 'mainLayout', 'tabOrder', 'foldDone'].forEach(function (k) { if (p[k] !== undefined) state[k] = p[k]; });
       // from before Notes had its own arrangement: what you had was the main one
       if (p.mainLayout === undefined && state.layout !== 'text') state.mainLayout = state.layout;
     } catch (e) {}
     if (isPage(state.view) && state.layout !== 'text') state.layout = state.notesLayout;
+    Fold.setFolded(state.foldDone);
+    els.editor.value = Fold.take(start);
 
-    els.editor.addEventListener('input', function () { if (typing) return; queueSave(); render(); });
+    els.editor.addEventListener('input', function () {
+      if (typing) return;
+      Fold.input(els.editor.value);   // an undo brings back the Done section that went with it
+      queueSave();
+      render();
+    });
     els.editor.addEventListener('keydown', onEditorKey);
     els.editor.addEventListener('cut', onCut);
     els.search.addEventListener('input', function () { state.query = els.search.value; render(); });
@@ -85,7 +93,8 @@
     Occurrences.init(els.editor, document.getElementById('occ-marks'));
     Find.init({
       editor: els.editor,
-      setText: setText,
+      // Find sees only the editor; what it writes back gets the folded part again
+      setText: function (next, caret) { setText(Fold.full(next), caret); },
       flash: flash,
       ensureVisible: function () { if (state.layout === 'view') setLayout('split'); }
     });
@@ -135,7 +144,7 @@
     if (saveTimer === null) return;
     clearTimeout(saveTimer);
     saveTimer = null;
-    try { Store.setItem(STORE, els.editor.value); } catch (e) {}
+    try { Store.setItem(STORE, text()); } catch (e) {}
   }
 
   // Another device changed something under this name. The text and the log are
@@ -148,11 +157,11 @@
     if (keys.indexOf('ptt.remind.v1') !== -1) Reminders.reload();
     if (keys.indexOf(STORE) !== -1) {
       var next = Store.getItem(STORE);
-      if (next !== null && next !== els.editor.value) {
+      if (next !== null && next !== text()) {
         Log.suppress();   // it was finished over there, and logged over there
         // an edit like any other: Ctrl+Z takes it back, and keeps working past it
-        var sel = Math.min(els.editor.selectionStart, next.length);
-        if (!writeKeepingUndo(next, sel, sel) && els.editor.value !== next) assign(next, sel, sel);
+        var vis = shown(next), sel = Math.min(els.editor.selectionStart, vis.length);
+        if (!writeKeepingUndo(vis, sel, sel) && els.editor.value !== vis) assign(vis, sel, sel);
         flash('Updated from another device');
       }
     }
@@ -173,7 +182,7 @@
         view: state.view, filter: state.filter, sort: state.sort,
         layout: state.layout, theme: state.theme, group: state.group,
         split: state.split, notesLayout: state.notesLayout, mainLayout: state.mainLayout,
-        tabOrder: state.tabOrder, sortV: 2
+        tabOrder: state.tabOrder, foldDone: state.foldDone, sortV: 2
       }));
     } catch (e) {}
   }
@@ -203,7 +212,7 @@
   /* ---------- render ---------- */
   function render() {
     var now = new Date();
-    doc = Subtasks.build(TT.parseDocument(els.editor.value, now));
+    doc = Subtasks.build(TT.parseDocument(text(), now));
     var ctx = {
       today: now, todayISO: TT.isoOf(now), sort: state.sort,
       month: state.month, visible: visibleTodos(), query: state.query,
@@ -229,6 +238,7 @@
     else els.stage.innerHTML = html;
     if (state.view === 'focus') Pomodoro.step();   // fill the fresh markup now, not in 250ms
     Highlight.paint(doc);
+    paintFold();
     Occurrences.refresh();
 
     var onText = state.layout === 'text';
@@ -288,7 +298,7 @@
 
   function stampDates(finished) {
     if (stamping) return;
-    var next = DoneDate.sync(els.editor.value, doc, finished, TT.isoOf(new Date()));
+    var next = DoneDate.sync(text(), doc, finished, TT.isoOf(new Date()));
     if (next === null) return;
     stamping = true;
     try { writeStamps(next); } finally { stamping = false; }
@@ -307,7 +317,34 @@
   }
 
   function writeStamps(next) {
-    setText(next, caretAcross(els.editor.value, next, els.editor.selectionStart));
+    setText(next, caretAcross(text(), next, els.editor.selectionStart));
+  }
+
+  /* ---------- the whole text, and the fold ---------- */
+
+  // What the editor holds, and the Done section folded out of it
+  function text() { return Fold.full(els.editor.value); }
+
+  // The editor's part of a whole text, remembering what it held before
+  function shown(full) { return Fold.take(full, els.editor.value); }
+
+  // Fold or unfold the Done section: an edit like any other, so Ctrl+Z takes
+  // it back. Opening it is remembered.
+  function setFold(on) {
+    state.foldDone = !!on;
+    Fold.setFolded(on);
+    savePrefs();
+    var caret = Math.min(els.editor.selectionStart, els.editor.value.length);
+    setText(text(), caret);
+  }
+
+  function paintFold() {
+    var bar = document.getElementById('fold-bar'), btn = document.getElementById('fold-btn');
+    var n = Fold.count();
+    bar.hidden = !Fold.active();
+    bar.innerHTML = '<span class="fold-arrow">▸</span> Done <span class="fold-n">' + n +
+      ' finished todo' + (n === 1 ? '' : 's') + '</span><span class="fold-show">show</span>';
+    btn.hidden = Fold.active() || !Fold.foldable(text());
   }
 
   /* ---------- text mutation ---------- */
@@ -368,9 +405,11 @@
     els.editor.scrollTop = top;
   }
 
+  // `next` is always the whole text; the editor gets its part of it
   function setText(next, caret) {
-    var sel = Math.min(caret !== undefined ? caret : els.editor.selectionStart, next.length);
-    if (!writeKeepingUndo(next, sel, sel) && els.editor.value !== next) assign(next, sel, sel);
+    var vis = shown(next);
+    var sel = Math.min(caret !== undefined ? caret : els.editor.selectionStart, vis.length);
+    if (!writeKeepingUndo(vis, sel, sel) && els.editor.value !== vis) assign(vis, sel, sel);
     queueSave();
     render();
   }
@@ -391,22 +430,23 @@
   }
 
   // Rewrite the whole document through the editor itself, so the browser's own
-  // undo stack survives — assigning to value would throw it away.
+  // undo stack survives. Only the span that changed is retyped: typing the
+  // whole document over itself undid fine, but Chrome's redo of it dropped
+  // the first line.
   function replaceKeepingUndo(next) {
-    els.editor.focus();
-    els.editor.setSelectionRange(0, els.editor.value.length);
-    if (!typeInto(next)) return setText(next, 0);
-    els.editor.setSelectionRange(0, 0);
+    var vis = shown(next);
+    if (!writeKeepingUndo(vis, 0, 0) && els.editor.value !== vis) assign(vis, 0, 0);
     queueSave();
     render();
   }
+
 
   // Ticking is a statement about a whole subtree, not one line: finishing a task
   // finishes its subtasks, and finishing the last subtask finishes the task.
   function toggleLine(lineNo) {
     var cascaded = Subtasks.toggle(doc, lineNo);
     if (cascaded !== null) return setText(cascaded);
-    var lines = els.editor.value.split('\n');
+    var lines = text().split('\n');
     var raw = lines[lineNo];
     if (raw === undefined) return;
     lines[lineNo] = raw.replace(/\[([ xX>1-9])\]/, function (_, c) { return c === 'x' || c === 'X' ? '[ ]' : '[x]'; });
@@ -415,17 +455,19 @@
 
   // Flag the line you are working on right now, wherever you clicked from.
   function markNow(lineNo) {
-    var next = Focus.toggle(els.editor.value, lineNo);
+    var next = Focus.toggle(text(), lineNo);
     if (next !== null) setText(next);
   }
 
   function bumpRank(lineNo) {
-    var next = Focus.cycleRank(els.editor.value, lineNo);
+    var next = Focus.cycleRank(text(), lineNo);
     if (next !== null) setText(next);
   }
 
   function gotoLine(lineNo) {
     if (state.layout === 'view') setLayout('split');
+    // a line folded away: going to it is asking to see it
+    if (lineNo >= els.editor.value.split('\n').length && Fold.active()) setFold(false);
     var lines = els.editor.value.split('\n');
     var start = 0;
     for (var i = 0; i < lineNo && i < lines.length; i++) start += lines[i].length + 1;
@@ -499,7 +541,8 @@
       saveNow();   // the last quarter second of typing belongs in it
       return save(Backup.fileName(), 'application/json', Backup.toJSON());
     }
-    if (name === 'export-md') return closeMenu(), save('todo.md', 'text/markdown', els.editor.value);
+    if (name === 'export-md') return closeMenu(), save('todo.md', 'text/markdown', text());
+    if (name === 'fold') return setFold(!Fold.active());
     if (name === 'export-json') return closeMenu(), save('todo.json', 'application/json', toJSON());
     if (name === 'export-csv') return closeMenu(), save('todo.csv', 'text/csv', toCSV());
     if (name === 'log-md') return closeMenu(), save('activity-log.md', 'text/markdown', Log.toMarkdown());
@@ -529,7 +572,9 @@
   // Shift whole lines when the caret sits on a list item or several lines are
   // selected; anywhere else a Tab is still just two spaces.
   function indent(out) {
-    var v = els.editor.value, s = els.editor.selectionStart, en = els.editor.selectionEnd;
+    // the whole text: the selection's offsets are the same in it, since only
+    // the end is ever folded away
+    var v = text(), s = els.editor.selectionStart, en = els.editor.selectionEnd;
     var from = v.lastIndexOf('\n', s - 1) + 1;
     var lineNo = v.slice(0, from).split('\n').length - 1;
     var lastNo = v.slice(0, en).split('\n').length - 1;
@@ -543,7 +588,8 @@
     if (!r.delta) return;
     if (s === en) return setText(r.text, Math.max(from, s + r.firstDelta));
     var s1 = Math.max(from, s + r.firstDelta), s2 = en + r.delta;
-    if (!writeKeepingUndo(r.text, s1, s2) && els.editor.value !== r.text) assign(r.text, s1, s2);
+    var vis = shown(r.text);
+    if (!writeKeepingUndo(vis, s1, s2) && els.editor.value !== vis) assign(vis, s1, s2);
     queueSave();
     render();
   }
@@ -583,7 +629,7 @@
     }
     // Enter continues a todo/bullet list
     if (e.key === 'Enter' && !e.shiftKey) {
-      var val = els.editor.value, pos = els.editor.selectionStart;
+      var val = text(), pos = els.editor.selectionStart;
       if (pos !== els.editor.selectionEnd) return;
       var lineStart = val.lastIndexOf('\n', pos - 1) + 1;
       var cur = val.slice(lineStart, pos);
@@ -828,7 +874,7 @@
     return JSON.stringify({
       format: 'plain-text-todo', version: 1,
       exportedAt: new Date().toISOString(),
-      text: els.editor.value,                       // the source of truth round-trips whole
+      text: text(),                                 // the source of truth round-trips whole
       vocabulary: {
         namespaces: ns,
         booleans: Array.from(v.bools.values()).map(function (b) { return { name: b.display, count: b.count }; }),
@@ -919,7 +965,7 @@
 
   // handy from the console, and what the browser tests drive
   window.PTT = {
-    toJSON: toJSON, toCSV: toCSV, saveNow: saveNow,
+    toJSON: toJSON, toCSV: toCSV, saveNow: saveNow, text: function () { return text(); }, setFold: function (on) { setFold(on); },
     doc: function () { return doc; }, state: state, sample: SAMPLE,
     applyTheme: applyTheme, resolvedTheme: resolvedTheme, archive: function () { return action('archive'); },
     showView: showView, setLayout: setLayout, setSplit: setSplit

@@ -307,6 +307,16 @@ Each section keeps the rank it was written at, so the shape of the document
 survives the move:
 
 ```markdown
+**The Done section is folded out of the editor** by default, so the text you
+work in stops at your open work. A bar under the editor, *▸ Done · 14 finished
+todos*, shows it is there, and clicking it unfolds it. *Fold done* in the editor
+header folds it back. Whichever you choose is remembered. Folded, it is still
+part of the text: the views, the exports, saving, sync and backups all see the
+whole of it. Ctrl+Z works across folding and archiving: undoing an archive puts
+the todos back in place and takes them out of the folded section. While folded,
+Find & replace and moving lines only reach the part the editor shows. Going to
+a folded line from a view unfolds it.
+
 ## Shipping
 
 - [ ] Two-pass resolver @2026-08-20
@@ -673,6 +683,7 @@ js/log.js       activity log: watches parses for open -> done, records sessions
 js/undo.js      actions that cannot ride the text's undo stack, held reversible
 js/donedate.js  writes #done:<date> into a line as it is ticked, strips it back
 js/archive.js   moves finished todos into a Done section
+js/fold.js      folds the Done section out of the editor, and keeps Ctrl+Z honest about it
 js/subtasks.js  the indent tree, ticking that follows it, and Tab authoring
 js/focus.js     the [>] "working on it" state
 js/lines.js     moving lines, and cutting one whole

@@ -6,6 +6,7 @@ document.getElementById('f').addEventListener('load',function(){
  var w=this.contentWindow,d=this.contentDocument;
  try{
   var ed=d.getElementById('editor'), btn=d.getElementById('archive-btn');
+  w.PTT.setFold(false);   // this suite reads the raw text; folding has its own
   // stamps are the done-date feature's business, not this suite's
   function plain(){return ed.value.replace(/ #done:\d{4}-\d{2}-\d{2}/g,'');}
   function type(v){ed.value=v;ed.dispatchEvent(new w.Event('input',{bubbles:true}));}

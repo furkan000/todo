@@ -1,0 +1,78 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1300px;height:700px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var F=w.Fold,ed=d.getElementById('editor'),bar=d.getElementById('fold-bar'),btn=d.getElementById('fold-btn');
+  function full(){return w.PTT.text();}
+  function plain(){return full().replace(/ #done:\d{4}-\d{2}-\d{2}/g,'');}
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  w.PTT.setFold(false);
+  function load(v){ed.value=v;ed.dispatchEvent(new w.Event('input',{bubbles:true}));}
+
+  /* ---- what folds ---- */
+  var t='# L\n\n- [ ] open\n\n# Done\n\n## Ship\n\n- [x] a\n- [x] b\n';
+  var s=F.split(t);
+  ok('the Done section at the end folds', s && s.visible==='# L\n\n- [ ] open\n' && s.visible+s.hidden===t, s);
+  ok('not when another top-level heading follows it', F.split('# L\n\n# Done\n\n- [x] a\n\n# Later\n- [ ] x')===null);
+  ok('not when there is no Done', F.split('# L\n- [x] a')===null);
+  ok('not when Done is all there is', F.split('# Done\n- [x] a')===null);
+
+  /* ---- unfolded, Fold done offers itself ---- */
+  load(t);
+  ok('unfolded: the text is all in the editor', ed.value===t && bar.hidden);
+  ok('and Fold done is offered', !btn.hidden);
+  click(btn);
+  ok('folding takes it out of the editor', ed.value==='# L\n\n- [ ] open\n' && full()===t, ed.value);
+  ok('the bar says what is folded', !bar.hidden && /Done/.test(bar.textContent) && /2 finished todos/.test(bar.textContent), bar.textContent);
+  ok('views still see all of it', w.PTT.doc().todos.length===3);
+  ok('and it is saved whole', (w.PTT.saveNow(), w.localStorage.getItem('ptt.doc.v1'))===t);
+  ok('the choice is kept', JSON.parse(w.localStorage.getItem('ptt.prefs.v1')).foldDone===true);
+  ok('nothing is painted under the empty space', d.getElementById('syntax-layer').textContent.indexOf('Done')===-1);
+
+  /* ---- editing while folded ---- */
+  ed.focus(); ed.setSelectionRange(ed.value.length,ed.value.length);
+  d.execCommand('insertText',false,'- [ ] typed\n');
+  ok('typing keeps the folded part after it', full()==='# L\n\n- [ ] open\n- [ ] typed\n\n# Done\n\n## Ship\n\n- [x] a\n- [x] b\n', full());
+
+  /* ---- archiving while folded, and undoing it ---- */
+  ed.setSelectionRange(0,0);
+  var at=ed.value.indexOf('- [ ] open')+3;
+  ed.setSelectionRange(at,at+1); d.execCommand('insertText',false,'x');
+  w.PTT.archive();
+  ok('archiving folds the newly finished in', ed.value.indexOf('open')===-1 && /- \[x\] open/.test(plain()) && F.count()===3, [ed.value,F.count()]);
+  d.execCommand('undo');
+  ok('Ctrl+Z puts it back in place, and out of Done', /- \[x\] open/.test(ed.value) && (plain().match(/\[x\] open/g)||[]).length===1, plain());
+  d.execCommand('redo');
+  ok('and Ctrl+Shift+Z archives it again, once', ed.value.indexOf('open')===-1 && (plain().match(/\[x\] open/g)||[]).length===1, plain());
+
+  /* ---- unfolding ---- */
+  click(bar);
+  ok('the bar unfolds it', bar.hidden && /# Done/.test(ed.value) && ed.value===full());
+  ok('and that is remembered', JSON.parse(w.localStorage.getItem('ptt.prefs.v1')).foldDone===false);
+  d.execCommand('undo');
+  ok('Ctrl+Z folds it again, with nothing lost', !/# Done/.test(ed.value) && /# Done/.test(full()) && F.count()===3, [ed.value, full()]);
+  click(bar);
+
+  /* ---- other writers ---- */
+  click(btn);
+  var doneLine=w.PTT.doc().todos.filter(function(t){return /\ba$/.test(t.title);})[0].line;
+  d.querySelector('[data-view="doc"]') && click(d.querySelector('[data-view="doc"]'));
+  var box=d.querySelector('[data-toggle="'+doneLine+'"]');
+  if(box && box.type==='checkbox'){ box.checked=false; box.dispatchEvent(new w.Event('change',{bubbles:true})); }
+  ok('ticking a folded todo in a view changes it there', /- \[ \] a/.test(full()) && F.active(), full());
+  w.Find.open(); d.getElementById('find-q').value='typed'; d.getElementById('find-q').dispatchEvent(new w.Event('input',{bubbles:true}));
+  d.getElementById('find-r').value='written'; click(d.querySelector('[data-find="all"]')); w.Find.close();
+  ok('find & replace leaves the folded part alone', /- \[ \] written/.test(full()) && /# Done/.test(full()) && F.active(), full());
+  w.PTT.setLayout('split');
+  click(d.querySelector('[data-goto="'+doneLine+'"]') || bar);
+  ok('going to a folded line unfolds it', !F.active() && /# Done/.test(ed.value));
+
+  w.PTT.setFold(true);
+  load('- [ ] reset');
+ }catch(e){ok('no exception',false,e.stack||String(e));}
+ document.getElementById('out').textContent=log.join('\n')+'\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

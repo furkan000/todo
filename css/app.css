@@ -600,6 +600,19 @@ code { font-family: var(--mono); font-size: .92em; }
 #editor::placeholder { color: var(--ink-3); }
 
 .syntax { border-top: 1px solid var(--line-2); flex: none; background: var(--panel-2); }
+
+/* the Done section folded out of the text: one quiet line where it would be */
+.fold-bar {
+  flex: none; display: flex; align-items: baseline; gap: 8px; width: 100%;
+  border: 0; border-top: 1px dashed var(--line); background: var(--panel);
+  padding: 7px 18px; text-align: left; font: 600 12.5px var(--mono); color: var(--ink-3);
+}
+.fold-bar[hidden] { display: none; }
+.fold-bar:hover { color: var(--ink); background: var(--panel-2); }
+.fold-arrow { font-size: 10px; }
+.fold-n { font: 400 12px var(--sans); }
+.fold-show { margin-left: auto; font: 400 11.5px var(--sans); opacity: 0; transition: opacity .12s; }
+.fold-bar:hover .fold-show { opacity: 1; }
 .syntax summary { padding: 7px 14px; font-size: 11.5px; color: var(--ink-3); cursor: pointer; user-select: none; }
 .syntax summary:hover { color: var(--ink); }
 .syntax dl { margin: 0; padding: 2px 14px 12px; display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; font-size: 11.5px; }
