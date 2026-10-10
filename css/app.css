@@ -649,6 +649,9 @@ code { font-family: var(--mono); font-size: .92em; }
   font-size: 11.5px; color: var(--ink-3); background: var(--panel);
 }
 .statusbar b { color: var(--ink-2); font-weight: 640; }
+/* switched off in the settings — except while it carries something that must
+   not go unseen: a reminder, or the server out of reach or in conflict */
+.app.no-status .statusbar:not(:has(#remind-slot:not(:empty), .sync-offline, .sync-conflict)) { display: none; }
 .statusbar .pomo-pop b { color: var(--ink); font-weight: 500; }
 .statusbar .pomo-pop span, .statusbar .pomo-check span { opacity: 1; margin: 0; }
 .statusbar b.bad { color: var(--bad); }

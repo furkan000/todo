@@ -21,6 +21,7 @@
     mainLayout: 'split',     // 'split' | 'view', everywhere else
     tabOrder: null,          // the tabs as you dragged them; null is the order in the page
     foldDone: true,          // the Done section folded out of the editor
+    statusBar: true,         // the bar at the bottom; hidden, it still shows for trouble
     theme: 'auto'            // 'auto' | 'light' | 'dark'
   };
   var doc = null, saveTimer = null;
@@ -63,7 +64,7 @@
       // the table used to sort by due date out of the box; one-time, drop that
       // stored choice so the new default — document order — actually shows up
       if (p.sortV !== 2) delete p.sort;
-      ['view', 'filter', 'sort', 'layout', 'theme', 'group', 'split', 'notesLayout', 'mainLayout', 'tabOrder', 'foldDone'].forEach(function (k) { if (p[k] !== undefined) state[k] = p[k]; });
+      ['view', 'filter', 'sort', 'layout', 'theme', 'group', 'split', 'notesLayout', 'mainLayout', 'tabOrder', 'foldDone', 'statusBar'].forEach(function (k) { if (p[k] !== undefined) state[k] = p[k]; });
       // from before Notes had its own arrangement: what you had was the main one
       if (p.mainLayout === undefined && state.layout !== 'text') state.mainLayout = state.layout;
     } catch (e) {}
@@ -84,6 +85,7 @@
     document.addEventListener('change', onChange);
     document.addEventListener('keydown', onKey);
     applyLayout();
+    applyStatusBar();
     applyTheme();
     watchSystemTheme();
     applySplit();
@@ -182,7 +184,7 @@
         view: state.view, filter: state.filter, sort: state.sort,
         layout: state.layout, theme: state.theme, group: state.group,
         split: state.split, notesLayout: state.notesLayout, mainLayout: state.mainLayout,
-        tabOrder: state.tabOrder, foldDone: state.foldDone, sortV: 2
+        tabOrder: state.tabOrder, foldDone: state.foldDone, statusBar: state.statusBar, sortV: 2
       }));
     } catch (e) {}
   }
@@ -280,6 +282,9 @@
       '<span class="sep">/</span>' +
       '<button data-group="0"' + (state.group ? '' : ' class="on"') + '>one</button>';
 
+    Array.prototype.forEach.call(document.querySelectorAll('[data-statusbar]'), function (b) {
+      b.classList.toggle('on', (b.dataset.statusbar === 'on') === state.statusBar);
+    });
     Array.prototype.forEach.call(document.querySelectorAll('[data-donedate]'), function (b) {
       b.classList.toggle('on', (b.dataset.donedate === 'on') === DoneDate.enabled());
     });
@@ -488,7 +493,7 @@
   function onClick(e) {
     var pop = document.getElementById('settings-menu');
     if (pop && !pop.hidden && !e.target.closest('.menu')) closeMenu();
-    var el = e.target.closest ? e.target.closest('[data-view],[data-layout],[data-filter],[data-group],[data-sort],[data-q],[data-month],[data-goto],[data-act],[data-now],[data-rank],[data-theme-set],[data-donedate],[data-log-remove],[data-log-undo],.dot[data-toggle]') : null;
+    var el = e.target.closest ? e.target.closest('[data-view],[data-layout],[data-filter],[data-group],[data-sort],[data-q],[data-month],[data-goto],[data-act],[data-now],[data-rank],[data-theme-set],[data-donedate],[data-statusbar],[data-log-remove],[data-log-undo],.dot[data-toggle]') : null;
     if (!el) return;
 
     // The log is not the text, so its rows cannot ride the browser's undo stack.
@@ -501,6 +506,7 @@
     if (el.matches('.dot[data-toggle]')) { e.stopPropagation(); return toggleLine(+el.dataset.toggle); }
     if (el.dataset.themeSet) { state.theme = el.dataset.themeSet; applyTheme(); return savePrefs(); }
     if (el.dataset.donedate) { DoneDate.setEnabled(el.dataset.donedate === 'on'); return render(); }
+    if (el.dataset.statusbar) { state.statusBar = el.dataset.statusbar === 'on'; applyStatusBar(); savePrefs(); return render(); }
     if (el.dataset.view) return showView(el.dataset.view);
     if (el.dataset.layout) return toggleText();
     if (el.dataset.group) { state.group = el.dataset.group === '1'; savePrefs(); return render(); }
@@ -768,6 +774,13 @@
     var onChange = function () { if (state.theme === 'auto') applyTheme(); };
     if (mq.addEventListener) mq.addEventListener('change', onChange);
     else if (mq.addListener) mq.addListener(onChange);
+  }
+
+  // Hidden is a class; the stylesheet brings the bar back while it is
+  // carrying a reminder or a sync problem, so neither can go unseen
+  function applyStatusBar() {
+    els.app.classList.toggle('no-status', !state.statusBar);
+    Overlay.sync();   // the editor just changed height
   }
 
   function applyLayout() {

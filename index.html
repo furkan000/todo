@@ -94,6 +94,15 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
         </div>
         <div class="menu-hint">a <code>#done:</code> tag on the line, written when you tick it</div>
         <div class="menu-sep"></div>
+        <div class="menu-label">Status bar</div>
+        <div class="menu-row">
+          <div class="segmented" role="group" aria-label="The bar at the bottom of the window">
+            <button data-statusbar="on">Show</button>
+            <button data-statusbar="off">Hide</button>
+          </div>
+        </div>
+        <div class="menu-hint">hidden, it still comes back for a reminder or a problem reaching the server</div>
+        <div class="menu-sep"></div>
         <div class="menu-label">Reminders · workdays, Mon–Fri</div>
         <div class="remind-row">
           <label><input type="checkbox" data-remind="work"> Log today’s work</label>

@@ -1,0 +1,35 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1200px;height:600px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var bar=d.querySelector('.statusbar'),R=w.Reminders;
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  function shown(){return w.getComputedStyle(bar).display!=='none';}
+  ok('shown to begin with', shown() && d.querySelector('[data-statusbar="on"]').classList.contains('on'));
+  var h0=d.querySelector('.panes').getBoundingClientRect().height;
+  click(d.querySelector('[data-statusbar="off"]'));
+  ok('Hide hides it', !shown());
+  ok('and gives its room to the panes', d.querySelector('.panes').getBoundingClientRect().height>h0, [h0,d.querySelector('.panes').getBoundingClientRect().height]);
+  ok('the choice is kept', JSON.parse(w.localStorage.getItem('ptt.prefs.v1')).statusBar===false);
+  ok('and marked in the settings', d.querySelector('[data-statusbar="off"]').classList.contains('on'));
+
+  // a reminder brings it back
+  var s=R.settings(); s.work.on=true; s.work.time='15:00'; s.fired={}; s.pending={};
+  w.localStorage.removeItem('ptt.work.20261007');
+  R.setClock(function(){return new Date(2026,9,7,15,30);});
+  R.check();
+  ok('a reminder brings it back', shown() && /Log today/.test(bar.textContent));
+  click(d.querySelector('[data-remind-x="work"]'));
+  ok('dealt with, it goes again', !shown());
+  R.setClock(null);
+
+  click(d.querySelector('[data-statusbar="on"]'));
+  ok('Show shows it', shown());
+  s.work.on=false; w.localStorage.removeItem('ptt.remind.v1');
+ }catch(e){ok('no exception',false,e.stack||String(e));}
+ document.getElementById('out').textContent=log.join('\n')+'\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

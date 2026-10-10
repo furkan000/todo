@@ -585,6 +585,13 @@ The cog menu's **Work log → The month as Markdown** exports the month on
 screen, oldest day first: each day's page, plus any finished todos you did not
 copy in.
 
+## Status bar
+
+The bar at the bottom (counts, the server chip, music, the timer) can be hidden
+under the cog: *Status bar → Hide*. Hidden, it still comes back by itself while
+it carries something you must not miss: a reminder, or the server out of reach
+or in conflict. Once that is dealt with, it goes again.
+
 ## Reminders
 
 The cog menu has two reminders, each with its own switch and time:
