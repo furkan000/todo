@@ -524,15 +524,17 @@ the evening it started. If the page is open when the day turns over, it moves
 to the new blank page once you have stopped typing for a minute.
 
 ```markdown
-## 09:30 Standup #team
+## Standup #team · 09:30
 - Anna blocked on the API keys
 
-## 11:00 Call with Vega #vega #proj:atlas
+## Call with Vega #vega #proj:atlas · 11:00
 Wants the export in CSV, not PDF.
 ```
 
 - `## ` starts a conversation, and everything up to the next `## ` belongs to
-  it. Typing `##` and a space on an empty line writes the time after it.
+  it. Typing `##` and a space on an empty line adds the time at the end of the
+  heading, after a `·`, and leaves the cursor before it for the title. The time
+  is shown muted. Older headings with the time in front still work.
 - Tags anywhere in a conversation tag the whole conversation. They are the todo
   list's tags: `#vega` resolves to `client:vega` here exactly as in the table.
   Notes only read that vocabulary, so nothing written in a note adds a column.

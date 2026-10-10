@@ -28,7 +28,8 @@
   var ROLLOVER_H = 2;
   var KEY_RE = /^ptt\.note\.(\d{4})(\d{2})(\d{2})$/;
   var HEAD = /^##\s(.*)$/;              // '## ' — and not '###', which is a sub-heading
-  var TIME = /^(\d{1,2}:\d{2})\s*/;
+  var TIME = /^(\d{1,2}:\d{2})\s*/;            // '## 14:30 Call' — how it used to be written
+  var TIME_END = /\s*·\s*(\d{1,2}:\d{2})\s*$/;  // '## Call · 14:30' — how it is now
   var IDLE_MS = 60000;                  // a day does not turn over under your hands
   var TOPICS_MAX = 24;
 
@@ -84,8 +85,12 @@
       return s.heading !== null || s.lines.join('').trim();
     }).map(function (s) {
       var head = s.heading || '';
-      var tm = TIME.exec(head);
-      var rest = tm ? head.slice(tm[0].length) : head;
+      var tm = TIME_END.exec(head), rest;
+      if (tm) rest = head.slice(0, tm.index);
+      else {
+        tm = TIME.exec(head);
+        rest = tm ? head.slice(tm[0].length) : head;
+      }
       var body = s.heading === null ? s.lines : s.lines.slice(1);
       return {
         line: s.line,
@@ -246,13 +251,20 @@
     root.innerHTML =
       '<div class="notes-main">' +
         '<div class="notes-head"></div>' +
-        '<textarea class="notes-ed" spellcheck="true" autocomplete="off" placeholder="' +
-          esc('## Call with Vega #client:vega\nWhat was said, what was decided…\n\n## Standup #team\n…') + '"></textarea>' +
+        // the page, with a layer behind it that paints what the text cannot:
+        // a heading's time, muted
+        '<div class="notes-wrap">' +
+          '<div class="notes-layer" aria-hidden="true"></div>' +
+          '<textarea class="notes-ed" spellcheck="true" autocomplete="off" placeholder="' +
+            esc('## Call with Vega #client:vega\nWhat was said, what was decided…\n\n## Standup #team\n…') + '"></textarea>' +
+        '</div>' +
       '</div>' +
       '<aside class="notes-side"></aside>';
     side = root.querySelector('.notes-side');
     head = root.querySelector('.notes-head');
     ed = root.querySelector('.notes-ed');
+    layer = root.querySelector('.notes-layer');
+    Overlay.register(ed, layer);
     ed.addEventListener('input', onInput);
     ed.addEventListener('keydown', onKeydown);
     root.addEventListener('click', onClick);
@@ -368,6 +380,7 @@
       current = day;
       ed.value = read(day);
     }
+    paintLayer();
     paintHead();
     paintSide();
     if (line === undefined) return;
@@ -390,7 +403,31 @@
     try { return document.execCommand('insertText', false, str); } catch (e) { return false; }
   }
 
+  /* ---------- the painted layer ---------- */
+
+  var layer = null;
+
+  // Every line as written, so it sits exactly under the text; a '## ' heading
+  // reads as one, and its time steps back
+  function paintLayer() {
+    if (!layer) return;
+    layer.innerHTML = ed.value.split('\n').map(function (raw) {
+      if (!HEAD.test(raw)) return esc(raw);
+      var m = TIME_END.exec(raw), body = m ? raw.slice(0, m.index) : raw;
+      // a time written first, the way notes used to be, steps back just the same
+      var lead = !m && /^(##\s)(\d{1,2}:\d{2})(?=\s|$)/.exec(raw);
+      if (lead) {
+        return '<span class="nl-hash">##</span>' + esc(lead[1].slice(2)) + '<span class="nl-time">' + lead[2] + '</span>' +
+          '<span class="nl-head">' + esc(raw.slice(lead[0].length)) + '</span>';
+      }
+      return '<span class="nl-hash">##</span><span class="nl-head">' + esc(body.slice(2)) + '</span>' +
+        (m ? '<span class="nl-time">' + esc(raw.slice(m.index)) + '</span>' : '');
+    }).join('\n') + '\n';
+    Overlay.sync();
+  }
+
   function onInput() {
+    paintLayer();
     lastInput = Date.now();
     save();
     clearTimeout(sideTimer);
@@ -399,15 +436,16 @@
   function pad(n) { return (n < 10 ? '0' : '') + n; }
 
   function onKeydown(e) {
-    // '##' and a space on an empty line writes the time after it: when a call
-    // started is the one thing you never note down yourself
+    // '##' and a space on an empty line writes the time at the end of the
+    // heading — when a call started is the one thing you never note down
+    // yourself — and leaves the caret before it, where the title goes
     if (e.key === ' ' && !e.ctrlKey && !e.altKey && !e.metaKey && ed.selectionStart === ed.selectionEnd) {
       var v0 = ed.value, at0 = ed.selectionStart, from0 = v0.lastIndexOf('\n', at0 - 1) + 1;
       var eol0 = v0.indexOf('\n', at0);
       if (v0.slice(from0, at0) === '##' && !v0.slice(at0, eol0 === -1 ? v0.length : eol0).trim()) {
-        var now = new Date();
+        var now = new Date(), stamp = ' · ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
         e.preventDefault();
-        typeIn(' ' + pad(now.getHours()) + ':' + pad(now.getMinutes()) + ' ');
+        if (typeIn(' ' + stamp)) ed.setSelectionRange(at0 + 1, at0 + 1);
         return;
       }
     }
@@ -519,6 +557,7 @@
         } else ed.value = next;
       }
     }
+    paintLayer();
     if (keys.some(function (k) { return k.indexOf(PREFIX) === 0; })) paintSide();
   }
 
@@ -547,6 +586,7 @@
       stage.innerHTML = '';
       stage.appendChild(root);
     }
+    paintLayer();   // and line it up, now the page has a size
     paintHead();
     paintSide();
   }

@@ -5,15 +5,15 @@
   'use strict';
 
   var pairs = [];
-  var bound = false;
+  var editors = [];          // each textarea is watched once, however many layers ride on it
 
   function register(editor, layer) {
     var pair = { ed: editor, layer: layer };
     pairs.push(pair);
-    if (!bound) {
-      bound = true;
+    if (!editors.length) window.addEventListener('resize', syncAll);
+    if (editors.indexOf(editor) === -1) {
+      editors.push(editor);
       editor.addEventListener('scroll', syncAll);
-      window.addEventListener('resize', syncAll);
       // the textarea also changes width without the window doing anything —
       // dragging the split, switching layout — and the layers must follow or
       // the visible text keeps wrapping at the old width

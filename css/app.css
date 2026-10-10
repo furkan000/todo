@@ -1150,12 +1150,24 @@ tbody tr.done .task-title { color: var(--ink-3); text-decoration: line-through; 
 .notes-side-btn.on svg .fill { opacity: .28; }
 .notes-head h2 { margin: 0; font-size: 16px; font-weight: 640; letter-spacing: -.01em; }
 .notes-today { font-size: 12px; color: var(--ink-3); }
+.notes-wrap { flex: 1; min-height: 0; position: relative; display: flex; }
 .notes-ed {
   flex: 1; width: 100%; resize: none; border: 0; outline: none;
-  padding: 10px var(--notes-gutter) 40px; background: transparent; color: var(--ink);
+  padding: 10px var(--notes-gutter) 40px; background: transparent;
   font-family: var(--mono); font-size: 13px; line-height: 1.75; tab-size: 2;
   scrollbar-gutter: stable;
+  /* the text is drawn by the layer behind; the textarea keeps the caret */
+  position: relative; z-index: 1; color: transparent; caret-color: var(--ink);
 }
+.notes-ed::selection { background: color-mix(in srgb, var(--accent) 38%, transparent); }
+.notes-layer {
+  position: absolute; top: 0; left: 0; overflow: hidden; pointer-events: none;
+  white-space: pre-wrap; word-wrap: break-word; color: var(--ink);
+}
+.nl-hash { color: var(--ink-3); }
+.nl-head { font-weight: 650; }
+/* when it started: there to look up, not to read */
+.nl-time { color: var(--ink-3); opacity: .7; font-weight: 400; }
 .notes-ed::placeholder { color: var(--ink-3); }
 @media (max-width: 700px) {
   .notes { flex-direction: column; }
