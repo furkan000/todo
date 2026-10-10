@@ -19,6 +19,10 @@ d = TT.parseDocument(`- [ ] a #color:blue\n- [ ] b #team:blue\n- [ ] c #blue\n- 
 ok('first namespace wins for bare', d.todos[2].selects.color === 'blue' && !d.todos[2].selects.team, d.todos[2].selects);
 ok('explicit overrides', d.todos[3].selects.team === 'blue', d.todos[3].selects);
 
+// a bare priority with no !high anywhere used to throw and blank the app
+d = TT.parseDocument('- [ ] x #high');
+ok('a lone bare #high is a priority', d.todos[0].priority === 'high', d.todos[0].priority);
+
 // quoted multi-word values
 d = TT.parseDocument(`- [ ] a #status:"in progress" rest`, today);
 ok('quoted value', d.todos[0].selects.status === 'in progress', d.todos[0].selects);

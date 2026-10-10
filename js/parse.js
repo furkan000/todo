@@ -215,7 +215,6 @@
         }
       });
     });
-    if (prio.size === 0) namespaces.delete('priority');
 
     // --- pass 2: resolve bare tags against the finished vocabulary ---
     var labels = new Map();
@@ -235,6 +234,9 @@
         }
       });
     });
+
+    // only now: a bare #high is the first use of priority in some documents
+    if (prio.size === 0) namespaces.delete('priority');
 
     // --- build todos ---
     var todos = [];

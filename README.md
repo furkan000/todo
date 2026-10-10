@@ -477,6 +477,37 @@ is waiting, that is all.
 One caveat worth knowing: auto-generated mixes (`RD…`) are built per viewer and
 often refuse to embed. Adding one says so.
 
+## Notes
+
+**Notes** (`Ctrl+9`) is a blank page every day, for what was said in calls and
+conversations. It is not part of the todo text: each day is its own plain text,
+kept as `ptt.note.<yyyymmdd>` (one file per day on the server, next to your
+todos). A day you did not write in does not exist.
+
+A day runs from **02:00 to 02:00**, so a call that runs past midnight stays on
+the evening it started. If the page is open when the day turns over, it moves
+to the new blank page once you have stopped typing for a minute.
+
+```markdown
+## 09:30 Standup #team
+- Anna blocked on the API keys
+
+## 11:00 Call with Vega #vega #proj:atlas
+Wants the export in CSV, not PDF.
+```
+
+- `## ` starts a conversation, and everything up to the next `## ` belongs to
+  it. Typing `##` and a space on an empty line writes the time after it.
+- Tags anywhere in a conversation tag the whole conversation. They are the todo
+  list's tags: `#vega` resolves to `client:vega` here exactly as in the table.
+  Notes only read that vocabulary, so nothing written in a note adds a column.
+- A `- [ ]` in a note is just text, not a todo.
+
+The left column lists the days with their conversations, newest first, and the
+topics you have used. Clicking a day or a conversation opens it, and past days
+can be edited. **Search** (`Ctrl+K`, or click a tag) lists matching
+*conversations* across every day, so a topic can be followed through the weeks.
+
 ## Selection echo
 
 Select any text in the editor and every other copy of it is boxed, so you can see
@@ -524,7 +555,7 @@ tagged plain text.
 | | |
 | --- | --- |
 | `Ctrl+1` | Text |
-| `Ctrl+2..8` | Doc / Table / Calendar / Tags / Log / Focus / Music |
+| `Ctrl+2..9` | Doc / Table / Calendar / Tags / Log / Focus / Music / Notes |
 | `Ctrl+K` | search / filter by tag |
 | `Ctrl+F` | find & replace in the text |
 | `Ctrl+\` | open/close the editor |
@@ -560,6 +591,7 @@ js/music.js     the catalogue, the unseen YouTube player, and its transport
 js/resume.js    where you were in a track, kept apart from the catalogue
 js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
+js/notes.js     a page of notes per day: conversations, tags, search
 js/app.js       state, text write-back, import/export
 scripts/        serve.sh and the systemd autostart install/uninstall
 test/run.sh     parser suite (node) + server suite (python) + browser suites

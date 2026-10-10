@@ -112,6 +112,10 @@ class ServerTest(unittest.TestCase):
             self.assertEqual(self.req('PUT', '/api/many/ptt.k%d' % i, b'x')[0].status, 200)
         self.assertEqual(self.req('PUT', '/api/many/ptt.onemore', b'x')[0].status, 400)
         self.assertEqual(self.req('PUT', '/api/many/ptt.k0', b'y')[0].status, 200)
+        # a day of notes is a key each, and does not count against the rest
+        for day in ('20261009', '20261010'):
+            self.assertEqual(self.req('PUT', '/api/many/ptt.note.' + day, b'n')[0].status, 200)
+        self.assertEqual(self.req('PUT', '/api/many/ptt.note.x', b'n')[0].status, 400)
 
 
 class BackupTest(unittest.TestCase):

@@ -71,6 +71,16 @@
     changed();
   }
 
+  // Every key held that starts with `prefix` — for a module that keeps one key
+  // per thing, like a day of notes, and has to find them again
+  function keys(prefix) {
+    var all = [];
+    if (!user) {
+      try { for (var i = 0; i < local.length; i++) all.push(local.key(i)); } catch (e) {}
+    } else all = Object.keys(mem);
+    return all.filter(function (k) { return k && k.indexOf(prefix || '') === 0; }).sort();
+  }
+
   /* ---------- loading ---------- */
 
   // Calls `ok` once there is something to read from. In server mode a failure
@@ -359,7 +369,7 @@
   }
 
   global.Store = {
-    getItem: getItem, setItem: setItem, ready: ready,
+    getItem: getItem, setItem: setItem, keys: keys, ready: ready,
     user: function () { return user; },
     seeded: function () { return seeded; },
     // a guarded key is never written over a revision this tab has not seen

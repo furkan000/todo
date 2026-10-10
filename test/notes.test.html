@@ -1,0 +1,97 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:900px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var N=w.Notes,TT=w.TT,ed=d.getElementById('editor');
+  function wipe(){Object.keys(w.localStorage).forEach(function(k){if(k.indexOf('ptt.note.')===0)w.localStorage.removeItem(k);});}
+  function type(v){ed.value=v;ed.dispatchEvent(new w.Event('input',{bubbles:true}));}
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  wipe();
+
+  /* ---- the day runs 02:00 to 02:00 ---- */
+  ok('01:59 is still the day before', N.dayOf(new Date(2026,9,10,1,59))==='2026-10-09', N.dayOf(new Date(2026,9,10,1,59)));
+  ok('02:00 is the new day', N.dayOf(new Date(2026,9,10,2,0))==='2026-10-10');
+  ok('a day is a key of its own', N.keyOf('2026-10-10')==='ptt.note.20261010');
+  ok('and the key gives the day back', N.dayOfKey('ptt.note.20261010')==='2026-10-10' && N.dayOfKey('ptt.doc.v1')===null);
+
+  /* ---- conversations ---- */
+  var text='woke up early\n\n## 09:30 Standup #team\n- api keys\n### detail\nmore\n\n## Call with Vega #vega\nwants CSV\n- [ ] not a todo';
+  var s=N.sections(text);
+  ok('text before the first ## is its own section', s.length===3 && s[0].title==='' && s[0].line===0, s.map(function(x){return x.title;}));
+  ok('## starts a conversation; ### does not', s[1].title==='Standup' && s[1].time==='09:30' && /more/.test(s[1].text), s[1]);
+  ok('tags leave the title', s[2].title==='Call with Vega', s[2].title);
+  ok('an empty preamble is dropped', N.sections('\n\n## A\nx').length===1);
+
+  /* ---- tags are the todo list's tags ---- */
+  var doc=TT.parseDocument('- [ ] x #client:vega #high');
+  var idx=N.vocabulary(doc.vocab,[text,'## Lunch #place:cafe']);
+  var tags=N.tagsOf(s[2],idx).map(function(t){return t.q;});
+  ok('#vega resolves through the todo vocabulary', tags.indexOf('#client:vega')!==-1, tags);
+  ok('a plain label stays a label', N.tagsOf(s[1],idx)[0].q==='#team');
+  ok('notes teach each other too', idx.get('cafe').ns==='place');
+  ok('priority does not reach into notes', !idx.has('high'));
+
+  /* ---- search is per conversation ---- */
+  var notes=[{day:'2026-10-10',text:text},{day:'2026-10-09',text:'## Vega again\nbudget'}];
+  var hits=N.search(notes,'#client:vega',idx);
+  ok('a namespaced tag finds the bare one', hits.length===1 && hits[0].section.title==='Call with Vega', hits.length);
+  hits=N.search(notes,'vega',idx);
+  ok('words find conversations across days', hits.length===2 && hits[1].day==='2026-10-09', hits.length);
+  ok('topics count conversations', N.topics(notes,idx).some(function(t){return t.q==='#team'&&t.count===1;}));
+
+  /* ---- the tab ---- */
+  click(d.querySelector('[data-view="notes"]'));
+  var ned=d.querySelector('.stage .notes-ed');
+  ok('the Notes tab shows a page', !!ned);
+  ok('opening it puts the caret on the page', d.activeElement===ned);
+  ok('today starts blank', ned.value==='' && N.day()===N.today());
+  ned.value='## Call with Vega #vega\nwants CSV';
+  ned.dispatchEvent(new w.InputEvent('input',{bubbles:true,inputType:'insertText',data:'V'}));
+  var key=N.keyOf(N.today());
+  ok('what is written is kept under the day', w.localStorage.getItem(key)==='## Call with Vega #vega\nwants CSV', w.localStorage.getItem(key));
+
+  /* ---- the todo text does not disturb a note ---- */
+  type('- [ ] x #client:vega\n');
+  ok('a render keeps the very same page', d.querySelector('.stage .notes-ed')===ned);
+  ok('and a note is not a todo', w.PTT.doc().todos.length===1);
+
+  /* ---- the time after ## ---- */
+  ned.focus(); ned.setSelectionRange(ned.value.length,ned.value.length);
+  d.execCommand('insertText',false,'\n##');
+  ned.dispatchEvent(new w.KeyboardEvent('keydown',{key:' ',bubbles:true,cancelable:true}));
+  ok('## and a space write the time', /\n## \d{2}:\d{2} $/.test(ned.value), ned.value);
+
+  /* ---- search ---- */
+  w.PTT.state.query='csv';
+  click(d.querySelector('[data-view="notes"]'));
+  var hit=d.querySelector('.notes-hit');
+  ok('a search lists the conversations', !!hit && /Call with Vega/.test(hit.textContent), hit&&hit.textContent);
+  w.PTT.state.query='';
+  click(d.querySelector('[data-view="notes"]'));
+  ok('without one the side lists days and topics', !!d.querySelector('.notes-day') && !!d.querySelector('.notes-topics [data-q="#client:vega"]'));
+
+  /* ---- a past day ---- */
+  w.localStorage.setItem('ptt.note.20261001','## Old call\nold');
+  click(d.querySelector('[data-view="notes"]'));
+  var old=d.querySelector('[data-note-day="2026-10-01"]');
+  ok('a past day is listed', !!old);
+  click(old);
+  ok('and opens', ned.value==='## Old call\nold' && /back to today/.test(d.querySelector('.notes-head').textContent));
+  click(d.querySelector('.notes-head [data-note-day]'));
+  ok('back to today', N.day()===N.today() && /Vega/.test(ned.value));
+
+  /* ---- the day turns over (last: it moves "today") ---- */
+  var tomorrow=new Date(Date.now()+86400e3);
+  N.tick(tomorrow);
+  ok('a new day is a blank page', N.today()===N.dayOf(tomorrow) && ned.value==='', N.today());
+  ok('yesterday is still there', /Vega/.test(w.localStorage.getItem(key)));
+
+  click(d.querySelector('[data-view="doc"]'));
+  wipe();
+ }catch(e){ok('no exception',false,e.stack||String(e));}
+ document.getElementById('out').textContent=log.join('\n')+'\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

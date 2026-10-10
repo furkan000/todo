@@ -984,3 +984,61 @@ tbody tr.done .task-title { color: var(--ink-3); text-decoration: line-through; 
 }
 :root[data-theme="dark"] .todo.active .body,
 :root[data-theme="dark"] .hl-now { color: #f0ece4; }
+
+/* ---------- notes ---------- */
+/* a list of days on the left, the day's page on the right — and the page is
+   just a textarea, as plain as the todo text */
+.stage.view-notes { padding: 0; overflow: hidden; display: flex; }
+.notes { flex: 1; min-width: 0; display: flex; }
+.notes-side {
+  flex: none; width: 250px; overflow: auto; padding: 14px 10px 30px;
+  border-right: 1px solid var(--line-2); background: var(--panel-2);
+}
+.notes-sub {
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--ink-3); margin: 4px 6px 8px;
+}
+.notes-topics { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 4px 18px; }
+.notes-day { margin-bottom: 10px; }
+.notes-side button {
+  display: block; width: 100%; text-align: left; border: 0; background: none;
+  border-radius: 6px; padding: 3px 8px; color: var(--ink-2);
+}
+.notes-side button:hover { background: var(--line-2); color: var(--ink); }
+.notes-day-h { font-size: 12.5px; font-weight: 640; color: var(--ink); }
+.notes-side .notes-day-h { color: var(--ink); }
+div.notes-day-h { padding: 10px 8px 3px; cursor: pointer; }
+.notes-day.here > .notes-day-h { background: var(--sel); color: var(--sel-ink); }
+.notes-sec {
+  font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  padding-left: 14px !important;
+}
+.notes-time { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-right: 6px; }
+.notes-hit { margin-bottom: 2px; }
+.notes-hit b { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.notes-hit span {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; font-size: 12px; color: var(--ink-3);
+}
+.notes-hit.here { background: var(--line-2); }
+.notes-side mark { background: var(--accent-soft); color: inherit; border-radius: 2px; }
+.notes-none { font-size: 12.5px; color: var(--ink-3); padding: 4px 8px; }
+
+.notes-main { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--panel); }
+.notes-head {
+  flex: none; display: flex; align-items: baseline; gap: 10px;
+  padding: 16px 26px 4px;
+}
+.notes-head h2 { margin: 0; font-size: 16px; font-weight: 640; letter-spacing: -.01em; }
+.notes-today { font-size: 12px; color: var(--ink-3); }
+.notes-ed {
+  flex: 1; width: 100%; resize: none; border: 0; outline: none;
+  padding: 10px 26px 40px; background: transparent; color: var(--ink);
+  font-family: var(--mono); font-size: 13px; line-height: 1.75; tab-size: 2;
+  scrollbar-gutter: stable;
+}
+.notes-ed::placeholder { color: var(--ink-3); }
+@media (max-width: 700px) {
+  .notes { flex-direction: column; }
+  .notes-side { width: auto; max-height: 34%; border-right: 0; border-bottom: 1px solid var(--line-2); }
+}

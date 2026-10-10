@@ -33,6 +33,7 @@
     Store.mount(document.getElementById('sync-slot'));
     Log.init();
     DoneDate.init();
+    Notes.init({ vocab: function () { return doc && doc.vocab; } });
     // when a staged removal's grace runs out, the page saying so is stale
     Undo.onchange(function () { if (state.view === 'log') render(); });
     els.editor.value = saved === null ? SAMPLE : saved;
@@ -120,6 +121,7 @@
   // loads, which is when those modules read anything.
   function onRemote(keys) {
     if (keys.indexOf('ptt.log.v1') !== -1) Log.init();
+    Notes.onRemote(keys);
     if (keys.indexOf(STORE) !== -1) {
       var next = Store.getItem(STORE);
       if (next !== null && next !== els.editor.value) {
@@ -193,9 +195,12 @@
       // the timer and the player own their own markup; the stage gives them room
       : state.view === 'focus' ? Pomodoro.panelHTML()
       : state.view === 'music' ? Music.catalogueHTML()
+      : state.view === 'notes' ? null
       : Views.discovery(doc, ctx);
     els.stage.className = 'stage view-' + state.view;
-    els.stage.innerHTML = html;
+    // the notes keep their own panel, so a note being typed is never redrawn
+    if (state.view === 'notes') Notes.mount(els.stage, { query: state.query });
+    else els.stage.innerHTML = html;
     if (state.view === 'focus') Pomodoro.step();   // fill the fresh markup now, not in 250ms
     Highlight.paint(doc);
     Occurrences.refresh();
@@ -574,11 +579,12 @@
     if ((e.metaKey || e.ctrlKey) && e.key === 'f') { e.preventDefault(); return Find.open(); }
     if ((e.metaKey || e.ctrlKey) && e.key === '.') {
       e.preventDefault();
+      if (document.activeElement === Notes.editor()) return;   // notes have no todos
       var v = els.editor.value;
       return markNow(v.slice(0, els.editor.selectionStart).split('\n').length - 1);
     }
     if (!(e.metaKey || e.ctrlKey)) return;
-    var map = { '2': 'doc', '3': 'table', '4': 'cal', '5': 'tags', '6': 'log', '7': 'focus', '8': 'music' };
+    var map = { '2': 'doc', '3': 'table', '4': 'cal', '5': 'tags', '6': 'log', '7': 'focus', '8': 'music', '9': 'notes' };
     if (e.key === '1') { e.preventDefault(); setLayout('text'); }
     else if (map[e.key]) { e.preventDefault(); showView(map[e.key]); }
     else if (e.key === 'k') { e.preventDefault(); els.search.focus(); els.search.select(); }
@@ -599,6 +605,7 @@
     }
     savePrefs();
     render();
+    if (v === 'notes') Notes.focus();   // opening the page is wanting to write on it
   }
 
   function setLayout(next) {

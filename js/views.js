@@ -621,6 +621,6 @@
   global.Views = {
     document: renderDocument, table: renderTable, calendar: renderCalendar,
     discovery: renderDiscovery, log: renderLog,
-    columns: columns, esc: esc, sectionCount: sectionCount, rankKey: rankKey
+    columns: columns, esc: esc, chipHTML: chipHTML, sectionCount: sectionCount, rankKey: rankKey
   };
 })(typeof window !== 'undefined' ? window : globalThis);
