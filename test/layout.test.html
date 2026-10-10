@@ -1,0 +1,63 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1300px;height:600px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var P=w.PTT,text=d.querySelector('[data-layout="text"]'),side=d.querySelector('[data-act="sidebar"]');
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  function key(k){d.dispatchEvent(new w.KeyboardEvent('keydown',{key:k,ctrlKey:true,bubbles:true,cancelable:true}));}
+  function L(){return P.state.layout;}
+  function lit(v){return d.querySelector('.tabs > [data-view="'+v+'"]').classList.contains('on');}
+
+  // start in V on Doc
+  P.showView('doc'); P.setLayout('view');
+  ok('V: the view tab is lit, Text is plain', lit('doc') && !text.classList.contains('on') && !text.classList.contains('beside'));
+  ok('V: the sidebar button is off', !side.classList.contains('on'));
+
+  click(side);
+  ok('V → sidebar → S', L()==='split');
+  ok('S: the view tab keeps the pill', lit('doc'));
+  ok('S: Text is lit quietly', text.classList.contains('beside') && !text.classList.contains('on'));
+  ok('S: the sidebar button is on', side.classList.contains('on'));
+
+  click(text);
+  ok('S → Text → T', L()==='text');
+  ok('T: Text has the pill, no view tab does', text.classList.contains('on') && !text.classList.contains('beside') && !lit('doc'));
+  ok('T: the sidebar button is off', !side.classList.contains('on'));
+
+  click(text);
+  ok('T → Text → back to S, where it came from', L()==='split');
+
+  key('\\');
+  ok('S → Ctrl+\\ → V', L()==='view');
+  key('1');
+  ok('V → Ctrl+1 → T', L()==='text');
+  key('1');
+  ok('T → Ctrl+1 → back to V, where it came from', L()==='view');
+
+  key('1'); click(side);
+  ok('T → sidebar → S: the view back beside the text', L()==='split');
+
+  click(text);
+  click(d.querySelector('.tabs > [data-view="table"]'));
+  ok('T → a view tab → back to S, on that view', L()==='split' && P.state.view==='table' && lit('table'));
+  click(d.querySelector('.tabs > [data-view="table"]'));
+  ok('the active view tab again changes nothing', L()==='split' && P.state.view==='table');
+
+  /* ---- Notes keeps its own ---- */
+  P.showView('notes');
+  ok('Notes starts in its own arrangement, V', L()==='view');
+  click(text);
+  ok('Notes: Text → T', L()==='text');
+  click(text);
+  ok('Notes: Text again → back to its V', L()==='view');
+  P.showView('doc');
+  ok('the todo views still have theirs, S', L()==='split');
+
+  P.showView('doc'); P.setLayout('split');
+ }catch(e){ok('no exception',false,e.stack||String(e));}
+ document.getElementById('out').textContent=log.join('\n')+'\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

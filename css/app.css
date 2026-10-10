@@ -135,6 +135,13 @@ code { font-family: var(--mono); font-size: .92em; }
 }
 .tab-div { width: 1px; align-self: stretch; background: var(--line); margin: 2px 4px; }
 .tab.on { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); font-weight: 600; }
+/* Text while the text is open beside the view: lit, but quietly — the pill
+   belongs to the view tab, which is what the right-hand side is showing */
+.tab.beside { color: var(--ink); position: relative; }
+.tab.beside::after {
+  content: ""; position: absolute; left: 12px; right: 12px; bottom: 2px;
+  height: 2px; border-radius: 2px; background: var(--ink-3); opacity: .55;
+}
 
 /* A search is a question you ask occasionally, so at rest it is only the icon
    you would reach for anyway. The field has no width of its own; it grows out

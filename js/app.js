@@ -502,7 +502,7 @@
     if (el.dataset.themeSet) { state.theme = el.dataset.themeSet; applyTheme(); return savePrefs(); }
     if (el.dataset.donedate) { DoneDate.setEnabled(el.dataset.donedate === 'on'); return render(); }
     if (el.dataset.view) return showView(el.dataset.view);
-    if (el.dataset.layout) return setLayout(el.dataset.layout);
+    if (el.dataset.layout) return toggleText();
     if (el.dataset.group) { state.group = el.dataset.group === '1'; savePrefs(); return render(); }
     if (el.dataset.filter) { state.filter = el.dataset.filter; savePrefs(); return render(); }
     if (el.dataset.sort) {
@@ -534,7 +534,7 @@
   function action(name) {
     if (name === 'search') return search();
     if (name === 'spotlight') return Spotlight.open();
-    if (name === 'sidebar') return setLayout(state.layout === 'view' ? 'split' : 'view');
+    if (name === 'sidebar') return toggleSidebar();
     if (name === 'menu') return toggleMenu();
     if (name === 'export-all') {
       closeMenu();
@@ -662,14 +662,11 @@
     if (!(e.metaKey || e.ctrlKey)) return;
     // the numbers follow the tabs left to right, in whatever order they are in
     var map = shortcuts();
-    if (e.key === '1') { e.preventDefault(); setLayout('text'); }
+    if (e.key === '1') { e.preventDefault(); toggleText(); }
     else if (map[e.key]) { e.preventDefault(); showView(map[e.key]); }
     else if (e.key === 'k') { e.preventDefault(); search(); }
     else if (e.key === ';') { e.preventDefault(); Pomodoro.act('toggle'); }
-    else if (e.key === '\\') {
-      e.preventDefault();
-      setLayout(state.layout === 'view' ? 'split' : 'view');
-    }
+    else if (e.key === '\\') { e.preventDefault(); toggleSidebar(); }
   }
 
   // Notes on screen: searching means the notes, and the todo search stays out
@@ -716,6 +713,28 @@
     if (v === 'work') Worklog.focus();
   }
 
+  /* Three layouts, one machine:
+
+       V  view only     — the view tab lit
+       S  text beside   — the view tab lit, Text lit quietly
+       T  text full     — Text lit
+
+     Text / Ctrl+1:      V → T,  S → T,  T → back to V or S, whichever it was
+     sidebar / Ctrl+\:   V → S,  S → V,  T → S (the view back beside the text)
+     a view tab:         switches the view; from T it goes back to V or S
+
+     "Whichever it was" is the arrangement remembered for this kind of page:
+     the todo views keep one, Notes and Work another. */
+  function arrangement() { return isPage(state.view) ? state.notesLayout : state.mainLayout; }
+
+  function toggleText() {
+    setLayout(state.layout === 'text' ? arrangement() : 'text');
+  }
+
+  function toggleSidebar() {
+    setLayout(state.layout === 'split' ? 'view' : 'split');
+  }
+
   function setLayout(next) {
     if (next !== 'text') state[isPage(state.view) ? 'notesLayout' : 'mainLayout'] = next;
     state.layout = next;
@@ -757,13 +776,20 @@
     Overlay.sync();
     Array.prototype.forEach.call(document.querySelectorAll('[data-layout]'), function (b) {
       b.classList.toggle('on', b.dataset.layout === state.layout);
+      // the text is on screen beside the view: Text says so, quietly
+      b.classList.toggle('beside', state.layout === 'split');
+      b.title = state.layout === 'split' ? 'Text — open it full width (Ctrl+1)'
+        : state.layout === 'text' ? 'Back to ' + (arrangement() === 'split' ? 'the text beside the view' : 'the view') + ' (Ctrl+1)'
+        : 'Text — the source itself (Ctrl+1)';
     });
     var side = document.querySelector('[data-act="sidebar"]');
     if (side) {
-      var open = state.layout !== 'view';
+      var open = state.layout === 'split';
       side.classList.toggle('on', open);
       side.setAttribute('aria-pressed', String(open));
-      side.title = (open ? 'Hide' : 'Show') + ' the editor (Ctrl+\\)';
+      side.title = open ? 'Hide the text (Ctrl+\\)'
+        : state.layout === 'text' ? 'Show the view beside the text (Ctrl+\\)'
+        : 'Show the text beside the view (Ctrl+\\)';
     }
   }
 
@@ -968,7 +994,8 @@
     toJSON: toJSON, toCSV: toCSV, saveNow: saveNow, text: function () { return text(); }, setFold: function (on) { setFold(on); },
     doc: function () { return doc; }, state: state, sample: SAMPLE,
     applyTheme: applyTheme, resolvedTheme: resolvedTheme, archive: function () { return action('archive'); },
-    showView: showView, setLayout: setLayout, setSplit: setSplit
+    showView: showView, setLayout: setLayout, setSplit: setSplit,
+    toggleText: toggleText, toggleSidebar: toggleSidebar
   };
 
   function boot() { Store.ready(init, unreachable); }

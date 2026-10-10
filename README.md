@@ -273,10 +273,19 @@ from the right end of your order, while Text and the first three tabs after it
 always stay. On a phone the search icon goes and the filter moves into More
 too. The settings cog always stays.
 
-**Text** is a tab like the rest. The button at the far left opens and closes the
-editor — it is that pane's own toggle, so it sits on the side it opens — and
-`Ctrl+\` does the same. Leaving Text returns you to whichever arrangement you
-were last in.
+There are three arrangements: the **view** alone, the **text beside** the view,
+and the **text full** width. The **Text** tab and the button at the far left
+move between them:
+
+| | view alone | text beside | text full |
+| --- | --- | --- | --- |
+| lit | the view tab | the view tab, and Text quietly (a thin line under it) | Text |
+| **Text** / `Ctrl+1` | → text full | → text full | → back to where you were |
+| **left button** / `Ctrl+\` | → text beside | → view alone | → text beside |
+| **a view tab** | switches the view | switches the view | → back to where you were, on that view |
+
+"Where you were" is remembered separately for the todo views and for Notes and
+Work.
 The reading column stays centred in every mode. In split, drag the divider to
 resize; double-click it to reset, or focus it and use the arrow keys (`Shift`
 for bigger steps). Neither side can be squeezed below 260px, and the width sticks.
@@ -654,12 +663,12 @@ import.
 
 | | |
 | --- | --- |
-| `Ctrl+1` | Text |
+| `Ctrl+1` | Text full width, and back |
 | `Ctrl+2..9`, `Ctrl+0` | the tabs left to right, in your order (by default Doc / Table / Notes / Work / Calendar / Focus / Music / Tags / Log) |
 | `Ctrl+K` | search / filter by tag — in Notes, search the notes |
 | `Ctrl+Shift+F` | search all notes |
 | `Ctrl+F` | find & replace in the text |
-| `Ctrl+\` | open/close the editor |
+| `Ctrl+\` | the text beside the view, or not |
 | `Esc` | close the settings menu |
 | `Enter` | continue the list; again on an empty item to end it |
 | `Tab` / `Shift+Tab` | indent a todo into a subtask, or promote it back out |
