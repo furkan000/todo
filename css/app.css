@@ -86,6 +86,11 @@ code { font-family: var(--mono); font-size: .92em; }
   display: flex; align-items: center; gap: 12px;
   padding: 9px 14px; background: var(--panel);
   border-bottom: 1px solid var(--line); flex: none;
+  /* when the page runs up under a phone's status bar (installed, dark), the
+     toolbar grows by that much, so the bar sits on its colour */
+  padding-top: calc(9px + env(safe-area-inset-top, 0px));
+  padding-left: calc(14px + env(safe-area-inset-left, 0px));
+  padding-right: calc(14px + env(safe-area-inset-right, 0px));
 }
 
 .tabs { display: flex; gap: 2px; background: var(--panel-2); padding: 3px; border-radius: 9px; border: 1px solid var(--line); }
@@ -100,7 +105,11 @@ code { font-family: var(--mono); font-size: .92em; }
 .tb-sep { height: 1px; background: var(--line-2); margin: 4px 2px; }
 /* a phone: tighter, so the four tabs that never fold still fit beside the cog */
 @media (max-width: 480px) {
-  .topbar { gap: 6px; padding: 8px 8px; }
+  .topbar {
+    gap: 6px;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) calc(8px + env(safe-area-inset-right, 0px))
+             8px calc(8px + env(safe-area-inset-left, 0px));
+  }
   .tab { padding: 5px 8px; }
 }
 .spacer-flex { min-width: 0; }
@@ -645,6 +654,7 @@ code { font-family: var(--mono); font-size: .92em; }
 
 .statusbar {
   flex: none; border-top: 1px solid var(--line); padding: 6px 16px;
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));   /* above the iPhone's home bar */
   z-index: 3; display: flex; align-items: center; gap: 12px;
   font-size: 11.5px; color: var(--ink-3); background: var(--panel);
 }

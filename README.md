@@ -42,6 +42,13 @@ app an https address that only your tailnet can reach:
 
 This is `serve`, not `funnel`: nothing becomes reachable from the internet.
 
+On iOS the phone's own status bar takes the toolbar's colour. In Safari it
+follows the theme as you switch it. Installed on the home screen, iOS reads
+the bar's style once, at launch: in dark the toolbar runs up under the status
+bar, and in light iOS keeps its own white bar, the same near-white as the
+toolbar. After switching the theme, close and reopen the installed app for the
+status bar to follow.
+
 The service worker always loads the newest app from the server, and keeps a
 copy only to fall back on. Without the server the installed app still opens and
 says the server cannot be reached. Your data is never cached by it; it stays on

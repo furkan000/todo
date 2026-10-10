@@ -1,0 +1,20 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1100px;height:500px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var tc=d.querySelector('meta[name="theme-color"]'),sb=d.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+  ok('one theme-color, and a status bar style', d.querySelectorAll('meta[name="theme-color"]').length===1 && !!sb);
+  ok('the viewport may run under the status bar', /viewport-fit=cover/.test(d.querySelector('meta[name=viewport]').content));
+  var bar=d.querySelector('.topbar');
+  w.PTT.state.theme='dark'; w.PTT.applyTheme();
+  ok('dark: theme-color is the toolbar\'s colour', tc.content===w.getComputedStyle(bar).backgroundColor, [tc.content,w.getComputedStyle(bar).backgroundColor]);
+  w.PTT.state.theme='light'; w.PTT.applyTheme();
+  ok('light: and follows it', tc.content===w.getComputedStyle(bar).backgroundColor && tc.content!=='', tc.content);
+  w.PTT.state.theme='auto'; w.PTT.applyTheme();
+ }catch(e){ok('no exception',false,e.stack||String(e));}
+ document.getElementById('out').textContent=log.join('\n')+'\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

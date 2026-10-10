@@ -762,6 +762,9 @@
     root.classList.add('theme-switching');
     root.dataset.theme = resolvedTheme();
     void root.offsetHeight;                       // commit the new palette un-animated
+    // the phone's own bar follows the toolbar (Safari reads it as it changes)
+    var meta = document.querySelector('meta[name="theme-color"]'), bar = document.querySelector('.topbar');
+    if (meta && bar) meta.content = getComputedStyle(bar).backgroundColor;
     requestAnimationFrame(function () { root.classList.remove('theme-switching'); });
     Array.prototype.forEach.call(document.querySelectorAll('[data-theme-set]'), function (b) {
       b.classList.toggle('on', b.dataset.themeSet === state.theme);

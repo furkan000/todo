@@ -2,14 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Plain Text Todo</title>
 <script>/* resolved before first paint so the theme never flashes */
 try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(location.pathname),
           p = JSON.parse(localStorage.getItem('ptt.prefs.v1') || '{}'),
           t = (u ? localStorage.getItem('ptt.u.' + u[1].toLowerCase() + '.theme') : p.theme) || 'auto';
       document.documentElement.dataset.theme = t !== 'auto' ? t
-        : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); } catch (e) {}</script>
+        : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); } catch (e) {}
+/* iOS: the system status bar wears the toolbar's colour. Safari reads
+   theme-color (kept in step with the theme by the app). An app on the home
+   screen reads the status bar style once, at launch: dark lets the toolbar run
+   up under it (its text is white, which only suits dark); light keeps iOS's
+   own white bar with dark text, the same near-white as the toolbar. */
+(function () {
+  var dark = document.documentElement.dataset.theme === 'dark';
+  document.write('<meta name="theme-color" content="' + (dark ? '#1a1a18' : '#fdfcfa') + '">' +
+    '<meta name="apple-mobile-web-app-status-bar-style" content="' + (dark ? 'black-translucent' : 'default') + '">');
+})();</script>
 <link rel="stylesheet" href="css/app.css">
 <!-- installable: the manifest names the record in the address, so the
      installed app opens on it -->
@@ -18,8 +28,6 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
   ml.rel = 'manifest'; ml.href = '/manifest.webmanifest' + (mu ? '?u=' + mu[1].toLowerCase() : '');
   document.head.appendChild(ml);
 }</script>
-<meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#131311" media="(prefers-color-scheme: dark)">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
