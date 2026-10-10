@@ -1252,6 +1252,13 @@ tbody tr.done .task-title { color: var(--ink-3); text-decoration: line-through; 
 .work-ed::placeholder { color: var(--ink-3); }
 
 .work-ed { flex: none; }
+.work-wrap { position: relative; flex: none; }
+.work-ed { position: relative; z-index: 1; color: transparent; caret-color: var(--ink); }
+.work-ed::selection { background: color-mix(in srgb, var(--accent) 38%, transparent); }
+.work-layer {
+  position: absolute; top: 0; left: 0; overflow: hidden; pointer-events: none;
+  white-space: pre-wrap; word-wrap: break-word; color: var(--ink);
+}
 /* the lists sit at the foot of the page, below however much was written; the
    column is at least the height of the view so they settle at the bottom */
 .work-col {

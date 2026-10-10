@@ -35,6 +35,15 @@ document.getElementById('f').addEventListener('load',function(){
   ok('without the todo text, as in Notes', app.classList.contains('layout-view'), app.className);
   ok('the list of days starts folded', !d.querySelector('.work').classList.contains('side-open'));
   ok('there is no day after today', d.querySelector('[data-work-step="1"]').disabled);
+  /* ---- tags are coloured, and resolve as in the todo text ---- */
+  var ted=d.getElementById('editor'); ted.value='- [ ] x #client:vega'; ted.dispatchEvent(new w.Event('input',{bubbles:true}));
+  click(d.querySelector('[data-view="work"]'));
+  wed.value='- call #vega ~billable #team'; wed.dispatchEvent(new w.Event('input',{bubbles:true}));
+  var lay=d.querySelector('.work-layer');
+  ok('a tag in Work is coloured', !!lay.querySelector('.hl-label') && /#team/.test(lay.querySelector('.hl-label').textContent), lay.innerHTML);
+  ok('a bare tag resolves through the todo text', !!lay.querySelector('.hl-sel.taught') && lay.querySelector('.hl-sel.taught').textContent==='#vega', lay.innerHTML);
+  ok('and a boolean too', !!lay.querySelector('.hl-bool'));
+  ok('the text itself is drawn by the layer', w.getComputedStyle(wed).color==='rgba(0, 0, 0, 0)', w.getComputedStyle(wed).color);
   wed.value='- Reviewed the Vega export';
   wed.dispatchEvent(new w.Event('input',{bubbles:true}));
   var key=W.keyOf(W.today());

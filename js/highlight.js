@@ -93,5 +93,19 @@
     return [212, 268, 158, 24, 340, 190, 48, 120][h % 8];
   }
 
-  global.Highlight = { init: init, paint: paint };
+  // One line of a page that is not the todo text (a note, a day of work): its
+  // tags coloured as they would be there. `vocab` maps a bare value to the
+  // namespace that claimed it ({ns, value}), so #vega reads as client:vega.
+  function inline(text, vocab) {
+    var toks = TT.scanTokens(text).map(function (t) {
+      if (t.kind === 'bare' && vocab) {
+        var hit = vocab.get(TT.key(t.name));
+        if (hit) t.resolved = { ns: hit.ns, value: hit.value };
+      }
+      return t;
+    });
+    return tokens({ text: text, tokens: toks });
+  }
+
+  global.Highlight = { init: init, paint: paint, inline: inline };
 })(typeof window !== 'undefined' ? window : globalThis);

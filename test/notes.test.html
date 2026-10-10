@@ -95,6 +95,7 @@ document.getElementById('f').addEventListener('load',function(){
   ok('the title lands before the time', /\n## Call with Anna #team · \d{2}:\d{2}$/.test(ned.value), ned.value);
   ok('and reads as title and time', last.title==='Call with Anna' && /^\d{2}:\d{2}$/.test(last.time), [last.title,last.time]);
   var lay=d.querySelector('.notes-layer .nl-time');
+  ok('tags in a note are coloured', !!d.querySelector('.notes-layer .hl-label') && /#team/.test(d.querySelector('.notes-layer').innerHTML));
   ok('the time is painted muted', !!lay && /· \d{2}:\d{2}/.test(lay.textContent), lay&&lay.textContent);
   ok('the old way, time first, still reads', N.sections('## 09:30 Standup')[0].time==='09:30' && N.sections('## 09:30 Standup')[0].title==='Standup');
   ok('a · without a time stays in the title', N.sections('## A · B')[0].title==='A · B' && N.sections('## A · B')[0].time==='');

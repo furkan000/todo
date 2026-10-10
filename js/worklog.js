@@ -110,14 +110,18 @@
       '<div class="work-main">' +
         '<div class="work-col">' +
           '<div class="work-head"></div>' +
+          // the page, and behind it a layer that colours its tags
+          '<div class="work-wrap"><div class="work-layer" aria-hidden="true"></div>' +
           '<textarea class="work-ed" spellcheck="true" autocomplete="off" placeholder="' +
-            esc('What did you work on today?\n\n- Reviewed the Vega export\n- Call with Anna about the API keys') + '"></textarea>' +
+            esc('What did you work on today?\n\n- Reviewed the Vega export\n- Call with Anna about the API keys') + '"></textarea>' + '</div>' +
           '<div class="work-extra"></div>' +
         '</div>' +
       '</div>' +
       '<aside class="work-side"></aside>';
     head = root.querySelector('.work-head');
     ed = root.querySelector('.work-ed');
+    layer = root.querySelector('.work-layer');
+    Overlay.register(ed, layer);
     side = root.querySelector('.work-side');
     extra = root.querySelector('.work-extra');
     ed.addEventListener('input', onInput);
@@ -141,6 +145,16 @@
     if (!ed.isConnected) return;
     ed.style.height = 'auto';
     ed.style.height = ed.scrollHeight + 'px';
+    paintLayer();
+  }
+
+  // Tags coloured as in the todo text, resolved the same way. The vocabulary
+  // is worked out when the page is painted, not on every keystroke.
+  var layer = null, vocab = null;
+  function paintLayer() {
+    if (!layer) return;
+    layer.innerHTML = ed.value.split('\n').map(function (l) { return Highlight.inline(l, vocab); }).join('\n') + '\n';
+    Overlay.sync();
   }
 
   var ICON_SIDE = '<svg viewBox="0 0 16 16"><rect x="1" y="2.5" width="14" height="11" rx="1.5"/><path d="M10 2.5v11"/><path class="fill" d="M10.4 3.2h4v9.6h-4z"/></svg>';
@@ -216,6 +230,7 @@
   }
 
   function paint() {
+    vocab = Notes.vocab(Notes.all());
     paintHead();
     paintExtra();
     paintSide();

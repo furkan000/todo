@@ -347,6 +347,10 @@
     notes.sort(function (a, b) { return a.day < b.day ? 1 : -1; });
     // searching is Spotlight's job; the list is only ever the days
     var idx = vocab(notes), html = '';
+    // a tag taught somewhere just now changes how others read: repaint then
+    var taught = !layerVocab || layerVocab.size !== idx.size;
+    layerVocab = idx;
+    if (taught) paintLayer();
     var tags = topics(notes, idx).slice(0, TOPICS_MAX);
     if (tags.length) {
       html += '<div class="notes-sub">Topics</div><div class="notes-topics">' + tags.map(chip).join('') + '</div>';
@@ -406,21 +410,24 @@
   /* ---------- the painted layer ---------- */
 
   var layer = null;
+  // what bare tags resolve to; worked out with the side list, not per keystroke
+  var layerVocab = null;
 
   // Every line as written, so it sits exactly under the text; a '## ' heading
   // reads as one, and its time steps back
   function paintLayer() {
     if (!layer) return;
+    var hl = function (t) { return Highlight.inline(t, layerVocab); };
     layer.innerHTML = ed.value.split('\n').map(function (raw) {
-      if (!HEAD.test(raw)) return esc(raw);
+      if (!HEAD.test(raw)) return hl(raw);
       var m = TIME_END.exec(raw), body = m ? raw.slice(0, m.index) : raw;
       // a time written first, the way notes used to be, steps back just the same
       var lead = !m && /^(##\s)(\d{1,2}:\d{2})(?=\s|$)/.exec(raw);
       if (lead) {
         return '<span class="nl-hash">##</span>' + esc(lead[1].slice(2)) + '<span class="nl-time">' + lead[2] + '</span>' +
-          '<span class="nl-head">' + esc(raw.slice(lead[0].length)) + '</span>';
+          '<span class="nl-head">' + hl(raw.slice(lead[0].length)) + '</span>';
       }
-      return '<span class="nl-hash">##</span><span class="nl-head">' + esc(body.slice(2)) + '</span>' +
+      return '<span class="nl-hash">##</span><span class="nl-head">' + hl(body.slice(2)) + '</span>' +
         (m ? '<span class="nl-time">' + esc(raw.slice(m.index)) + '</span>' : '');
     }).join('\n') + '\n';
     Overlay.sync();
