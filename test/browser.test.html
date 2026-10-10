@@ -204,10 +204,13 @@ document.getElementById('f').addEventListener('load', function () {
   ok('the cog opens the settings menu', !$('#settings-menu').hidden);
   ok('it is the only thing left in the toolbar actions', $$('.actions > .icon-btn').length === 1,
      $$('.actions > .icon-btn').length);
-  ok('theme, import and export all live inside it',
+  ok('theme and export live inside it',
      $$('#settings-menu [data-theme-set]').length === 3 &&
-     !!$('#settings-menu [data-act="import"]') && !!$('#settings-menu [data-act="export-md"]'),
+     !!$('#settings-menu [data-act="export-all"]') && !!$('#settings-menu [data-act="export-md"]'),
      $$('#settings-menu [data-theme-set]').length);
+  ok('import and copy to clipboard are gone',
+     !$('#settings-menu [data-act="import"]') && !$('#settings-menu [data-act="copy"]') && !w.PTT.importText);
+  ok('the exports are one line each', $$('#settings-menu .ex-row').length === 5, $$('#settings-menu .ex-row').length);
   ok('the current theme is marked', $('#settings-menu [data-theme-set="auto"]').classList.contains('on'));
   click($('#settings-menu [data-theme-set="dark"]'));
   ok('picking one applies it', d.documentElement.dataset.theme === 'dark', d.documentElement.dataset.theme);
@@ -233,30 +236,6 @@ document.getElementById('f').addEventListener('load', function () {
     var c = w.PTT.toCSV(); ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true})); return c;
   })()));
   ok('csv row count', csv.trim().split('\n').length === 16, csv.trim().split('\n').length);
-
-  // --- import round trips
-  w.confirm = function () { return true; };
-  var before = ed.value;
-  w.PTT.importText('todo.json', JSON.stringify({text: '- [ ] from json @2026-12-01 #ns:v'}));
-  ok('json import replaces text', ed.value === '- [ ] from json @2026-12-01 #ns:v', ed.value);
-  ok('imported text reparsed', w.PTT.doc().todos[0].due === '2026-12-01', w.PTT.doc().todos[0]);
-
-  ed.value = before; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
-  var csvOut = w.PTT.toCSV();
-  w.PTT.importText('todo.csv', csvOut);
-  var back = w.PTT.doc();
-  ok('csv round trip keeps 15 todos', back.todos.length === 15, back.todos.length);
-  ok('csv round trip keeps done state', back.todos.filter(function(t){return t.done;}).length === 4, back.todos.filter(function(t){return t.done;}).length);
-  ok('csv round trip keeps due dates', back.todos.filter(function(t){return t.due;}).length === 11, back.todos.filter(function(t){return t.due;}).length);
-  ok('csv round trip keeps namespaces', back.vocab.namespaces.size === 5, [].concat(Array.from(back.vocab.namespaces.keys())));
-  ok('csv round trip keeps quoted value', back.todos.some(function(t){return t.selects.status === 'in progress';}), back.todos.map(function(t){return t.selects.status;}));
-  ok('csv round trip keeps booleans', back.todos.filter(function(t){return t.bools.billable;}).length === 4, back.todos.filter(function(t){return t.bools.billable;}).length);
-  ok('csv round trip keeps labels', back.vocab.labels.has('home'), Array.from(back.vocab.labels.keys()));
-  ok('csv round trip keeps priority', back.todos.filter(function(t){return t.priority;}).length === 7, back.todos.filter(function(t){return t.priority;}).length);
-
-  w.PTT.importText('notes.md', '# raw\n- [ ] plain markdown');
-  ok('md import is verbatim', ed.value === '# raw\n- [ ] plain markdown', ed.value);
-  ok('bad csv is rejected', w.PTT.csvToText([['a','b'],['1','2']]) === null);
 
   // --- theme (restore the sample: earlier tests replaced the text)
   ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
@@ -366,13 +345,6 @@ document.getElementById('f').addEventListener('load', function () {
   ok('json records the arity', mjson.vocabulary.namespaces.person.multi === true, mjson.vocabulary.namespaces.person);
   var mcsv = w.PTT.toCSV();
   ok('csv keeps both in one cell', /Max; Anna Roth/.test(mcsv), mcsv.split('\n')[1]);
-  w.confirm = function () { return true; };
-  w.PTT.importText('people.csv', mcsv);
-  var rt = w.PTT.doc();
-  ok('csv round trip keeps both people', rt.todos[0].values.person.join('|') === 'Max|Anna Roth',
-     rt.todos[0].values);
-  ok('csv round trip keeps it multi', rt.vocab.multi.has('person'));
-  ok('csv round trip quotes the two-word name', ed.value.indexOf('#person:"Anna Roth"') !== -1, ed.value);
   ed.value = w.PTT.sample; ed.dispatchEvent(new w.Event('input', {bubbles:true}));
   click($('[data-view="table"]'));      // the grouping control only exists in table view
   click($('[data-group="1"]'));

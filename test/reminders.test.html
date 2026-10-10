@@ -23,6 +23,12 @@ document.getElementById('f').addEventListener('load',function(){
   ok('not at the weekend', R.due(cfg(),new Date(2026,9,10,18,0),yes).length===0);
   ok('not after midnight, for the day before', R.due(cfg(),new Date(2026,9,8,0,30),yes).length===0);
 
+  /* ---- times, on the 24-hour clock ---- */
+  var P=R.parseTime;
+  ok('17:30 is 17:30', P('17:30')==='17:30');
+  ok('1730, 17.30 and 9:5 are read as written', P('1730')==='17:30' && P('17.30')==='17:30' && P('9:5')==='09:05' && P('930')==='09:30' && P('9')==='09:00');
+  ok('25:00, 17:60 and words are not times', P('25:00')===null && P('17:60')===null && P('soon')===null && P('')===null);
+
   /* ---- the settings ---- */
   click(d.querySelector('[data-act="menu"]'));
   var box=d.querySelector('[data-remind="work"]'), time=d.querySelector('[data-remind-time="work"]');
@@ -32,6 +38,12 @@ document.getElementById('f').addEventListener('load',function(){
   time.value='17:00'; time.dispatchEvent(new w.Event('change',{bubbles:true}));
   var saved=JSON.parse(w.localStorage.getItem('ptt.remind.v1'));
   ok('switching on and timing is kept', saved.work.on===true && saved.work.time==='17:00' && !time.disabled, saved.work);
+  ok('the time is typed, not a browser clock that may show am/pm', time.type==='text' && time.value==='17:00');
+  time.value='1815'; time.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('a time typed loosely is tidied', time.value==='18:15' && R.settings().work.time==='18:15', time.value);
+  time.value='6pm'; time.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('something that is not a time puts the old one back', time.value==='18:15' && R.settings().work.time==='18:15', time.value);
+  time.value='17:00'; time.dispatchEvent(new w.Event('change',{bubbles:true}));
   click(d.querySelector('[data-act="menu"]'));
 
   /* ---- going off ---- */

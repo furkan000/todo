@@ -63,6 +63,24 @@
 
   function pad(n) { return (n < 10 ? '0' : '') + n; }
 
+  // Times are typed, always on the 24-hour clock: "17:30", "1730", "17.30",
+  // "9" and "9:5" all mean what they look like. Anything else is not a time.
+  function parseTime(s) {
+    var m = /^\s*(\d{1,2})(?:[:.h ]?(\d{1,2}))?\s*$/.exec(String(s || ''));
+    if (!m) return null;
+    var digits = String(s).replace(/\D/g, '');
+    var h, min;
+    if (!/[:.h ]/.test(String(s).trim()) && digits.length >= 3) {   // "930", "1730"
+      h = +digits.slice(0, digits.length - 2);
+      min = +digits.slice(-2);
+    } else {
+      h = +m[1];
+      min = m[2] === undefined ? 0 : +m[2];
+    }
+    if (h > 23 || min > 59) return null;
+    return pad(h) + ':' + pad(min);
+  }
+
   function workday(day) {
     var wd = Notes.dateOf(day).getDay();
     return wd >= 1 && wd <= 5;
@@ -201,8 +219,10 @@
     if (el.hasAttribute('data-remind')) {
       cfg[k].on = el.checked;
       if (el.checked) ask();   // a click is the moment a browser lets a page ask
-    } else if (/^\d{2}:\d{2}$/.test(el.value)) {
-      cfg[k].time = el.value;
+    } else {
+      var t = parseTime(el.value);
+      if (!t) return paintSettings();   // not a time: put the one in force back
+      cfg[k].time = t;
       // a new time is a new reminder: today's may still go off, at the new time
       if (cfg.fired[k] === Notes.dayOf(clock())) delete cfg.fired[k];
     }
@@ -235,7 +255,7 @@
   }
 
   global.Reminders = {
-    KINDS: KINDS,
+    KINDS: KINDS, parseTime: parseTime,
     init: init, check: check, due: due, pending: pending, seen: seen, clear: clear,
     paint: paint, settings: function () { return cfg; },
     setClock: function (fn) { clock = fn || function () { return new Date(); }; },

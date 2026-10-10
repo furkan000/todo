@@ -5,8 +5,8 @@
    music catalogue, the timer — written into one JSON file exactly as stored.
    Nothing is converted, so nothing can be lost on the way out.
 
-   The same file, given to "Import a file…", restores it: every key in it is
-   written back, then the page reloads so every module reads its part afresh.
+   The same file, given to "restore…" beside it, restores it: every key in it
+   is written back, then the page reloads so every module reads its part afresh.
    Keys that are not in the file are left alone, so a day of notes written
    after the backup survives restoring it. */
 (function (global) {
@@ -73,8 +73,57 @@
     })();
   }
 
+  /* ---------- restoring from a file ---------- */
+
+  var opts = {}, input = null;
+
+  // Asks first, saying what is in the file, then writes it and reloads.
+  // Returns false when it did not go ahead.
+  function restoreText(name, raw) {
+    var data = null;
+    try { data = JSON.parse(raw); } catch (e) {}
+    if (!isBackup(data)) {
+      global.alert(name + ' is not a file made by Export everything.');
+      return false;
+    }
+    if (!global.confirm('Restore everything from ' + name + '?\n\nIt was ' + describe(data) +
+        '. What is in the file replaces what is here now; anything not in it is left as it is.')) return false;
+    if (opts.before) opts.before();   // a save still pending must not land on top of it
+    if (global.Log && Log.suppress) Log.suppress();
+    if (opts.flash) opts.flash('Restoring…');
+    restore(data, function (status) {
+      if (status !== 'saved' && status !== 'local') {
+        if (opts.flash) opts.flash('Restored here, but the server has not confirmed it yet');
+        return;
+      }
+      if (opts.reload !== false) global.location.reload();
+    });
+    return true;
+  }
+
+  function pick() {
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json,application/json';
+      input.hidden = true;
+      document.body.appendChild(input);
+      input.addEventListener('change', function () {
+        var f = input.files && input.files[0];
+        if (!f) return;
+        var r = new FileReader();
+        r.onload = function () { restoreText(f.name, String(r.result)); };
+        r.readAsText(f);
+        input.value = '';
+      });
+    }
+    input.click();
+  }
+
   global.Backup = {
     FORMAT: FORMAT, keys: keys, collect: collect, toJSON: toJSON, fileName: fileName,
-    isBackup: isBackup, describe: describe, restore: restore
+    isBackup: isBackup, describe: describe, restore: restore,
+    init: function (o) { opts = o || {}; },
+    pick: pick, restoreText: restoreText
   };
 })(typeof window !== 'undefined' ? window : globalThis);

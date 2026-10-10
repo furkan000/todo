@@ -221,14 +221,6 @@
     save();
   }
 
-  function load(list) {
-    if (!Array.isArray(list)) return false;
-    forgetPending();
-    entries = identify(list.filter(function (e) { return e && e.at && e.event; }));
-    save();
-    return true;
-  }
-
   /* ---------- views and exports ---------- */
   // byDay is for the view only — unlike `all()`, this keeps the entries that are waiting
   // out their grace, flagged, so the page can offer them back rather than
@@ -287,7 +279,7 @@
 
   global.Log = {
     init: init, observe: observe, suppress: suppress, record: record,
-    all: all, count: count, clear: clear, load: load, byDay: byDay,
+    all: all, count: count, clear: clear, byDay: byDay,
     remove: remove, restore: restore, pending: function () { return Object.keys(removed); },
     toMarkdown: toMarkdown, toCSV: toCSV, toJSON: toJSON, stamp: stamp
   };

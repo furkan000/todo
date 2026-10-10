@@ -67,12 +67,6 @@ document.getElementById('f').addEventListener('load',function(){
   // persistence
   ok('the log is saved to storage', JSON.parse(w.localStorage.getItem('ptt.log.v1')).length===1);
 
-  // a wholesale replacement is not a burst of completions
-  w.confirm=function(){return true;};
-  before=L.count();
-  w.PTT.importText('other.md','- [x] imported already done\n- [x] and another');
-  ok('importing does not log', L.count()===before, L.all().slice(-2));
-
   // document view honours the filter now, so finished work can be put away
   type('- [ ] open one\n- [x] done one\n- [x] done two');
   click($('[data-view="doc"]'));

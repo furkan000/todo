@@ -209,12 +209,24 @@ code { font-family: var(--mono); font-size: .92em; }
 /* ---------- reminders ---------- */
 .remind-row { display: flex; align-items: center; gap: 8px; padding: 3px 9px; font-size: 13px; }
 .remind-row label { flex: 1; display: flex; align-items: center; gap: 7px; cursor: pointer; white-space: nowrap; }
-.remind-row input[type="time"] {
-  font: inherit; font-size: 12.5px; color: var(--ink); background: var(--panel-2);
-  border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px;
+.remind-row [data-remind-time] {
+  width: 4.2em; text-align: center; font-family: var(--mono); font-size: 12.5px;
+  color: var(--ink); background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 6px; padding: 2px 4px;
 }
-.remind-row input[type="time"]:disabled { opacity: .45; }
-:root[data-theme="dark"] .remind-row input { color-scheme: dark; }
+.remind-row [data-remind-time]:disabled { opacity: .45; }
+
+/* the exports, one line each: what, then the formats it comes in */
+.ex-row { display: flex; align-items: center; gap: 4px; padding: 2px 9px; font-size: 13px; }
+.ex-row span { flex: 1; color: var(--ink-2); white-space: nowrap; }
+.menu-pop .ex-row button {
+  display: inline-block; width: auto; flex: none; padding: 2px 8px; border-radius: 5px;
+  font: 600 11.5px var(--mono); color: var(--ink-2); background: var(--panel-2);
+  border: 1px solid var(--line);
+}
+.menu-pop .ex-row button:hover { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.menu-pop .ex-row button[data-act="restore"] { font-family: var(--sans); font-weight: 500; }
+
 
 /* went off and not yet dealt with: red, so it is not just another quiet chip */
 #remind-slot { display: flex; gap: 6px; }

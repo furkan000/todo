@@ -30,11 +30,13 @@ document.getElementById('f').addEventListener('load',function(){
   ok('it can describe itself', /1 day of notes, 1 day of work log/.test(B.describe(data)), B.describe(data));
   ok('other JSON is not a backup', !B.isBackup({text:'x'}) && !B.isBackup(null));
 
-  /* ---- importing asks first ---- */
+  /* ---- restoring asks first ---- */
+  ok('restore sits beside the export', !!d.querySelector('#settings-menu [data-act="restore"]'));
   var asked=null; w.confirm=function(m){asked=m;return false;};
-  w.PTT.importText('backup.json', JSON.stringify(data));
-  ok('importing one asks first, and says what is in it', /Restore everything/.test(asked) && /1 day of notes/.test(asked), asked);
-  ok('saying no changes nothing', ed.value==='- [ ] the todo text');
+  ok('saying no changes nothing', B.restoreText('backup.json', JSON.stringify(data))===false && ed.value==='- [ ] the todo text');
+  ok('it asks first, and says what is in the file', /Restore everything/.test(asked) && /1 day of notes/.test(asked), asked);
+  var told=null; w.alert=function(m){told=m;};
+  ok('a file that is not a backup is refused', B.restoreText('todo.md','# just text')===false && /not a file made by Export everything/.test(told), told);
 
   /* ---- back in ---- */
   ls.setItem('ptt.note.20261009','changed since');

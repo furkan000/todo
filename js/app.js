@@ -25,7 +25,7 @@
 
   /* ---------- boot ---------- */
   function init() {
-    ['editor', 'stage', 'search', 'stats', 'app', 'file', 'status-tools', 'resizer', 'panes'].forEach(function (id) {
+    ['editor', 'stage', 'search', 'stats', 'app', 'status-tools', 'resizer', 'panes'].forEach(function (id) {
       els[id.replace(/-(\w)/g, function (_, c) { return c.toUpperCase(); })] = document.getElementById(id);
     });
     var saved = null;
@@ -46,6 +46,7 @@
       openNotes: function (day) { showView('notes'); Notes.open(day); }
     });
     Reminders.init({ slot: document.getElementById('remind-slot'), show: showView });
+    Backup.init({ before: saveNow, flash: flash });
     // when a staged removal's grace runs out, the page saying so is stale
     Undo.onchange(function () { if (state.view === 'log') render(); });
     els.editor.value = saved === null ? SAMPLE : saved;
@@ -67,7 +68,6 @@
     document.addEventListener('click', onClick);
     document.addEventListener('change', onChange);
     document.addEventListener('keydown', onKey);
-    els.file.addEventListener('change', onFile);
     applyLayout();
     applyTheme();
     watchSystemTheme();
@@ -486,13 +486,6 @@
     if (name === 'spotlight') return Spotlight.open();
     if (name === 'sidebar') return setLayout(state.layout === 'view' ? 'split' : 'view');
     if (name === 'menu') return toggleMenu();
-    if (name === 'copy') {
-      closeMenu();
-      var t = els.editor.value;
-      if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () { flash('Copied ' + t.length + ' characters'); });
-      else { els.editor.select(); document.execCommand('copy'); flash('Copied'); }
-      return;
-    }
     if (name === 'export-all') {
       closeMenu();
       saveNow();   // the last quarter second of typing belongs in it
@@ -514,7 +507,7 @@
       Log.clear();
       return render();
     }
-    if (name === 'import') return closeMenu(), els.file.click();
+    if (name === 'restore') return closeMenu(), Backup.pick();
     if (name === 'archive') {
       var moved = Archive.pending(doc).length;
       var next = Archive.apply(doc);
@@ -523,15 +516,6 @@
       return flash('Archived ' + moved + ' todo' + (moved === 1 ? '' : 's') + ' — undo with Ctrl+Z');
     }
     if (name === 'clear-search') { state.query = ''; els.search.value = ''; return render(); }
-  }
-
-  function onFile(e) {
-    var f = e.target.files && e.target.files[0];
-    if (!f) return;
-    var r = new FileReader();
-    r.onload = function () { importText(f.name, String(r.result)); };
-    r.readAsText(f);
-    e.target.value = '';
   }
 
   // Shift whole lines when the caret sits on a list item or several lines are
@@ -869,103 +853,6 @@
     return rows.join('\n') + '\n';
   }
 
-  /* ---------- import ---------- */
-  function parseCSV(text) {
-    var rows = [], row = [], cell = '', q = false;
-    for (var i = 0; i < text.length; i++) {
-      var c = text[i];
-      if (q) {
-        if (c === '"' && text[i + 1] === '"') { cell += '"'; i++; }
-        else if (c === '"') q = false;
-        else cell += c;
-      } else if (c === '"') q = true;
-      else if (c === ',') { row.push(cell); cell = ''; }
-      else if (c === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
-      else if (c !== '\r') cell += c;
-    }
-    if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
-    return rows.filter(function (r) { return r.some(function (c) { return c.trim(); }); });
-  }
-
-  function tagValue(ns, value) {
-    var v = String(value).trim();
-    return '#' + ns + ':' + (/[\s]/.test(v) ? '"' + v + '"' : v);
-  }
-
-  // Rebuild plain text from an exported table. Only columns we recognise are used.
-  function csvToText(rows) {
-    var head = rows[0].map(function (h) { return TT.key(h); });
-    var ti = head.indexOf('task'); if (ti < 0) ti = head.indexOf('title');
-    if (ti < 0) return null;
-    var di = head.indexOf('done'), ui = head.indexOf('due'), li = head.indexOf('labels');
-    var si = head.indexOf('sub');            // progress is a readout, not a tag to rebuild
-    var out = ['# Imported ' + new Date().toISOString().slice(0, 10), ''];
-    rows.slice(1).forEach(function (r) {
-      var line = '- [' + (di >= 0 && /^(x|yes|true|done)$/i.test((r[di] || '').trim()) ? 'x' : ' ') + '] ' + (r[ti] || '').trim();
-      if (ui >= 0 && (r[ui] || '').trim()) line += ' @' + r[ui].trim();
-      head.forEach(function (h, i) {
-        var val = (r[i] || '').trim();
-        if (!val || i === ti || i === di || i === ui || i === li || i === si) return;
-        if (h.charAt(0) === '~') { if (/^(yes|true|x|1)$/i.test(val)) line += ' ~' + h.slice(1); }
-        else if (h === 'priority') line += ' !' + val;
-        else {
-          val.split(';').forEach(function (one) {
-            if (one.trim()) line += ' ' + tagValue(h, one);
-          });
-        }
-      });
-      if (li >= 0 && (r[li] || '').trim()) {
-        line += ' ' + r[li].trim().split(/\s+/).map(function (l) { return l.charAt(0) === '#' ? l : '#' + l; }).join(' ');
-      }
-      out.push(line);
-    });
-    return out.join('\n') + '\n';
-  }
-
-  function importText(name, raw) {
-    var text = raw, note = '';
-    if (/\.json$/i.test(name)) {
-      var data;
-      try { data = JSON.parse(raw); } catch (e) { return alert('That JSON file could not be parsed.'); }
-      if (Backup.isBackup(data)) return restoreAll(name, data);
-      if (Array.isArray(data.log) && data.log.length && confirm('This file carries an activity log of ' + data.log.length + ' entries. Replace the current log with it?')) {
-        Log.load(data.log);
-      }
-      if (typeof data.text === 'string') { text = data.text; note = ' (from JSON source)'; }
-      else if (Array.isArray(data.todos)) {
-        text = ['# Imported ' + new Date().toISOString().slice(0, 10), ''].concat(data.todos.map(function (t) {
-          return typeof t.source === 'string'
-            ? '- [' + (t.done ? 'x' : ' ') + '] ' + t.source
-            : '- [' + (t.done ? 'x' : ' ') + '] ' + (t.title || '');
-        })).join('\n') + '\n';
-        note = ' (rebuilt from todos)';
-      } else return alert('That JSON has no "text" or "todos" to import.');
-    } else if (/\.csv$/i.test(name)) {
-      var rebuilt = csvToText(parseCSV(raw));
-      if (!rebuilt) return alert('That CSV needs a header row with a "task" or "title" column.');
-      text = rebuilt;
-      note = ' (rebuilt from CSV)';
-    }
-    if (els.editor.value.trim() && !confirm('Replace the current text with ' + name + '?')) return;
-    Log.suppress();
-    setText(text, 0);
-    flash('Imported ' + name + note);
-  }
-
-  // A whole backup: everything in it is written back, and the page reloads so
-  // every part of the app reads its share afresh
-  function restoreAll(name, data) {
-    if (!confirm('Restore everything from ' + name + '?\n\nIt was ' + Backup.describe(data) +
-        '. What is in the file replaces what is here now; anything not in it is left as it is.')) return;
-    saveNow();          // nothing typed a moment ago may land on top of it
-    Log.suppress();
-    flash('Restoring…');
-    Backup.restore(data, function (status) {
-      if (status !== 'saved' && status !== 'local') return flash('Restored here, but the server has not confirmed it yet');
-      location.reload();
-    });
-  }
-
   /* ---------- sample ---------- */
   var SAMPLE = [
     '# Studio — week of Aug 17',
@@ -1007,8 +894,7 @@
 
   // handy from the console, and what the browser tests drive
   window.PTT = {
-    toJSON: toJSON, toCSV: toCSV, importText: importText, saveNow: saveNow,
-    parseCSV: parseCSV, csvToText: csvToText,
+    toJSON: toJSON, toCSV: toCSV, saveNow: saveNow,
     doc: function () { return doc; }, state: state, sample: SAMPLE,
     applyTheme: applyTheme, resolvedTheme: resolvedTheme, archive: function () { return action('archive'); },
     showView: showView, setLayout: setLayout, setSplit: setSplit

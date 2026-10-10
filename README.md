@@ -347,7 +347,7 @@ reason.
 The log lives beside the document rather than inside it, so finished lines do not
 accumulate the time of day. Each entry keeps a snapshot — time, task, section, due date,
 priority — so later edits to the document never rewrite history. Reopening a todo
-is not an event; finishing it again is. Loading or importing a file that already
+is not an event; finishing it again is. Restoring a backup that already
 contains done todos records nothing, since none of that happened just now.
 
 The **Log** tab shows it grouped by day. Export it as Markdown or CSV from the
@@ -566,7 +566,8 @@ copy in.
 ## Reminders
 
 The cog menu has two reminders, each with its own switch and time:
-**Log today's work** (default 17:30) and **Copy today's notes** (17:45). On a
+**Log today's work** (default 17:30) and **Copy today's notes** (17:45). Times
+are typed on the 24-hour clock: `17:30`, `1730` and `17.30` all work. On a
 workday (Monday to Friday) at its time, a reminder does two things:
 
 - a **browser notification**. The browser asks for permission the first time you
@@ -606,8 +607,8 @@ malformed pattern is reported in the panel rather than throwing.
 ## The cog
 
 Everything you set once and then forget lives behind one gear at the right-hand
-end of the toolbar: the theme switch, importing a file, copying the raw text, and
-every export. None of it is worth a permanent button in a bar you read all day,
+end of the toolbar: the theme switch, how finished todos are dated, the
+reminders, and every export, one line each. None of it is worth a permanent button in a bar you read all day,
 and folding the three icons into one left the toolbar with exactly the controls
 that change what you are looking at.
 
@@ -617,23 +618,24 @@ focus it — by clicking, or with `Ctrl+K`. It stays open while it holds a query
 because a filter you cannot see is a filter you forget you set, and the flexible
 gap to its left absorbs the growth so nothing else on the bar moves.
 
-## Import / export
+## Export
 
-**Everything as one file:** the cog menu's *Export everything* writes every
-stored item (the todo text, the activity log, every day of notes and of the
-work log, reminders, settings, music, timer) into one `.json` file, exactly as
-stored. Give that file to *Import a file…* to restore it. It asks first and
-says what is in the file, then writes it all back and reloads. Items not in
-the file are left alone, so notes written after the backup survive a restore.
-It works the same with or without a name on the server, and it is also how to
-move everything from one name, or one browser, to another.
+The cog menu has one line per thing you can export, with its formats beside it:
 
-Export as **Markdown** (the text verbatim), **JSON** (resolved todos plus the
-discovered vocabulary, with the source text embedded so it round-trips exactly),
-or **CSV** (the table, one column per namespace; multi-valued cells separate their
-values with `; `). Import accepts `.md`, `.txt`,
-`.json` and `.csv` — a CSV with a `task` or `title` header is rebuilt back into
-tagged plain text.
+| | |
+| --- | --- |
+| **Everything** | `json`: every stored item (todo text, activity log, every day of notes and work log, reminders, settings, music, timer) in one file, exactly as stored |
+| **Todo text** | `md` the text verbatim · `json` resolved todos plus the discovered vocabulary · `csv` the table, one column per namespace (multi-valued cells separate their values with `; `) |
+| **Activity log** | `md` grouped by day · `csv` one row per completion |
+| **Notes** | `md` every day, newest first |
+| **Work log** | `md` the month on screen, day by day, with what was finished |
+
+**restore…** beside *Everything* takes such a file back. It asks first and
+says what is in the file, then writes it all back and reloads. Items not in the
+file are left alone, so notes written after the backup survive a restore. It
+works the same with or without a name on the server, and it is also how to
+move everything from one name, or one browser, to another. There is no other
+import.
 
 ## Keyboard
 
@@ -683,7 +685,7 @@ js/backup.js    everything as one file, and restoring from it
 js/reminders.js the two daily reminders: a notification and a red marker that stays
 js/navbar.js    fits the toolbar to the window: folds the filter, then tabs into More
 js/worklog.js   a page per day of what you did, with that day's finished todos and notes
-js/app.js       state, text write-back, import/export
+js/app.js       state, text write-back, exports
 scripts/        serve.sh and the systemd autostart install/uninstall
 test/run.sh     parser suite (node) + server suite (python) + browser suites
                 (headless chrome); every test/*.test.html is picked up automatically

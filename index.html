@@ -71,7 +71,7 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
          looks, and how text gets in and out of it. None of it is worth a
          permanent button in a bar you read all day. -->
     <div class="menu actions">
-      <button data-act="menu" class="icon-btn" title="Settings, import and export" aria-haspopup="true" aria-expanded="false">
+      <button data-act="menu" class="icon-btn" title="Settings and export" aria-haspopup="true" aria-expanded="false">
         <svg class="cog" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
       <div class="menu-pop" id="settings-menu" hidden>
@@ -96,36 +96,29 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
         <div class="menu-label">Reminders · workdays, Mon–Fri</div>
         <div class="remind-row">
           <label><input type="checkbox" data-remind="work"> Log today’s work</label>
-          <input type="time" data-remind-time="work" aria-label="When to remind about the work log">
+          <input type="text" data-remind-time="work" inputmode="numeric" maxlength="5" placeholder="17:30" aria-label="When to remind about the work log, as HH:MM">
         </div>
         <div class="remind-row">
           <label><input type="checkbox" data-remind="notes"> Copy today’s notes</label>
-          <input type="time" data-remind-time="notes" aria-label="When to remind about the notes">
+          <input type="text" data-remind-time="notes" inputmode="numeric" maxlength="5" placeholder="17:45" aria-label="When to remind about the notes, as HH:MM">
         </div>
         <div class="menu-hint" id="remind-hint"></div>
         <div class="menu-sep"></div>
-        <div class="menu-label">Document</div>
-        <button data-act="import"><b>Import a file…</b><span>.md, .txt, .json or .csv</span></button>
-        <button data-act="copy"><b>Copy to clipboard</b><span>the raw text</span></button>
-        <div class="menu-sep"></div>
-        <div class="menu-label">Everything</div>
-        <button data-act="export-all"><b>Export everything</b><span>one file: todos, log, notes, work log, settings</span></button>
-        <div class="menu-hint">To restore, give that file to <b>Import a file…</b></div>
-        <div class="menu-sep"></div>
         <div class="menu-label">Export</div>
-        <button data-act="export-md"><b>Markdown</b><span>the text, exactly as written</span></button>
-        <button data-act="export-json"><b>JSON</b><span>resolved todos + discovered vocabulary</span></button>
-        <button data-act="export-csv"><b>CSV</b><span>the table, one column per namespace</span></button>
-        <div class="menu-sep"></div>
-        <div class="menu-label">Activity log</div>
-        <button data-act="log-md"><b>Log as Markdown</b><span>grouped by day</span></button>
-        <button data-act="log-csv"><b>Log as CSV</b><span>one row per completion</span></button>
-        <div class="menu-sep"></div>
-        <div class="menu-label">Notes</div>
-        <button data-act="notes-md"><b>Notes as Markdown</b><span>every day, newest first</span></button>
-        <div class="menu-sep"></div>
-        <div class="menu-label">Work log</div>
-        <button data-act="work-md"><b>The month as Markdown</b><span>the month on screen, day by day, with what was finished</span></button>
+        <div class="ex-row"><span>Everything</span>
+          <button data-act="export-all" title="Every stored item in one file: todos, log, notes, work log, settings">json</button>
+          <button data-act="restore" title="Write a file made by Export everything back in">restore…</button></div>
+        <div class="ex-row"><span>Todo text</span>
+          <button data-act="export-md" title="The text, exactly as written">md</button>
+          <button data-act="export-json" title="Resolved todos and the discovered vocabulary">json</button>
+          <button data-act="export-csv" title="The table, one column per namespace">csv</button></div>
+        <div class="ex-row"><span>Activity log</span>
+          <button data-act="log-md" title="Grouped by day">md</button>
+          <button data-act="log-csv" title="One row per completion">csv</button></div>
+        <div class="ex-row"><span>Notes</span>
+          <button data-act="notes-md" title="Every day, newest first">md</button></div>
+        <div class="ex-row"><span>Work log, the month on screen</span>
+          <button data-act="work-md" title="Day by day, with what was finished">md</button></div>
       </div>
     </div>
   </header>
@@ -208,7 +201,6 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
     <div id="pomo-slot"></div>
   </footer>
 
-  <input type="file" id="file" accept=".md,.txt,.markdown,.json,.csv,text/*" hidden>
 </div>
 
 <script src="js/store.js"></script>
