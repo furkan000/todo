@@ -99,7 +99,7 @@
 
   var opts = {}, root = null, ed = null, head = null, side = null, extra = null;
   var today = null, current = null, lastInput = 0, sideTimer = null;
-  var ui = { side: false, notes: false };
+  var ui = { side: false, done: false, notes: false };
 
   function esc(s) { return Views.esc(s); }
 
@@ -123,10 +123,11 @@
     ed.addEventListener('input', onInput);
     ed.addEventListener('keydown', onKeydown);
     root.addEventListener('click', onClick);
-    // the notes' fold is remembered, not reset by every repaint
+    // the folds are remembered, not reset by every repaint or another day
     root.addEventListener('toggle', function (e) {
-      if (e.target.classList && e.target.classList.contains('work-notes')) {
-        ui.notes = e.target.open;
+      var name = e.target.getAttribute && e.target.getAttribute('data-fold');
+      if (name && ui[name] !== e.target.open) {
+        ui[name] = e.target.open;
         saveUI();
       }
     }, true);
@@ -158,16 +159,22 @@
     root.classList.toggle('side-open', ui.side);
   }
 
+  // Both lists fold, start folded, and stay as you left them from one day to
+  // the next: they are there for the end of the month, not for every glance
+  function fold(name, label, count, body, tail) {
+    return '<details class="work-fold work-' + name + '" data-fold="' + name + '"' + (ui[name] ? ' open' : '') + '>' +
+      '<summary>' + label + (count ? ' <b>' + count + '</b>' : '') + (tail || '') + '</summary>' + body + '</details>';
+  }
+
   function paintExtra() {
     var done = finishedOn(entries(), current), text = ed.value, html = '';
-    html += '<section class="work-done"><div class="notes-sub">Finished' +
-      (done.length ? ' <b>' + done.length + '</b>' : '') +
-      (done.some(function (f) { return !logged(text, f); })
-        ? '<button class="link" data-work-add="all" title="Copy every one not yet in the page into it">add all</button>' : '') +
-      '</div>';
-    if (!done.length) html += '<div class="work-none">No todos were finished on this day.</div>';
+    var body = '';
+    if (!done.length) body = '<div class="work-none">No todos were finished on this day.</div>';
     else {
-      html += '<ul>' + done.map(function (f, i) {
+      if (done.some(function (f) { return !logged(text, f); })) {
+        body += '<div class="work-all"><button class="link" data-work-add="all" title="Copy every one not yet in the page into it">add all to the page</button></div>';
+      }
+      body += '<ul>' + done.map(function (f, i) {
         var has = logged(text, f);
         return '<li' + (has ? ' class="in"' : '') + '><span class="work-time">' + esc(f.time) + '</span>' +
           '<span class="work-title">' + (f.parent ? '<span class="muted">' + esc(f.parent) + ' › </span>' : '') + esc(f.title) + '</span>' +
@@ -175,17 +182,15 @@
                : '<button class="work-add" data-work-add="' + i + '" title="Copy into the page">+</button>') + '</li>';
       }).join('') + '</ul>';
     }
-    html += '</section>';
+    html += fold('done', 'Finished', done.length, body);
 
     var notes = Notes.sections(Notes.read(current));
     if (notes.length) {
-      html += '<details class="work-notes"' + (ui.notes ? ' open' : '') + '><summary>Notes <b>' + notes.length + '</b>' +
-        '<button class="link" data-work-notes title="Open this day in Notes">open in Notes</button></summary>' +
-        notes.map(function (s) {
-          var body = s.body.join('\n').replace(/^\n+|\s+$/g, '');
-          return '<div class="work-note"><div class="work-note-h">' + Notes.titleHTML(s, []) + '</div>' +
-            (body ? '<pre>' + esc(body) + '</pre>' : '') + '</div>';
-        }).join('') + '</details>';
+      html += fold('notes', 'Notes', notes.length, notes.map(function (s) {
+        var body = s.body.join('\n').replace(/^\n+|\s+$/g, '');
+        return '<div class="work-note"><div class="work-note-h">' + Notes.titleHTML(s, []) + '</div>' +
+          (body ? '<pre>' + esc(body) + '</pre>' : '') + '</div>';
+      }).join(''), '<button class="link" data-work-notes title="Open this day in Notes">open in Notes</button>');
     }
     extra.innerHTML = html;
   }
@@ -284,6 +289,12 @@
   function onClick(e) {
     var t = e.target.closest ? e.target : null;
     if (!t) return;
+    // the gap between the page and the lists below is still the page
+    if (t.classList.contains('work-col') || t.classList.contains('work-main')) {
+      ed.focus();
+      ed.setSelectionRange(ed.value.length, ed.value.length);
+      return;
+    }
     var el;
     if ((el = t.closest('[data-work-side]'))) { ui.side = !ui.side; saveUI(); return paintHead(); }
     if ((el = t.closest('[data-work-step]'))) return open(Notes.shiftDay(current, +el.getAttribute('data-work-step')));
@@ -341,6 +352,7 @@
     try {
       var saved = JSON.parse(Store.getItem(UI) || '{}');
       ui.side = !!saved.side;
+      ui.done = !!saved.done;
       ui.notes = !!saved.notes;
     } catch (e) {}
     Store.keys(PREFIX).forEach(function (k) { Store.guard(k); });

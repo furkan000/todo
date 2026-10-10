@@ -45,6 +45,8 @@ document.getElementById('f').addEventListener('load',function(){
   type('- [ ] Send the invoice\n');
   type('- [x] Send the invoice\n');
   ok('the page is still the same element after renders', d.querySelector('.stage .work-ed')===wed);
+  var fd=d.querySelector('.work-fold.work-done');
+  ok('Finished starts folded', !!fd && !fd.open);
   var row=d.querySelector('.work-done li');
   ok('a todo finished today is listed', !!row && /Send the invoice/.test(row.textContent), row&&row.textContent);
   click(row.querySelector('[data-work-add]'));
@@ -65,7 +67,11 @@ document.getElementById('f').addEventListener('load',function(){
   /* ---- past days ---- */
   click(d.querySelector('[data-view="work"]'));
   click(d.querySelector('[data-work-step="-1"]'));
+  fd=d.querySelector('.work-fold.work-done');
+  fd.open=true; fd.dispatchEvent(new w.Event('toggle'));
+  ok('opening Finished is remembered', JSON.parse(w.localStorage.getItem('ptt.work.v1')).done===true);
   ok('‹ steps to the day before, blank', W.day()===N.shiftDay(W.today(),-1) && wed.value==='', W.day());
+  ok('Finished stays open on another day', d.querySelector('.work-fold.work-done').open);
   ok('which has nothing finished', /No todos were finished/.test(d.querySelector('.work-extra').textContent));
   wed.value='- Planning';
   wed.dispatchEvent(new w.Event('input',{bubbles:true}));
@@ -75,6 +81,11 @@ document.getElementById('f').addEventListener('load',function(){
   ok('it lists both days', d.querySelectorAll('.work-day').length===2, d.querySelectorAll('.work-day').length);
   click(d.querySelector('.work-head [data-work-day]'));
   ok('back to today', W.day()===W.today() && /Send the invoice/.test(wed.value));
+  ed.focus(); click(d.querySelector('.work-col'));
+  ok('a click in the gap below the page writes on it', d.activeElement===wed && wed.selectionStart===wed.value.length);
+  ok('and the notes are still open there', d.querySelector('.work-fold.work-notes').open);
+  var pageBottom=d.querySelector('.work-main').getBoundingClientRect().bottom, extraBottom=d.querySelector('.work-extra').getBoundingClientRect().bottom;
+  ok('the lists sit at the foot of the page', pageBottom-extraBottom<40, [pageBottom,extraBottom]);
 
   /* ---- export ---- */
   var ex=W.exportMonth();
