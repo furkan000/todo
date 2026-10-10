@@ -233,7 +233,7 @@
   /* ---------- the panel ---------- */
 
   var opts = {}, root = null, ed = null, side = null, head = null;
-  var today = null, current = null, query = '', lastInput = 0, sideTimer = null;
+  var today = null, current = null, lastInput = 0, sideTimer = null;
   // the list of days is out of the way until asked for, and remembered
   var UI = 'ptt.notes.v1', sideOpen = false;
   var adding = false;                   // the + has been pressed: a date is being picked
@@ -315,8 +315,7 @@
         ' aria-pressed="' + sideOpen + '" title="' + (sideOpen ? 'Hide' : 'Show') + ' the days and topics">' +
         '<svg viewBox="0 0 16 16"><rect x="1" y="2.5" width="14" height="11" rx="1.5"/><path d="M10 2.5v11"/><path class="fill" d="M10.4 3.2h4v9.6h-4z"/></svg>' +
       '</button>';
-    // a search is shown where its results are, whether or not the list is open
-    root.classList.toggle('side-open', sideOpen || !!query.trim());
+    root.classList.toggle('side-open', sideOpen);
   }
 
   function setSide(open) {
@@ -333,41 +332,24 @@
       notes.push({ day: d, text: '' });
     });
     notes.sort(function (a, b) { return a.day < b.day ? 1 : -1; });
-    var idx = vocab(notes), q = query.trim().toLowerCase(), html = '';
-
-    if (q) {
-      var hits = search(notes, q, idx), lastDay = null;
-      html += '<div class="notes-sub">' + hits.length + ' conversation' + (hits.length === 1 ? '' : 's') + '</div>';
-      if (!hits.length) html += '<div class="notes-none">Nothing in the notes matches “' + esc(query.trim()) + '”.</div>';
-      hits.forEach(function (h) {
-        if (h.day !== lastDay) {
-          html += '<div class="notes-day-h" data-note-day="' + h.day + '">' + esc(shortLabel(h.day, today)) + '</div>';
-          lastDay = h.day;
-        }
-        var line = h.line !== h.section.line ? h.text
-          : h.section.body.filter(function (l) { return l.trim(); })[0] || '';
-        html += '<button class="notes-hit' + (h.day === current ? ' here' : '') + '" data-note-day="' + h.day +
-          '" data-note-line="' + h.line + '"><b>' + sectionTitle(h.section, q) + '</b>' +
-          (line.trim() ? '<span>' + snippet(line.trim(), q, 140) + '</span>' : '') + '</button>';
-      });
-    } else {
-      var tags = topics(notes, idx).slice(0, TOPICS_MAX);
-      if (tags.length) {
-        html += '<div class="notes-sub">Topics</div><div class="notes-topics">' + tags.map(chip).join('') + '</div>';
-      }
-      html += '<div class="notes-sub notes-days-h">Days' +
-        '<button class="notes-add" data-note-add title="Write on a past day">+</button></div>' +
-        (adding ? '<div class="notes-pick"><input type="date" max="' + today + '" aria-label="Which day"></div>' : '');
-      notes.forEach(function (n) {
-        html += '<div class="notes-day' + (n.day === current ? ' here' : '') + '">' +
-          '<button class="notes-day-h" data-note-day="' + n.day + '">' + esc(shortLabel(n.day, today)) + '</button>';
-        sections(n.text).forEach(function (s) {
-          html += '<button class="notes-sec" data-note-day="' + n.day + '" data-note-line="' + s.line + '">' +
-            sectionTitle(s, '') + '</button>';
-        });
-        html += '</div>';
-      });
+    // searching is Spotlight's job; the list is only ever the days
+    var idx = vocab(notes), html = '';
+    var tags = topics(notes, idx).slice(0, TOPICS_MAX);
+    if (tags.length) {
+      html += '<div class="notes-sub">Topics</div><div class="notes-topics">' + tags.map(chip).join('') + '</div>';
     }
+    html += '<div class="notes-sub notes-days-h">Days' +
+      '<button class="notes-add" data-note-add title="Write on a past day">+</button></div>' +
+      (adding ? '<div class="notes-pick"><input type="date" max="' + today + '" aria-label="Which day"></div>' : '');
+    notes.forEach(function (n) {
+      html += '<div class="notes-day' + (n.day === current ? ' here' : '') + '">' +
+        '<button class="notes-day-h" data-note-day="' + n.day + '">' + esc(shortLabel(n.day, today)) + '</button>';
+      sections(n.text).forEach(function (s) {
+        html += '<button class="notes-sec" data-note-day="' + n.day + '" data-note-line="' + s.line + '">' +
+          sectionTitle(s, '') + '</button>';
+      });
+      html += '</div>';
+    });
     side.innerHTML = html;
   }
 
@@ -536,13 +518,12 @@
 
   // Put the panel on the stage, where render() would otherwise have written
   // markup. It is the same element every time.
-  function mount(stage, ctx) {
+  function mount(stage) {
     if (!root) return;
     if (root.parentNode !== stage) {
       stage.innerHTML = '';
       stage.appendChild(root);
     }
-    query = (ctx && ctx.query) || '';
     paintHead();
     paintSide();
   }

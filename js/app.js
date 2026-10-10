@@ -209,7 +209,7 @@
       : Views.discovery(doc, ctx);
     els.stage.className = 'stage view-' + state.view;
     // the notes keep their own panel, so a note being typed is never redrawn
-    if (state.view === 'notes') Notes.mount(els.stage, { query: state.query });
+    if (state.view === 'notes') Notes.mount(els.stage);
     else els.stage.innerHTML = html;
     if (state.view === 'focus') Pomodoro.step();   // fill the fresh markup now, not in 250ms
     Highlight.paint(doc);
@@ -459,6 +459,8 @@
       state.month = d === 0 ? new Date() : new Date(state.month.getFullYear(), state.month.getMonth() + d, 1);
       return render();
     }
+    // in Notes a tag is looked up across the notes, not in the todo search
+    if (el.dataset.q && inNotes()) return Spotlight.open(el.dataset.q);
     if (el.dataset.q) {
       var q = el.dataset.q;
       state.query = (state.query.trim().toLowerCase() === q.toLowerCase()) ? '' : q; // click again to clear
@@ -470,7 +472,7 @@
   }
 
   function action(name) {
-    if (name === 'search') { els.search.focus(); return els.search.select(); }
+    if (name === 'search') return search();
     if (name === 'spotlight') return Spotlight.open();
     if (name === 'sidebar') return setLayout(state.layout === 'view' ? 'split' : 'view');
     if (name === 'menu') return toggleMenu();
@@ -602,12 +604,21 @@
     var map = { '2': 'doc', '3': 'table', '4': 'cal', '5': 'tags', '6': 'log', '7': 'focus', '8': 'music', '9': 'notes' };
     if (e.key === '1') { e.preventDefault(); setLayout('text'); }
     else if (map[e.key]) { e.preventDefault(); showView(map[e.key]); }
-    else if (e.key === 'k') { e.preventDefault(); els.search.focus(); els.search.select(); }
+    else if (e.key === 'k') { e.preventDefault(); search(); }
     else if (e.key === ';') { e.preventDefault(); Pomodoro.act('toggle'); }
     else if (e.key === '\\') {
       e.preventDefault();
       setLayout(state.layout === 'view' ? 'split' : 'view');
     }
+  }
+
+  // Notes on screen: searching means the notes, and the todo search stays out
+  function inNotes() { return state.view === 'notes' && state.layout !== 'text'; }
+
+  function search() {
+    if (inNotes()) return Spotlight.open();
+    els.search.focus();
+    els.search.select();
   }
 
   // Asking for a view while in text-only means you want to see it — go back to

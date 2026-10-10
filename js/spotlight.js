@@ -1,6 +1,6 @@
 /* Spotlight — full-text search over every note, from anywhere.
 
-   Ctrl+Shift+F (or the magnifier beside the date in Notes) puts one field in
+   Ctrl+Shift+F (Ctrl+K while in Notes, or the magnifier beside the date) puts one field in
    the middle of the screen. Every word typed narrows it: a conversation is
    listed when it holds all of them, in any order, as text or as a tag, best
    matches first. Arrows move, Enter opens the conversation on the line that
@@ -120,8 +120,10 @@
     if (opts.open) opts.open(h.day, h.line);
   }
 
-  function open() {
+  // `q` starts it with that search in the box, as a tag clicked in Notes does
+  function open(q) {
     if (!box) build();
+    if (typeof q === 'string') input.value = q;
     back = document.activeElement;
     box.hidden = false;
     sel = 0;

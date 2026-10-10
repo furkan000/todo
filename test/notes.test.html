@@ -90,15 +90,22 @@ document.getElementById('f').addEventListener('load',function(){
   ned.dispatchEvent(new w.KeyboardEvent('keydown',{key:' ',bubbles:true,cancelable:true}));
   ok('## and a space write the time', /\n## \d{2}:\d{2} $/.test(ned.value), ned.value);
 
-  /* ---- search ---- */
+  /* ---- searching from Notes is searching the notes ---- */
   w.PTT.state.query='csv';
   click(d.querySelector('[data-view="notes"]'));
-  var hit=d.querySelector('.notes-hit');
-  ok('a search lists the conversations', !!hit && /Call with Vega/.test(hit.textContent), hit&&hit.textContent);
-  ok('a search shows its results even when the list is folded', d.querySelector('.notes').classList.contains('side-open'));
+  ok('the todo search leaves the notes alone', !d.querySelector('.notes-hit') && !!d.querySelector('.notes-day'));
   w.PTT.state.query='';
-  click(d.querySelector('[data-view="notes"]'));
-  ok('without one the side lists days and topics', !!d.querySelector('.notes-day') && !!d.querySelector('.notes-topics [data-q="#client:vega"]'));
+  ned.dispatchEvent(new w.KeyboardEvent('keydown',{key:'k',ctrlKey:true,bubbles:true,cancelable:true}));
+  ok('Ctrl+K in Notes opens Spotlight', w.Spotlight.isOpen() && d.activeElement===w.Spotlight.input() && d.activeElement!==d.getElementById('search'));
+  w.Spotlight.close(true);
+  click(d.querySelector('[data-act="search"]'));
+  ok('so does the magnifier in the bar', w.Spotlight.isOpen());
+  w.Spotlight.close(true);
+  ok('the side lists days and topics', !!d.querySelector('.notes-day') && !!d.querySelector('.notes-topics [data-q="#client:vega"]'));
+  click(d.querySelector('.notes-topics [data-q="#client:vega"]'));
+  ok('a topic looks itself up in Spotlight', w.Spotlight.isOpen() && w.Spotlight.input().value==='#client:vega' && w.PTT.state.query==='', w.Spotlight.input().value);
+  w.Spotlight.close(true);
+  w.Spotlight.input().value='';   // it keeps the last search, by design
 
   /* ---- export ---- */
   var md=N.toMarkdown(N.all());
@@ -118,6 +125,9 @@ document.getElementById('f').addEventListener('load',function(){
   if(!N.sideOpen()) click(d.querySelector('[data-note-side]'));
   click(d.querySelector('[data-note-add]'));
   var pick=d.querySelector('.notes-pick input');
+  w.document.documentElement.dataset.theme='dark';
+  ok('the date picker follows the dark theme', w.getComputedStyle(pick).colorScheme==='dark', w.getComputedStyle(pick).colorScheme);
+  w.PTT.applyTheme();
   ok('the + asks for a date', !!pick && pick.max===N.today(), pick&&pick.max);
   pick.value='2026-09-15';
   pick.dispatchEvent(new w.Event('change',{bubbles:true}));
@@ -131,6 +141,9 @@ document.getElementById('f').addEventListener('load',function(){
 
   /* ---- spotlight ---- */
   click(d.querySelector('[data-view="doc"]'));
+  ed.focus();
+  d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'k',ctrlKey:true,bubbles:true,cancelable:true}));
+  ok('outside Notes Ctrl+K is still the todo search', !w.Spotlight.isOpen() && d.activeElement===d.getElementById('search'));
   ed.focus();
   d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'F',ctrlKey:true,shiftKey:true,bubbles:true,cancelable:true}));
   var spot=d.querySelector('.spot'), sq=spot&&spot.querySelector('input');

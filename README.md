@@ -510,16 +510,15 @@ from the arrangement the other tabs use.
 The list of days, with their conversations and the topics you have used, is on
 the right, folded away until you open it with the button beside the date. It
 remembers whether it was open. Clicking a day or a conversation opens it, and
-past days can be edited. **Search** (`Ctrl+K`, or click a tag) lists matching
-*conversations* across every day, so a topic can be followed through the weeks,
-and the list opens by itself while a search is in it.
+past days can be edited. Clicking a topic looks it up in Spotlight.
 
-**Spotlight** (`Ctrl+Shift+F` from any tab, or the magnifier beside the date)
+**Spotlight** (`Ctrl+K` or the magnifier while in Notes, `Ctrl+Shift+F` from any
+tab)
 is a full-text search over every note. Each word you type narrows it: a
 conversation is listed when it holds all of them, in any order, as text or as a
 tag, best matches first. `↑`/`↓` move, `Enter` opens the conversation on the
 line that matched, `Esc` closes. With nothing typed it lists the latest
-conversations.
+conversations. In Notes the regular todo search is left out entirely.
 
 The **+** beside *Days* in the list opens any past day, so you can write up a
 call afterwards. The day is kept once you write something in it.
@@ -575,7 +574,7 @@ tagged plain text.
 | --- | --- |
 | `Ctrl+1` | Text |
 | `Ctrl+2..9` | Doc / Table / Calendar / Tags / Log / Focus / Music / Notes |
-| `Ctrl+K` | search / filter by tag |
+| `Ctrl+K` | search / filter by tag — in Notes, search the notes |
 | `Ctrl+Shift+F` | search all notes |
 | `Ctrl+F` | find & replace in the text |
 | `Ctrl+\` | open/close the editor |
