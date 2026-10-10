@@ -1011,7 +1011,7 @@
     toggleText: toggleText, toggleSidebar: toggleSidebar
   };
 
-  function boot() { Store.ready(init, unreachable); }
+  function boot() { PWA.init(); Store.ready(init, unreachable); }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();

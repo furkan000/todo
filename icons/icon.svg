@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- full-bleed, with everything inside the middle 70%, so a launcher may
+       crop it to any shape (maskable) without cutting into the drawing -->
+  <rect width="512" height="512" fill="#22211e"/>
+  <g fill="none" stroke="#f3f1ec" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="150" y="160" width="56" height="56" rx="10"/>
+    <path d="M162 189l14 14 26-30" stroke="#7aa2f7"/>
+    <path d="M240 188h122"/>
+    <rect x="150" y="296" width="56" height="56" rx="10"/>
+    <path d="M240 324h90" opacity=".75"/>
+  </g>
+</svg>

@@ -108,6 +108,22 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(sorted(os.listdir(self.tmp.name)), sorted(
             d for d in os.listdir(self.tmp.name) if server.valid_name(d)))
 
+    def test_it_is_installable(self):
+        r, data = self.req('GET', '/manifest.webmanifest?u=Furkan')
+        self.assertEqual(r.status, 200)
+        self.assertIn('manifest+json', r.getheader('Content-Type'))
+        m = json.loads(data)
+        self.assertEqual((m['start_url'], m['id'], m['scope']), ('/furkan', '/furkan', '/'),
+                         'an installed app opens on its own record')
+        self.assertEqual(m['display'], 'standalone')
+        self.assertEqual(json.loads(self.req('GET', '/manifest.webmanifest?u=../x')[1])['start_url'], '/')
+        r, data = self.req('GET', '/sw.js')
+        self.assertEqual(r.status, 200)
+        self.assertIn('javascript', r.getheader('Content-Type'))
+        for icon in ('icon-192.png', 'icon-512.png', 'icon-180.png', 'icon.svg'):
+            self.assertEqual(self.req('GET', '/icons/' + icon)[0].status, 200, icon)
+        self.assertEqual(self.req('GET', '/icons')[0].status, 404, 'icons is not a name')
+
     def test_a_name_cannot_grow_keys_without_end(self):
         for i in range(server.MAX_KEYS):
             self.assertEqual(self.req('PUT', '/api/many/ptt.k%d' % i, b'x')[0].status, 200)

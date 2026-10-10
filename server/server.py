@@ -48,8 +48,9 @@ APP_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NAME_RE = re.compile(r'^[a-z0-9][a-z0-9_-]{0,39}$')
 KEY_RE = re.compile(r'^ptt\.[a-z0-9]+(\.[a-z0-9]+)*$')
 # a name is also a path on this server, so it may not be one the app needs
-RESERVED = {'api', 'css', 'js', 'test', 'scripts', 'server', 'data', 'temp', 'index', 'favicon'}
-STATIC_DIRS = ('css', 'js')          # everything else in the repo stays private
+RESERVED = {'api', 'css', 'js', 'icons', 'test', 'scripts', 'server', 'data', 'temp', 'index', 'favicon'}
+STATIC_DIRS = ('css', 'js', 'icons')  # everything else in the repo stays private
+STATIC_FILES = ('sw.js',)            # the service worker must sit at the root to cover every name
 MAX_BODY = 5 * 1024 * 1024
 MAX_KEYS = 32
 # a day's page (notes, work log) is a key of its own, so they get their own,
@@ -290,9 +291,35 @@ class Handler(BaseHTTPRequestHandler):
             return self._static('index.html')
         if parts[0] in STATIC_DIRS and '..' not in parts:
             return self._static(os.path.join(*parts))
+        if len(parts) == 1 and parts[0] in STATIC_FILES:
+            return self._static(parts[0])
+        if parts == ['manifest.webmanifest']:
+            return self._manifest()
         self._error(404, 'not found')
 
     do_HEAD = do_GET
+
+    def _manifest(self):
+        """What an installed app is: per name, so it opens on that record."""
+        q = urlsplit(self.path).query
+        name = dict(p.split('=', 1) for p in q.split('&') if '=' in p).get('u', '').lower()
+        if not valid_name(name):
+            name = ''
+        start = '/' + name
+        body = {
+            'name': 'Plain Text Todo' + (' — ' + name if name else ''),
+            'short_name': 'Todo',
+            'id': start, 'start_url': start, 'scope': '/',
+            'display': 'standalone',
+            'background_color': '#f3f1ec', 'theme_color': '#f3f1ec',
+            'icons': [
+                {'src': '/icons/icon-192.png', 'sizes': '192x192', 'type': 'image/png'},
+                {'src': '/icons/icon-512.png', 'sizes': '512x512', 'type': 'image/png'},
+                {'src': '/icons/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'maskable'},
+                {'src': '/icons/icon.svg', 'sizes': 'any', 'type': 'image/svg+xml'},
+            ],
+        }
+        self._send(200, json.dumps(body).encode('utf-8'), 'application/manifest+json; charset=utf-8')
 
     def _api_get(self, parts):
         if not parts or not valid_name(parts[0]):

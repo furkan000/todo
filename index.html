@@ -11,6 +11,18 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
       document.documentElement.dataset.theme = t !== 'auto' ? t
         : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); } catch (e) {}</script>
 <link rel="stylesheet" href="css/app.css">
+<!-- installable: the manifest names the record in the address, so the
+     installed app opens on it -->
+<script>if (/^http/.test(location.protocol)) {
+  var mu = /^\/([A-Za-z0-9][\w-]*)$/.exec(location.pathname), ml = document.createElement('link');
+  ml.rel = 'manifest'; ml.href = '/manifest.webmanifest' + (mu ? '?u=' + mu[1].toLowerCase() : '');
+  document.head.appendChild(ml);
+}</script>
+<meta name="theme-color" content="#f3f1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#131311" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
 </head>
 <body>
@@ -245,6 +257,7 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
 <script src="js/navbar.js"></script>
 <script src="js/reminders.js"></script>
 <script src="js/backup.js"></script>
+<script src="js/pwa.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

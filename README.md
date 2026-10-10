@@ -23,6 +23,32 @@ HOST=0.0.0.0 scripts/serve.sh         # reachable from your phone on the same ne
 DATA_DIR=/srv/todo scripts/serve.sh   # where the data is kept (default: data/)
 ```
 
+## Installing it as an app
+
+It is a progressive web app: Chrome, Edge and Android offer **Install**
+(Safari on iOS: Share → *Add to Home Screen*), and it then opens in its own
+window, on your own record (`/furkan`), with its own icon.
+
+Browsers only allow that over **https**, or on `localhost` itself. Plain
+`http://furkan-pc:3111` over a VPN does not qualify. With Tailscale, give the
+app an https address that only your tailnet can reach:
+
+1. Once, in the Tailscale admin console under **DNS**, turn on **HTTPS
+   Certificates** (MagicDNS must be on too).
+2. On the PC: `tailscale serve --bg 3111`. It survives reboots. Undo it
+   with `tailscale serve --https=443 off`.
+3. Open `https://furkan-pc.<your-tailnet>.ts.net/furkan` and install it from
+   there.
+
+This is `serve`, not `funnel`: nothing becomes reachable from the internet.
+
+The service worker always loads the newest app from the server, and keeps a
+copy only to fall back on. Without the server the installed app still opens and
+says the server cannot be reached. Your data is never cached by it; it stays on
+the server. The browser keeps a separate record per address, so
+`http://furkan-pc:3111` and the https address each keep their own theme hint
+and local settings, but a name's data is the same from both.
+
 ## Storage on the server
 
 Put a name after the address and that name's data lives on the server instead
@@ -713,6 +739,7 @@ js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/notes.js     a page of notes per day: conversations, tags, search
 js/spotlight.js the full-text search box over every note
+js/pwa.js       registers the service worker (sw.js) where the browser allows one
 js/backup.js    everything as one file, and restoring from it
 js/reminders.js the two daily reminders: a notification and a red marker that stays
 js/tabdrag.js   hold a tab and move it: your own tab order
