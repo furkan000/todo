@@ -5,8 +5,9 @@
 
    1. the All / Now / Open / Done filter folds into one button showing the one
       in force, with the four behind it;
-   2. tabs fold into More from the right end: Log, Tags, Music, Focus,
-      Calendar, Work. Text, Doc, Table and Notes always stay;
+   2. tabs fold into More from the right end, in whatever order they are in
+      (they can be dragged): by default Log, Tags, Music, Focus, Calendar,
+      Work. Text and the first three tabs after it always stay;
    3. on a phone-narrow window, the search icon goes (Ctrl+K still opens
       Spotlight in Notes), and then the filter moves into More, below the tabs.
       The settings cog is never pushed off.
@@ -20,7 +21,7 @@
 (function (global) {
   'use strict';
 
-  var FOLD = ['log', 'tags', 'music', 'focus', 'cal', 'work'];   // first to go first
+  var KEEP = 3;   // views that never fold: the first ones after Text
   var FILTERED = { doc: 1, table: 1, cal: 1 };
 
   var bar = null, filter = null, more = null, chip = null, search = null;
@@ -28,17 +29,25 @@
   var view = null, layout = null;
 
   function tab(v) { return bar.querySelector('.tabs > [data-view="' + v + '"]'); }
+
+  // What folds, first to go first: the bar's own order, from the right end
+  function foldOrder() {
+    return Array.prototype.map.call(bar.querySelectorAll('.tabs > [data-view]'), function (t) {
+      return t.dataset.view;
+    }).slice(KEEP).reverse();
+  }
   function overflowing() { return bar.scrollWidth > bar.clientWidth + 1; }
 
   function folded() {
-    return FOLD.filter(function (v) { var t = tab(v); return t && t.hidden; });
+    return foldOrder().filter(function (v) { var t = tab(v); return t && t.hidden; });
   }
 
   // Put everything back, then give way one step at a time until it fits
   function fit() {
     if (!bar) return;
     close();
-    FOLD.forEach(function (v) { var t = tab(v); if (t) t.hidden = false; });
+    var FOLD = foldOrder();
+    Array.prototype.forEach.call(bar.querySelectorAll('.tabs > [data-view]'), function (t) { t.hidden = false; });
     more.hidden = true;
     var showFilter = !!FILTERED[view] && layout !== 'text';
     filter.hidden = !showFilter;
@@ -133,5 +142,5 @@
     else global.addEventListener('resize', fit);
   }
 
-  global.Navbar = { init: init, update: update, fit: fit, folded: folded, FOLD: FOLD };
+  global.Navbar = { init: init, update: update, fit: fit, folded: folded, foldOrder: foldOrder };
 })(typeof window !== 'undefined' ? window : globalThis);

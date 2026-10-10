@@ -23,8 +23,9 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
       <svg viewBox="0 0 16 16"><rect x="1" y="2.5" width="14" height="11" rx="1.5"/><path d="M6 2.5v11"/><path class="fill" d="M1.6 3.2h4v9.6h-4z"/></svg>
     </button>
 
-    <!-- In order of how much they are used. When the window is too narrow,
-         js/navbar.js folds them from the right end into More. -->
+    <!-- In order of how much they are used, until you drag them into your own
+         (hold a tab, then move it). When the window is too narrow, js/navbar.js
+         folds them from the right end into More. -->
     <nav class="tabs" role="tablist">
       <button data-layout="text" class="tab" title="Text — the source itself (Ctrl+1)">Text</button>
       <span class="tab-div" aria-hidden="true"></span>
@@ -96,11 +97,11 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
         <div class="menu-label">Reminders · workdays, Mon–Fri</div>
         <div class="remind-row">
           <label><input type="checkbox" data-remind="work"> Log today’s work</label>
-          <input type="text" data-remind-time="work" inputmode="numeric" maxlength="5" placeholder="17:30" aria-label="When to remind about the work log, as HH:MM">
+          <input type="text" data-remind-time="work" inputmode="numeric" maxlength="5" placeholder="15:00" aria-label="When to remind about the work log, as HH:MM">
         </div>
         <div class="remind-row">
           <label><input type="checkbox" data-remind="notes"> Copy today’s notes</label>
-          <input type="text" data-remind-time="notes" inputmode="numeric" maxlength="5" placeholder="17:45" aria-label="When to remind about the notes, as HH:MM">
+          <input type="text" data-remind-time="notes" inputmode="numeric" maxlength="5" placeholder="15:15" aria-label="When to remind about the notes, as HH:MM">
         </div>
         <div class="menu-hint" id="remind-hint"></div>
         <div class="menu-sep"></div>
@@ -224,6 +225,7 @@ try { var u = /^http/.test(location.protocol) && /^\/([A-Za-z0-9][\w-]*)$/.exec(
 <script src="js/notes.js"></script>
 <script src="js/spotlight.js"></script>
 <script src="js/worklog.js"></script>
+<script src="js/tabdrag.js"></script>
 <script src="js/navbar.js"></script>
 <script src="js/reminders.js"></script>
 <script src="js/backup.js"></script>

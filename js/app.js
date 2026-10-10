@@ -19,6 +19,7 @@
     // out of the way there until you bring it back, and each side remembers
     notesLayout: 'view',     // 'split' | 'view', on the day pages: Notes and Work
     mainLayout: 'split',     // 'split' | 'view', everywhere else
+    tabOrder: null,          // the tabs as you dragged them; null is the order in the page
     theme: 'auto'            // 'auto' | 'light' | 'dark'
   };
   var doc = null, saveTimer = null;
@@ -41,6 +42,12 @@
     Spotlight.init({
       open: function (day, line) { showView('notes'); Notes.open(day, line); }
     });
+    TabDrag.init({
+      tabs: document.querySelector('.tabs'),
+      onchange: function (order) { state.tabOrder = order; savePrefs(); tabTitles(); Navbar.fit(); }
+    });
+    TabDrag.apply(state.tabOrder);
+    tabTitles();
     Navbar.init({ bar: document.querySelector('.topbar') });
     Worklog.init({
       openNotes: function (day) { showView('notes'); Notes.open(day); }
@@ -55,7 +62,7 @@
       // the table used to sort by due date out of the box; one-time, drop that
       // stored choice so the new default — document order — actually shows up
       if (p.sortV !== 2) delete p.sort;
-      ['view', 'filter', 'sort', 'layout', 'theme', 'group', 'split', 'notesLayout', 'mainLayout'].forEach(function (k) { if (p[k] !== undefined) state[k] = p[k]; });
+      ['view', 'filter', 'sort', 'layout', 'theme', 'group', 'split', 'notesLayout', 'mainLayout', 'tabOrder'].forEach(function (k) { if (p[k] !== undefined) state[k] = p[k]; });
       // from before Notes had its own arrangement: what you had was the main one
       if (p.mainLayout === undefined && state.layout !== 'text') state.mainLayout = state.layout;
     } catch (e) {}
@@ -165,7 +172,8 @@
       Store.setItem(PREFS, JSON.stringify({
         view: state.view, filter: state.filter, sort: state.sort,
         layout: state.layout, theme: state.theme, group: state.group,
-        split: state.split, notesLayout: state.notesLayout, mainLayout: state.mainLayout, sortV: 2
+        split: state.split, notesLayout: state.notesLayout, mainLayout: state.mainLayout,
+        tabOrder: state.tabOrder, sortV: 2
       }));
     } catch (e) {}
   }
@@ -606,8 +614,8 @@
       return markNow(v.slice(0, els.editor.selectionStart).split('\n').length - 1);
     }
     if (!(e.metaKey || e.ctrlKey)) return;
-    // the numbers follow the tabs, left to right
-    var map = { '2': 'doc', '3': 'table', '4': 'notes', '5': 'work', '6': 'cal', '7': 'focus', '8': 'music', '9': 'tags', '0': 'log' };
+    // the numbers follow the tabs left to right, in whatever order they are in
+    var map = shortcuts();
     if (e.key === '1') { e.preventDefault(); setLayout('text'); }
     else if (map[e.key]) { e.preventDefault(); showView(map[e.key]); }
     else if (e.key === 'k') { e.preventDefault(); search(); }
@@ -619,6 +627,23 @@
   }
 
   // Notes on screen: searching means the notes, and the todo search stays out
+  // Ctrl+2…9, then 0, for the tabs after Text, left to right
+  var KEYS = ['2', '3', '4', '5', '6', '7', '8', '9', '0'];
+  function shortcuts() {
+    var map = {};
+    TabDrag.views().forEach(function (v, i) { if (KEYS[i]) map[KEYS[i]] = v; });
+    return map;
+  }
+
+  // A tab's tooltip names its shortcut, so it moves with the tab
+  function tabTitles() {
+    TabDrag.views().forEach(function (v, i) {
+      var t = document.querySelector('.tabs > [data-view="' + v + '"]');
+      var base = t.title.replace(/\s*\(Ctrl\+\d\)$/, '');
+      t.title = KEYS[i] ? base + ' (Ctrl+' + KEYS[i] + ')' : base;
+    });
+  }
+
   // The day pages — Notes and Work — keep their own arrangement between them
   function isPage(v) { return v === 'notes' || v === 'work'; }
 

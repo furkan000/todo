@@ -126,6 +126,13 @@ code { font-family: var(--mono); font-size: .92em; }
 .tb-pop button:hover { background: var(--line-2); color: var(--ink); }
 .tb-pop button.on { background: var(--sel); color: var(--sel-ink); font-weight: 600; }
 .tab { white-space: nowrap; }
+/* held long enough, a tab lifts and follows the pointer */
+.tabs > .tab[data-view] { touch-action: none; user-select: none; -webkit-user-select: none; }
+.tabs.reordering, .tabs.reordering .tab { cursor: grabbing; }
+.tab.dragging {
+  background: var(--panel); color: var(--ink); box-shadow: 0 2px 10px rgba(0,0,0,.18);
+  transform: scale(1.06); position: relative; z-index: 1;
+}
 .tab-div { width: 1px; align-self: stretch; background: var(--line); margin: 2px 4px; }
 .tab.on { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); font-weight: 600; }
 

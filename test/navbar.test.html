@@ -48,8 +48,8 @@ f.addEventListener('load',function(){
   /* ---- narrower still: tabs fold from the right ---- */
   width(700);
   var gone=B.folded();
-  ok('tabs fold into More, least used first', gone.length>0 && gone.length<B.FOLD.length && gone[0]==='log' && !more.hidden && fits(), gone);
-  ok('in the fixed order', gone.join()===B.FOLD.slice(0,gone.length).join(), gone);
+  ok('tabs fold into More, least used first', gone.length>0 && gone.length<B.foldOrder().length && gone[0]==='log' && !more.hidden && fits(), gone);
+  ok('in the fixed order', gone.join()===B.foldOrder().slice(0,gone.length).join(), gone);
   ok('the ones that matter stay', ['doc','table','notes'].every(shown));
   click(more.querySelector('[data-tb]'));
   var mp=more.querySelector('.tb-pop');
@@ -60,7 +60,7 @@ f.addEventListener('load',function(){
 
   w.PTT.showView('doc');
   width(400);
-  ok('phone-narrow: only Text, Doc, Table, Notes and More', B.folded().length===B.FOLD.length && ['doc','table','notes'].every(shown), B.folded());
+  ok('phone-narrow: only Text, Doc, Table, Notes and More', B.folded().length===B.foldOrder().length && ['doc','table','notes'].every(shown), B.folded());
   ok('the search icon gives way', d.querySelector('.topbar .search').hidden);
   ok('and the filter moves into More', chip.hidden && more.querySelectorAll('.tb-pop [data-filter]').length===4);
   var cog=d.querySelector('[data-act="menu"]').getBoundingClientRect();

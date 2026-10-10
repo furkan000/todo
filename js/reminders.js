@@ -23,11 +23,11 @@
   var KEY = 'ptt.remind.v1';
   var KINDS = {
     work: {
-      label: 'Log today’s work', view: 'work', time: '17:30',
+      label: 'Log today’s work', view: 'work', time: '15:00',
       body: 'Write down what you did today, before the day is over.'
     },
     notes: {
-      label: 'Copy today’s notes', view: 'notes', time: '17:45',
+      label: 'Copy today’s notes', view: 'notes', time: '15:15',
       body: 'Today’s notes are waiting to be copied where they need to go.'
     }
   };

@@ -261,12 +261,15 @@ Click any tag to filter; click it again to clear.
 
 ## Layout and theme
 
-The tabs are in order of how much they are used: Text, Doc, Table, Notes, Work,
-Calendar, Focus, Music, Tags, Log, and `Ctrl+1…0` follow that order. The
+The tabs start in order of how much they are used: Text, Doc, Table, Notes,
+Work, Calendar, Focus, Music, Tags, Log. **Drag them into your own order:**
+press a tab, hold it a moment until it lifts, and move it. A quick click still
+just opens it, and `Esc` mid-drag puts it back. Text stays first. The order is
+kept with your settings, and `Ctrl+1…0` and the tooltips follow it. The
 All / Now / Open / Done filter only appears where it filters (Doc, Table,
 Calendar). When the window is too narrow for the bar, things give way in a
 fixed order: the filter folds into one button, then tabs fold into **More**
-from the right end (Log first, Work last), while Text, Doc, Table and Notes
+from the right end of your order, while Text and the first three tabs after it
 always stay. On a phone the search icon goes and the filter moves into More
 too. The settings cog always stays.
 
@@ -566,7 +569,7 @@ copy in.
 ## Reminders
 
 The cog menu has two reminders, each with its own switch and time:
-**Log today's work** (default 17:30) and **Copy today's notes** (17:45). Times
+**Log today's work** (default 15:00) and **Copy today's notes** (15:15). Times
 are typed on the 24-hour clock: `17:30`, `1730` and `17.30` all work. On a
 workday (Monday to Friday) at its time, a reminder does two things:
 
@@ -642,7 +645,7 @@ import.
 | | |
 | --- | --- |
 | `Ctrl+1` | Text |
-| `Ctrl+2..9`, `Ctrl+0` | the tabs left to right: Doc / Table / Notes / Work / Calendar / Focus / Music / Tags / Log |
+| `Ctrl+2..9`, `Ctrl+0` | the tabs left to right, in your order (by default Doc / Table / Notes / Work / Calendar / Focus / Music / Tags / Log) |
 | `Ctrl+K` | search / filter by tag — in Notes, search the notes |
 | `Ctrl+Shift+F` | search all notes |
 | `Ctrl+F` | find & replace in the text |
@@ -683,6 +686,7 @@ js/notes.js     a page of notes per day: conversations, tags, search
 js/spotlight.js the full-text search box over every note
 js/backup.js    everything as one file, and restoring from it
 js/reminders.js the two daily reminders: a notification and a red marker that stays
+js/tabdrag.js   hold a tab and move it: your own tab order
 js/navbar.js    fits the toolbar to the window: folds the filter, then tabs into More
 js/worklog.js   a page per day of what you did, with that day's finished todos and notes
 js/app.js       state, text write-back, exports

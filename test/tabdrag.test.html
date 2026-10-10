@@ -1,0 +1,60 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:500px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+function report(){document.getElementById('out').textContent=log.join('\n')+'\n'+(log.length-fails)+' passed, '+fails+' failed';}
+var f=document.getElementById('f');
+f.addEventListener('load',function(){
+ var w=f.contentWindow,d=f.contentDocument,D=w.TabDrag;
+ function tab(v){return d.querySelector('.tabs > [data-view="'+v+'"]');}
+ function mid(v){var r=tab(v).getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};}
+ function left(v){return tab(v).getBoundingClientRect().left+2;}
+ function pe(el,type,x,y){el.dispatchEvent(new w.PointerEvent(type,{bubbles:true,cancelable:true,clientX:x,clientY:y,pointerId:1,button:0,isPrimary:true}));}
+ function order(){return D.views().join(' ');}
+ var DEFAULT='doc table notes work cal focus music tags log';
+ var steps=[];
+ function next(fn,ms){steps.push([fn,ms||0]);}
+ function run(){var s=steps.shift();if(!s)return report();setTimeout(function(){try{s[0]();}catch(e){ok('no exception',false,e.stack);}run();},s[1]);}
+ w.PTT.showView('doc');
+ ok('starts in the order of the page', order()===DEFAULT, order());
+
+ /* ---- a quick press is a click ---- */
+ next(function(){ var m=mid('table'); pe(tab('table'),'pointerdown',m.x,m.y); pe(d,'pointerup',m.x,m.y); tab('table').click();
+   ok('a quick press opens the tab', w.PTT.state.view==='table' && order()===DEFAULT); });
+ /* ---- wandering off before the hold is nothing ---- */
+ next(function(){ var m=mid('notes'); pe(tab('notes'),'pointerdown',m.x,m.y); pe(d,'pointermove',m.x+40,m.y); });
+ next(function(){ ok('moving before the hold does not lift it', !D.dragging() && order()===DEFAULT); pe(d,'pointerup',0,0); }, D.HOLD_MS+80);
+ /* ---- hold, move, let go ---- */
+ next(function(){ var m=mid('notes'); pe(tab('notes'),'pointerdown',m.x,m.y); });
+ next(function(){ ok('held, it lifts', D.dragging() && tab('notes').classList.contains('dragging'));
+   pe(d,'pointermove',left('doc'),mid('doc').y);
+   ok('the others make room as it passes', order()==='notes doc table work cal focus music tags log', order());
+   pe(d,'pointerup',left('doc'),0); tab('notes').click(); }, D.HOLD_MS+80);
+ next(function(){
+   ok('letting go puts it there', !D.dragging() && order()==='notes doc table work cal focus music tags log', order());
+   ok('and is not taken as a click on it', w.PTT.state.view==='table', w.PTT.state.view);
+   var p=JSON.parse(w.localStorage.getItem('ptt.prefs.v1'));
+   ok('the order is kept with the settings', p.tabOrder && p.tabOrder.join(' ')===order(), p.tabOrder);
+   ok('the shortcuts follow it', /Ctrl\+2\)$/.test(tab('notes').title) && /Ctrl\+3\)$/.test(tab('doc').title), [tab('notes').title,tab('doc').title]);
+   d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'2',ctrlKey:true,bubbles:true,cancelable:true}));
+   ok('Ctrl+2 is now Notes', w.PTT.state.view==='notes');
+   ok('folding goes by it too', w.Navbar.foldOrder()[0]==='log' && w.Navbar.foldOrder().indexOf('notes')===-1 && w.Navbar.foldOrder().indexOf('table')===-1, w.Navbar.foldOrder());
+ });
+ /* ---- Esc puts it back ---- */
+ next(function(){ var m=mid('log'); pe(tab('log'),'pointerdown',m.x,m.y); });
+ next(function(){ pe(d,'pointermove',left('notes'),0);
+   ok('mid-drag it has moved', D.views()[0]==='log');
+   d.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+   ok('Esc puts it back', !D.dragging() && order()==='notes doc table work cal focus music tags log', order());
+   pe(d,'pointerup',0,0); }, D.HOLD_MS+80);
+ /* ---- applying a kept order, and a tab it does not know ---- */
+ next(function(){
+   D.apply(['log','doc']);
+   ok('a kept order is applied, the rest keep their place after it', order()==='log doc notes table work cal focus music tags', order());
+   D.apply(DEFAULT.split(' '));
+   w.PTT.state.tabOrder=null; w.PTT.showView('doc');
+   w.localStorage.removeItem('ptt.prefs.v1');
+ });
+ run();
+});
+</script>
