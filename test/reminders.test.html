@@ -1,0 +1,72 @@
+<!doctype html><meta charset="utf-8"><body><iframe id="f" src="../index.html" style="width:1400px;height:700px"></iframe><pre id="out">running</pre>
+<script>
+var log=[],fails=0;
+function ok(n,c,x){if(!c)fails++;log.push((c?'PASS ':'FAIL ')+n+(c?'':'  << '+JSON.stringify(x)));}
+document.getElementById('f').addEventListener('load',function(){
+ var w=this.contentWindow,d=this.contentDocument;
+ try{
+  var R=w.Reminders,N=w.Notes,W=w.Worklog;
+  function click(el){el.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));}
+  function wipe(){['ptt.remind.v1','ptt.work.20261007','ptt.note.20261007'].forEach(function(k){w.localStorage.removeItem(k);});}
+  wipe(); R.reload();
+
+  /* ---- when one is due ---- */
+  function cfg(o){var c={work:{on:true,time:'17:30'},notes:{on:true,time:'17:45'},fired:{},pending:{}};for(var k in o)c[k]=o[k];return c;}
+  var yes=function(){return true;}, no=function(){return false;};
+  var wed=function(h,m){return new Date(2026,9,7,h,m);};          // a Wednesday
+  ok('before its time, nothing', R.due(cfg(),wed(17,29),yes).length===0);
+  ok('at its time, the work one', R.due(cfg(),wed(17,30),yes).join()==='work');
+  ok('later, both', R.due(cfg(),wed(18,0),yes).join()==='work,notes');
+  ok('not when switched off', R.due(cfg({work:{on:false,time:'17:30'}}),wed(18,0),yes).join()==='notes');
+  ok('not twice a day', R.due(cfg({fired:{work:'2026-10-07'}}),wed(18,0),yes).join()==='notes');
+  ok('not with nothing to say', R.due(cfg(),wed(18,0),no).length===0);
+  ok('not at the weekend', R.due(cfg(),new Date(2026,9,10,18,0),yes).length===0);
+  ok('not after midnight, for the day before', R.due(cfg(),new Date(2026,9,8,0,30),yes).length===0);
+
+  /* ---- the settings ---- */
+  click(d.querySelector('[data-act="menu"]'));
+  var box=d.querySelector('[data-remind="work"]'), time=d.querySelector('[data-remind-time="work"]');
+  ok('both are in the settings, off', !!box && !box.checked && !!d.querySelector('[data-remind="notes"]') && time.disabled);
+  ok('with a word about where it works', d.getElementById('remind-hint').textContent.length>10);
+  box.checked=true; box.dispatchEvent(new w.Event('change',{bubbles:true}));
+  time.value='17:00'; time.dispatchEvent(new w.Event('change',{bubbles:true}));
+  var saved=JSON.parse(w.localStorage.getItem('ptt.remind.v1'));
+  ok('switching on and timing is kept', saved.work.on===true && saved.work.time==='17:00' && !time.disabled, saved.work);
+  click(d.querySelector('[data-act="menu"]'));
+
+  /* ---- going off ---- */
+  R.setClock(function(){return wed(17,5);});
+  ok('it fires when due', R.check().join()==='work');
+  ok('a red pill shows', /Log today/.test(d.getElementById('remind-slot').textContent));
+  ok('and a dot on the Work tab', d.querySelector('.tabs [data-view="work"]').classList.contains('remind'));
+  ok('only once', R.check().length===0);
+  click(d.querySelector('[data-remind-x="work"]'));
+  ok('× dismisses it', d.getElementById('remind-slot').textContent==='' && !d.querySelector('.tabs [data-view="work"]').classList.contains('remind'));
+
+  // the notes one only goes off with notes to copy
+  var nb=d.querySelector('[data-remind="notes"]'), nt=d.querySelector('[data-remind-time="notes"]');
+  nb.checked=true; nb.dispatchEvent(new w.Event('change',{bubbles:true}));
+  nt.value='17:00'; nt.dispatchEvent(new w.Event('change',{bubbles:true}));
+  ok('no notes, no notes reminder', R.check().length===0);
+  w.localStorage.setItem('ptt.note.20261007','## Call\nsomething');
+  ok('with notes, it fires', R.check().join()==='notes');
+  w.PTT.showView('notes');
+  ok('opening Notes clears it', R.pending().length===0 && d.getElementById('remind-slot').textContent==='');
+
+  // a new time is a new reminder
+  var s=R.settings(); s.fired={}; s.pending={}; s.notes.on=false;
+  w.localStorage.setItem('ptt.work.20261007','- did things');
+  ok('the work one stays quiet once the page has something', R.check().join()==='');
+  w.localStorage.removeItem('ptt.work.20261007');
+  R.settings().fired={};
+  R.check();
+  click(d.querySelector('[data-remind-go="work"]'));
+  ok('clicking the pill goes to Work and clears it', w.PTT.state.view==='work' && R.pending().length===0);
+
+  R.setClock(null);
+  w.PTT.showView('doc');
+  wipe(); R.reload();
+ }catch(e){ok('no exception',false,e.stack||String(e));}
+ document.getElementById('out').textContent=log.join('\n')+'\n'+(log.length-fails)+' passed, '+fails+' failed';
+});
+</script>

@@ -45,6 +45,7 @@
     Worklog.init({
       openNotes: function (day) { showView('notes'); Notes.open(day); }
     });
+    Reminders.init({ slot: document.getElementById('remind-slot'), show: showView });
     // when a staged removal's grace runs out, the page saying so is stale
     Undo.onchange(function () { if (state.view === 'log') render(); });
     els.editor.value = saved === null ? SAMPLE : saved;
@@ -137,6 +138,7 @@
     if (keys.indexOf('ptt.log.v1') !== -1) Log.init();
     Notes.onRemote(keys);
     Worklog.onRemote(keys);
+    if (keys.indexOf('ptt.remind.v1') !== -1) Reminders.reload();
     if (keys.indexOf(STORE) !== -1) {
       var next = Store.getItem(STORE);
       if (next !== null && next !== els.editor.value) {
@@ -229,6 +231,7 @@
       b.classList.toggle('on', b.dataset.filter === state.filter);
     });
     Navbar.update(state.view, state.layout);   // what the bar holds depends on both
+    Reminders.paint();                         // its dots ride on the tabs just drawn
 
     var open = doc.todos.filter(function (t) { return !t.done; }).length;
     var overdue = doc.todos.filter(function (t) { return !t.done && t.due && t.due < ctx.todayISO; }).length;
@@ -641,6 +644,7 @@
   // Asking for a view while in text-only means you want to see it — go back to
   // whichever editor arrangement you were last in.
   function showView(v) {
+    Reminders.seen(v);   // going there is doing what it asked
     var was = state.view;
     state.view = v;
     if (isPage(v)) state.layout = state.notesLayout;

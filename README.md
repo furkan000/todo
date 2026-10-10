@@ -559,6 +559,27 @@ The cog menu's **Work log → The month as Markdown** exports the month on
 screen, oldest day first: each day's page, plus any finished todos you did not
 copy in.
 
+## Reminders
+
+The cog menu has two reminders, each with its own switch and time:
+**Log today's work** (default 17:30) and **Copy today's notes** (17:45). On a
+workday (Monday to Friday) at its time, a reminder does two things:
+
+- a **browser notification**. The browser asks for permission the first time you
+  switch one on. Clicking the notification takes you to the tab.
+- a **red marker** that stays: a pill at the left of the status bar and a red
+  dot on the Work or Notes tab (or on More, if that tab is folded away). It goes
+  when you open that tab, click the pill, or press its ×.
+
+A reminder only goes off when there is something to do: the work one when
+today's Work page is still empty, the notes one when you wrote notes today. It
+fires once a day, and only while the app is open in a tab. If you open the app
+after its time, it fires then.
+
+Browsers only send notifications from a secure origin: `http://127.0.0.1` or
+`localhost` work, but the LAN address (`http://192.168.…`) does not. There
+only the red marker shows, and the settings say so.
+
 ## Selection echo
 
 Select any text in the editor and every other copy of it is boxed, so you can see
@@ -645,6 +666,7 @@ js/occurrences.js  echoes the current selection everywhere else it appears
 js/find.js      find & replace over the source text (self-contained)
 js/notes.js     a page of notes per day: conversations, tags, search
 js/spotlight.js the full-text search box over every note
+js/reminders.js the two daily reminders: a notification and a red marker that stays
 js/navbar.js    fits the toolbar to the window: folds the filter, then tabs into More
 js/worklog.js   a page per day of what you did, with that day's finished todos and notes
 js/app.js       state, text write-back, import/export
