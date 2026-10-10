@@ -172,7 +172,7 @@
     if (!available()) return 'This page cannot send notifications (that needs localhost or https), so only the red marker will show.';
     var p = global.Notification.permission;
     if (p === 'denied') return 'Notifications are blocked for this site, so only the red marker will show.';
-    return 'Monday to Friday, while the app is open in a tab.';
+    return 'While the app is open in a tab.';
   }
 
   function paintSettings() {
