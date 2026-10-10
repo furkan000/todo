@@ -215,6 +215,9 @@ code { font-family: var(--mono); font-size: .92em; }
 
 /* ---------- reminders ---------- */
 .remind-row { display: flex; align-items: center; gap: 8px; padding: 3px 9px; font-size: 13px; }
+.remind-row input[type="checkbox"] { margin: 0; accent-color: var(--accent); color-scheme: light; }
+/* the box itself is the browser's; told the theme, an unticked one is not white */
+:root[data-theme="dark"] .remind-row input[type="checkbox"] { color-scheme: dark; }
 .remind-row label { flex: 1; display: flex; align-items: center; gap: 7px; cursor: pointer; white-space: nowrap; }
 .remind-row [data-remind-time] {
   width: 4.2em; text-align: center; font-family: var(--mono); font-size: 12.5px;
